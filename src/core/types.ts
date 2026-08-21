@@ -129,8 +129,26 @@ export interface ComponentDef {
   instances: Instance[];
   wires: Wire[];
   tests?: TestBench;
+  /** What was written around the text form. See `Notes`. */
+  notes?: Notes;
   /** Wall-clock of last edit, for sorting recents. */
   updatedAt?: number;
+}
+
+/**
+ * Comments from the text form.
+ *
+ * The schematic is canonical, so the text is regenerated from it every time it
+ * is shown -- which would throw away anything written in the margins. Keeping
+ * comments here instead, anchored to whatever they were written about rather
+ * than to a line number, means they survive being redrawn: the same reason
+ * labels carry identity across an edit.
+ */
+export interface Notes {
+  /** Lines that sat above a statement, keyed by what that statement declares. */
+  above?: Record<string, string[]>;
+  /** A comment at the end of a statement's own line. */
+  inline?: Record<string, string>;
 }
 
 export interface Folder {

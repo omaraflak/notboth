@@ -116,10 +116,17 @@ It is the only real dependency in the project and it is three times the size of
 everything else, so it is fetched in its own chunk when the app goes idle rather
 than before the first paint. The schematic never waits for it.
 
-Two things text does not carry: memory contents, because a ROM's program is
-data rather than structure (it survives by identity, and you edit it from the
-schematic), and comments, which live in the editor buffer rather than in the
-saved component.
+The one thing text does not carry is memory contents, because a ROM's program
+is data rather than structure — it survives by identity, and you edit it from
+the schematic.
+
+**Comments do survive.** The text is regenerated from the schematic every time
+it is shown, so a comment kept by line number would vanish the moment you drew
+anything. They are kept by *what they were written about* instead — the part,
+the port, or the connection they sit above — which is the same trick as labels
+carrying identity. Draw a gate on the canvas and your notes are still where
+you left them, above the right lines. A note on something you delete goes with
+it; a note at the top or the bottom of the file stays there.
 
 ## Arranging a schematic
 

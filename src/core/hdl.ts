@@ -20,7 +20,7 @@ import { newId } from './ids';
 import { clampWidth, isPrim, primDefId, primKind, primName } from './primitives';
 import { defSignature, signatureOf } from './project';
 import type {
-  ComponentDef, Id, Instance, Pin, PrimitiveKind, Project, Signature, Wire,
+  ComponentDef, Id, Instance, Notes, Pin, PrimitiveKind, Project, Signature, Wire,
 } from './types';
 import { PRIMITIVE_KINDS } from './types';
 
@@ -116,6 +116,111 @@ function sliceSuffix(lo: number, hi: number, width: number): string {
   return lo === hi ? `[${lo}]` : `[${hi}..${lo}]`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Comments
+ * ------------------------------------------------------------------ */
+
+/** Where a run of comment lines with nothing after it is kept. */
+const END = '$';
+/** Where the block at the very top is kept. */
+const TOP = '^';
+
+const MEMORY_NOTE = '# Memory contents are not shown here; edit them from the schematic.';
+
+/** The comment the generator writes when the author has not written their own. */
+function headerLines(name: string, instances: Instance[]): string[] {
+  const lines = [`# ${name}`];
+  const hasMemory = instances.some((i) => isPrim(i.def)
+    && (primKind(i.def) === 'ROM' || primKind(i.def) === 'RAM'));
+  if (hasMemory) lines.push(MEMORY_NOTE);
+  return lines;
+}
+
+/**
+ * What a statement declares, which is what a comment above it is about.
+ * Declarations, parts and assignments live in separate namespaces because a
+ * port and the line that drives it share a name.
+ */
+function anchorOf(text: string): string | null {
+  const port = RE_PORT.exec(text);
+  if (port && !/^\s*(in|out)\s*=/.test(text)) return `d:${port[2]}`;
+  const inst = RE_INST.exec(text);
+  if (inst) return `p:${inst[1]}`;
+  const eq = text.indexOf('=');
+  if (eq > 0) return `a:${text.slice(0, eq).replace(/\s+/g, '')}`;
+  return null;
+}
+
+function isEmpty(notes: Notes): boolean {
+  return !Object.keys(notes.above ?? {}).length && !Object.keys(notes.inline ?? {}).length;
+}
+
+/**
+ * Pull the comments out of a source text and file them by what they were
+ * written about. A generated header is left behind rather than captured, so
+ * that it goes on tracking the component's name.
+ */
+export function collectNotes(source: string, def: ComponentDef, instances: Instance[]): Notes | undefined {
+  const above: Record<string, string[]> = {};
+  const inline: Record<string, string> = {};
+  let pending: string[] = [];
+  let buffer = '';
+  let depth = 0;
+  let started = false;
+
+  const flushTo = (key: string) => {
+    while (pending.length && pending[pending.length - 1] === '') pending.pop();
+    if (pending.length) above[key] = pending;
+    pending = [];
+  };
+
+  for (const raw of source.split('\n')) {
+    const trimmed = raw.trim();
+    if (depth === 0) {
+      if (!trimmed) { if (pending.length) pending.push(''); continue; }
+      if (trimmed.startsWith('#')) { pending.push(trimmed); continue; }
+    }
+
+    const hash = raw.indexOf('#');
+    const code = (hash >= 0 ? raw.slice(0, hash) : raw).trim();
+    const comment = hash >= 0 ? raw.slice(hash).trim() : '';
+
+    buffer = depth === 0 ? code : `${buffer} ${code}`;
+    for (const ch of code) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+    }
+    if (depth !== 0) continue;
+
+    const key = buffer ? anchorOf(buffer) : null;
+    if (key) {
+      // A block at the top with a blank line under it is about the component,
+      // not about the first thing declared in it.
+      if (!started && pending[pending.length - 1] === '') flushTo(TOP);
+      started = true;
+      flushTo(key);
+      if (comment) inline[key] = comment;
+    } else {
+      pending = [];
+    }
+    buffer = '';
+  }
+  flushTo(END);
+
+  // A block at the top that is only what the generator would have written
+  // anyway is not the author's, and keeping it would freeze a stale name.
+  const top = above[TOP];
+  if (top) {
+    const generated = headerLines(def.name, instances).join('\n');
+    if (top.join('\n') === generated) delete above[TOP];
+  }
+
+  const notes: Notes = {};
+  if (Object.keys(above).length) notes.above = above;
+  if (Object.keys(inline).length) notes.inline = inline;
+  return isEmpty(notes) ? undefined : notes;
+}
+
 export function toText(project: Project, def: ComponentDef): string {
   const labels = labelsFor(project, def);
   const byId = new Map(def.instances.map((i) => [i.id, i]));
@@ -147,14 +252,24 @@ export function toText(project: Project, def: ComponentDef): string {
     if (list) list.push(w); else feeding.set(key, [w]);
   }
 
-  out.push(`# ${def.name}`);
-  if (def.instances.some((i) => isPrim(i.def) && (primKind(i.def) === 'ROM' || primKind(i.def) === 'RAM'))) {
-    out.push('# Memory contents are not shown here; edit them from the schematic.');
-  }
+  const notes = def.notes ?? {};
+  const above = (key: string) => { const lines = notes.above?.[key]; if (lines) out.push(...lines); };
+  const withNote = (key: string, line: string) => {
+    const note = notes.inline?.[key];
+    return note ? `${line}  ${note}` : line;
+  };
+
+  out.push(...(notes.above?.[TOP] ?? headerLines(def.name, def.instances)));
   out.push('');
 
-  for (const p of sig.inputs) out.push(`in  ${p.name}${widthSuffix(p.width)}`);
-  for (const p of sig.outputs) out.push(`out ${p.name}${widthSuffix(p.width)}`);
+  for (const p of sig.inputs) {
+    above(`d:${p.name}`);
+    out.push(withNote(`d:${p.name}`, `in  ${p.name}${widthSuffix(p.width)}`));
+  }
+  for (const p of sig.outputs) {
+    above(`d:${p.name}`);
+    out.push(withNote(`d:${p.name}`, `out ${p.name}${widthSuffix(p.width)}`));
+  }
   if (sig.inputs.length || sig.outputs.length) out.push('');
 
   // Parts in stored order, never in canvas order: the text has to be
@@ -162,7 +277,7 @@ export function toText(project: Project, def: ComponentDef): string {
   // it and so that reordering these lines is a change that sticks.
   const parts = def.instances.filter((i) => !isPortInstance(i));
 
-  const trailing: string[] = [];
+  const trailing: Array<{ key: string; text: string }> = [];
   for (const inst of parts) {
     const label = labels.get(inst.id)!;
     const type = isPrim(inst.def)
@@ -187,23 +302,38 @@ export function toText(project: Project, def: ComponentDef): string {
       } else {
         // Partial or multiply-driven: each piece gets its own line below.
         for (const w of wires) {
-          trailing.push(`${label}.${pin.name}${sliceSuffix(w.to.lo, w.to.hi, pin.width)} = ${sourceText(w)}`);
+          const target = `${label}.${pin.name}${sliceSuffix(w.to.lo, w.to.hi, pin.width)}`;
+          trailing.push({ key: `a:${target.replace(/\s+/g, '')}`, text: `${target} = ${sourceText(w)}` });
         }
       }
     }
-    out.push(args.length ? `${label} : ${type}(${args.join(', ')})` : `${label} : ${type}`);
+    above(`p:${label}`);
+    out.push(withNote(`p:${label}`,
+      args.length ? `${label} : ${type}(${args.join(', ')})` : `${label} : ${type}`));
   }
 
-  if (trailing.length) { out.push(''); out.push(...trailing); }
+  const emit = (lines: Array<{ key: string; text: string }>) => {
+    if (!lines.length) return;
+    out.push('');
+    for (const line of lines) {
+      above(line.key);
+      out.push(withNote(line.key, line.text));
+    }
+  };
+  emit(trailing);
 
-  const outLines: string[] = [];
+  const outLines: Array<{ key: string; text: string }> = [];
   for (const p of sig.outputs) {
     const wires = feeding.get(`${p.id}:in`) ?? [];
     for (const w of wires) {
-      outLines.push(`${p.name}${sliceSuffix(w.to.lo, w.to.hi, p.width)} = ${sourceText(w)}`);
+      const target = `${p.name}${sliceSuffix(w.to.lo, w.to.hi, p.width)}`;
+      outLines.push({ key: `a:${target.replace(/\s+/g, '')}`, text: `${target} = ${sourceText(w)}` });
     }
   }
-  if (outLines.length) { out.push(''); out.push(...outLines); }
+  emit(outLines);
+
+  const tail = notes.above?.[END];
+  if (tail) { out.push(''); out.push(...tail); }
 
   return out.join('\n') + '\n';
 }
@@ -221,6 +351,8 @@ export interface ParsedComponent {
   issues: HdlIssue[];
   instances: Instance[];
   wires: Wire[];
+  /** What was written in the margins, so it survives the next redraw. */
+  notes?: Notes;
 }
 
 const IDENT = '[A-Za-z_][A-Za-z0-9_]*';
@@ -539,7 +671,7 @@ export function fromText(project: Project, source: string, target: ComponentDef)
   // Only the parts the text just invented need placing; everything else keeps
   // the position it already had.
   if (!issues.length && isFresh.size) arrange(project, instances, wires, { only: isFresh });
-  return { issues, instances, wires };
+  return { issues, instances, wires, notes: collectNotes(source, target, instances) };
 }
 
 /**
@@ -551,6 +683,7 @@ export function applyText(project: Project, def: ComponentDef, source: string): 
   if (parsed.issues.length) return parsed.issues;
   def.instances = parsed.instances;
   def.wires = parsed.wires;
+  def.notes = parsed.notes;
   def.updatedAt = Date.now();
   return [];
 }

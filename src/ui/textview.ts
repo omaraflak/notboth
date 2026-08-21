@@ -153,11 +153,16 @@ export class TextView {
       return false;
     }
 
-    // Most keystrokes change the text without changing the component: a
-    // comment, a blank line, a column of spaces lined up. Those must not push
-    // a snapshot onto the undo stack, or eighty of them would quietly evict
-    // every real edit -- and there is no sense recompiling for them either.
+    // Most keystrokes change the text without changing the circuit: a comment,
+    // a blank line, a column of spaces lined up. Those must not push a snapshot
+    // onto the undo stack, or eighty of them would quietly evict every real
+    // edit -- and there is no sense recompiling for them either. The margins
+    // are still saved; the text editor has its own undo for those.
     if (!structural(parsed.instances, parsed.wires, def)) {
+      if (JSON.stringify(parsed.notes ?? null) !== JSON.stringify(def.notes ?? null)) {
+        def.notes = parsed.notes;
+        app.persist();
+      }
       this.dirty = false;
       this.setStatus('Saved', 'ok');
       return true;
@@ -168,6 +173,7 @@ export class TextView {
       app.mutate(() => {
         def.instances = parsed.instances;
         def.wires = parsed.wires;
+        def.notes = parsed.notes;
       });
     } finally {
       this.committing = false;

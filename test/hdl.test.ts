@@ -470,3 +470,88 @@ describe('arranging the schematic', () => {
     expect(new Set(d.instances.map((i) => `${i.x},${i.y}`)).size).toBe(d.instances.length);
   });
 });
+
+describe('comments', () => {
+  /** A NOT gate, written with notes all over it. */
+  const commented = [
+    '# What this component is for.',
+    '# Second line of that.',
+    '',
+    'in  a    # the operand',
+    'out y',
+    '',
+    '# Tying both inputs together makes a NAND invert.',
+    'g : Nand(a = a, b = a)',
+    '',
+    'y = g.y',
+    '',
+    '# a parting thought',
+  ].join('\n');
+
+  const load = () => {
+    const p = project();
+    const d = def(p, 'Not');
+    expect(applyText(p, d, commented)).toEqual([]);
+    return { p, d };
+  };
+
+  it('survives the text being regenerated from the schematic', () => {
+    const { p, d } = load();
+    const text = toText(p, d);
+    expect(text).toContain('# What this component is for.');
+    expect(text).toContain('# Second line of that.');
+    expect(text).toContain('# the operand');
+    expect(text).toContain('# Tying both inputs together makes a NAND invert.');
+    expect(text).toContain('# a parting thought');
+  });
+
+  it('keeps each comment with what it was written about', () => {
+    const { p, d } = load();
+    const lines = toText(p, d).split('\n');
+    const at = (needle: string) => lines.findIndex((l) => l.includes(needle));
+    expect(at('# Tying both')).toBe(at('g : Nand') - 1);
+    expect(lines[at('in  a')]).toContain('# the operand');
+  });
+
+  it('follows a part when the schematic changes around it', () => {
+    const { p, d } = load();
+    // As if a gate had been added on the canvas.
+    const extra = addPrimitive(d, 'NAND', 0, 9);
+    connect(p, d, { inst: extra.id, pin: 'y' }, { inst: extra.id, pin: 'a' });
+    const lines = toText(p, d).split('\n');
+    const note = lines.findIndex((l) => l.includes('# Tying both'));
+    expect(lines[note + 1]).toContain('g : Nand');
+  });
+
+  it('round-trips: reading its own output back gives the same notes', () => {
+    const { p, d } = load();
+    const once = toText(p, d);
+    expect(applyText(p, d, once)).toEqual([]);
+    expect(toText(p, d)).toBe(once);
+  });
+
+  it('does not capture the generated header, which tracks the name', () => {
+    const p = project();
+    const d = def(p, 'Thing');
+    addPrimitive(d, 'NAND', 0, 0);
+    expect(applyText(p, d, toText(p, d))).toEqual([]);
+    expect(d.notes?.above?.['^']).toBeUndefined();
+    d.name = 'Renamed';
+    expect(toText(p, d)).toContain('# Renamed');
+    expect(toText(p, d)).not.toContain('# Thing');
+  });
+
+  it('drops a note whose subject is gone rather than stranding it', () => {
+    const { p, d } = load();
+    expect(applyText(p, d, 'in  a\nout y\n\ny = a')).toEqual([]);
+    expect(toText(p, d)).not.toContain('# Tying both');
+  });
+
+  it('leaves a component with no comments carrying nothing', () => {
+    const p = project();
+    const d = def(p, 'Bare');
+    addPrimitive(d, 'NAND', 0, 0);
+    applyText(p, d, toText(p, d));
+    expect(d.notes).toBeUndefined();
+  });
+});
