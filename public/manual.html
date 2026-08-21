@@ -526,7 +526,7 @@ article.stage:last-of-type { border-bottom: 0; }
       A NAND gate answers one question: <em>are both of my inputs on?</em> &mdash;
       and then says the opposite. That is the whole of it. It has no memory, no
       arithmetic, no notion of a number. From that, in thirty-nine moves, you
-      are going to get a machine that runs software you wrote in a language you
+      can build a machine that runs software you wrote in a language you
       designed.
     </p>
     <p>
@@ -536,7 +536,7 @@ article.stage:last-of-type { border-bottom: 0; }
       by construction.
     </p>
     <p>
-      Three habits will decide whether you finish. <strong>Build small.</strong> A
+      Three habits are worth adopting from the start. <strong>Build small.</strong> A
       component should do one nameable thing. If you cannot name it in one word,
       it is two components. <strong>Test before you move on.</strong> Every chip
       gets a truth table before it gets used, without exception; a wrong wire
@@ -568,8 +568,8 @@ article.stage:last-of-type { border-bottom: 0; }
       <a href="#s106"><i>1.06</i>DMux</a>
       <a href="#s107"><i>1.07</i>Widen to sixteen</a>
       <a href="#s108"><i>1.08</i>Or8Way</a>
-      <a href="#s109"><i>1.09</i>Mux8Way16</a>
-      <a href="#s110"><i>1.10</i>DMux8Way</a>
+      <a href="#s109"><i>1.09</i>Mux4Way16, Mux8Way16</a>
+      <a href="#s110"><i>1.10</i>DMux4Way, DMux8Way</a>
     </div>
     <div class="toc-part">
       <b><i>II</i>Arithmetic</b>
@@ -593,7 +593,7 @@ article.stage:last-of-type { border-bottom: 0; }
     </div>
     <div class="toc-part">
       <b><i>IV</i>The machine</b>
-      <a href="#s401"><i>4.01</i>Design the language first</a>
+      <a href="#s401"><i>4.01</i>Design the instruction set</a>
       <a href="#s402"><i>4.02</i>The memory map</a>
       <a href="#s403"><i>4.03</i>Two registers</a>
       <a href="#s404"><i>4.04</i>The decoder is wires</a>
@@ -630,8 +630,8 @@ article.stage:last-of-type { border-bottom: 0; }
     <h2>The gates</h2>
     <p>
       Ten parts, none of them larger than a handful of NANDs. By the end of this
-      Part you will have stopped thinking in gates and started thinking in
-      operations &mdash; which is the actual point of it.
+      Part you will be thinking less about gates and more about operations, which
+      is where the rest of the build happens.
     </p>
   </div>
 </div>
@@ -804,17 +804,18 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b>1.05, 1.07</span></div>
   <div>
     <h3>Mux4Way16 and Mux8Way16</h3>
-    <div class="sig">Mux8Way16(a..h[16], sel[3]) &rarr; out[16]</div>
+    <div class="sig">Mux4Way16(a..d[16], sel[2]) &rarr; out[16] &nbsp;&middot;&nbsp; Mux8Way16(a..h[16], sel[3]) &rarr; out[16]</div>
     <p>
-      Choosing between two things is not enough; you will need to choose between
-      eight. Three selector bits, eight candidate words, one winner.
+      Choosing between two things is not enough. Build the four-way first, then
+      the eight-way from it: two selector bits and four candidate words, then
+      three bits and eight. One winner either way.
     </p>
     <p>
       Do not invent a new mechanism for this. Build it out of the two-way mux you
       already have, in layers &mdash; and notice while you do that a selector bit is
       just an address bit. That realisation is most of Part III.
     </p>
-    <div class="done"><b>Done when</b>All eight selector values pick the right input. Feed each input a distinct recognisable value so a mis-order is obvious.</div>
+    <div class="done"><b>Done when</b>Every selector value picks the right input, in both sizes. Feed each input a distinct recognisable value so a mis-order is obvious.</div>
   </div>
 </article>
 
@@ -822,15 +823,25 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">1.10</span><span class="deps"><b>Needs</b>1.06</span></div>
   <div>
     <h3>DMux4Way and DMux8Way</h3>
-    <div class="sig">DMux8Way(in, sel[3]) &rarr; a..h</div>
+    <div class="sig">DMux4Way(in, sel[2]) &rarr; a..d &nbsp;&middot;&nbsp; DMux8Way(in, sel[3]) &rarr; a..h</div>
     <p>
-      The routing counterpart, and your address decoder. Three bits in, one of
-      eight lines raised, seven held down.
+      The routing counterpart, and your address decoder. Two bits in, one of
+      four lines raised and three held down; then three bits and one of eight.
     </p>
     <p>
       When you build RAM you will hand it an address and expect exactly one cell
       to react. This chip is what makes that true. Build it the same way as the
       wide mux: in layers, out of the part you already have.
+    </p>
+    <p>
+      One thing worth being explicit about, because the pair looks lopsided next
+      to each other: the muxes in the stage above are sixteen bits wide and
+      these are one bit. That is not an omission. A mux carries <em>data</em>
+      &mdash; it chooses between whole numbers, so it is as wide as a number. A
+      demux carries a <em>decision</em> &mdash; it routes a single write signal
+      to one destination out of several. There is no DMux4Way16 because nothing
+      in the machine needs to send a whole word down one of four roads; it needs
+      to tell one register out of four to listen.
     </p>
     <div class="done"><b>Done when</b>Every selector value raises exactly one output and no other.</div>
   </div>
@@ -982,8 +993,8 @@ article.stage:last-of-type { border-bottom: 0; }
       operation on the results (either add or and &mdash; that is all you need), then
       <em>post-condition</em> the answer (optionally invert it). Six control bits
       driving those choices give you the whole menu, and each phase is a mux or
-      two. Work out for yourself which settings produce subtraction; when it
-      clicks, it is genuinely delightful.
+      two. Work out for yourself which settings produce subtraction; it is a
+      satisfying thing to find.
     </p>
     <p>
       Two extra outputs matter as much as the number itself. <code>zr</code> says
@@ -1033,8 +1044,8 @@ article.stage:last-of-type { border-bottom: 0; }
     <p>
       Try it on the bench before you build anything: wire one gate&rsquo;s output back
       into its own input, switch the power on, and watch what happens. Then slow
-      the clock right down and watch it again. Understanding what you see is the
-      admission price for the rest of this Part.
+      the clock right down and watch it again. The rest of this Part comes much
+      easier once you have watched it happen.
     </p>
     <div class="done"><b>Done when</b>You can explain why feedback plus delay produces memory, without using the word &ldquo;somehow&rdquo;.</div>
   </div>
@@ -1103,8 +1114,7 @@ article.stage:last-of-type { border-bottom: 0; }
       The standard construction is two gated latches back to back, enabled on
       opposite halves of the clock, so that whichever one is listening, the other
       is holding. The value can only ever advance one stage per clock tick. That
-      restriction is not a limitation, it is the entire discipline that makes a
-      computer possible: it means the whole machine changes state together, in
+      restriction is what makes the rest of the build tractable: it means the whole machine changes state together, in
       lockstep, and that every part of it can rely on the others staying still
       while it thinks.
     </p>
@@ -1174,7 +1184,7 @@ article.stage:last-of-type { border-bottom: 0; }
     </p>
     <p>
       Then stop. Having proved you can, use the built-in RAM part for the real
-      machine. This is not a cop-out and it is worth being clear about why: a
+      machine. It is worth saying why that is a reasonable place to stop: a
       sixteen-thousand-word memory made of flip-flops is around two and a half
       million gates, and real hardware does not build it that way either &mdash; an
       SRAM cell is six transistors, not a netlist of gates. You have demonstrated
@@ -1250,7 +1260,7 @@ article.stage:last-of-type { border-bottom: 0; }
       a register. The other says &ldquo;compute something, put the answer somewhere,
       and maybe jump&rdquo; &mdash; with separate little fields for <em>what to compute</em>,
       <em>where to put it</em>, and <em>when to jump</em>. Two formats is enough to be
-      a real computer. It is a remarkably small hinge for a very large door.
+      a real computer. It is a small hinge for a large door.
     </p>
     <div class="done"><b>Done when</b>You have a written table: every bit of an instruction, what it means, and an example encoded by hand.</div>
   </div>
@@ -1270,9 +1280,8 @@ article.stage:last-of-type { border-bottom: 0; }
       That last point is worth dwelling on. If a screen is simply a range of
       memory addresses whose contents happen to be displayed, then drawing a
       pixel is <em>storing a number</em>, and you need no new instructions, no new
-      hardware path, and no concept of input or output at all. It is one of the
-      great economies in computer design and it costs you nothing but a decision
-      made now.
+      hardware path, and no concept of input or output at all. It is one of the tidiest economies in the design,
+      and it costs nothing but a decision made now.
     </p>
     <div class="done"><b>Done when</b>You have an address map on paper, with a reason for each boundary.</div>
   </div>
@@ -1308,8 +1317,8 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>The decoder is mostly wires</h3>
     <div class="sig">instruction[16] &rarr; control signals</div>
     <p>
-      &ldquo;Instruction decoding&rdquo; sounds like it needs a large and clever chip. If
-      you designed your instruction set well, it needs almost nothing: the bits
+      &ldquo;Instruction decoding&rdquo; sounds like it needs a large and clever chip.
+      With a well-chosen instruction set it needs almost nothing: the bits
       of the instruction <em>are</em> the control signals. The field that says what
       to compute is wired straight to the ALU&rsquo;s control inputs. The field that
       says where to store the answer is wired straight to the load inputs of the
@@ -1335,9 +1344,9 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>The datapath</h3>
     <div class="sig">CPU(instruction[16], inM[16], clk) &rarr; outM[16], writeM, addressM[15], pc[15]</div>
     <p>
-      Now assemble the CPU. This is the largest chip you will draw and the one
-      that will feel, briefly, like too much. It is not: everything in it is a
-      part you have already built and tested.
+      Now assemble the CPU. This is the largest chip you will draw. It can look
+      like too much at first; it helps that everything in it is a part you have
+      already built and tested.
     </p>
     <p>
       The structure is a loop. The ALU takes two inputs &mdash; one always from the
@@ -1411,7 +1420,7 @@ article.stage:last-of-type { border-bottom: 0; }
       choice, called Harvard, and what it buys you is simplicity: the machine can
       fetch an instruction and touch data in the same tick without them queuing
       for the same memory. The cost is that a program cannot modify itself, which
-      you will not miss.
+      is rarely a loss at this scale.
     </p>
     <p>
       Wire it up. Then stop, because you have built a computer, and there is
@@ -1448,9 +1457,8 @@ article.stage:last-of-type { border-bottom: 0; }
     <p>
       Do this exactly once. It is the moment the hardware stops being a diagram
       and becomes a machine, and it will teach you more about your instruction
-      set in ten minutes than an afternoon of staring at it. It will also make
-      you want an assembler with an intensity you cannot currently imagine,
-      which is the point.
+      set in ten minutes than an afternoon of staring at it. It is also the quickest way to
+      see why you want an assembler, which is the point.
     </p>
     <div class="done"><b>Done when</b>You single-step through your own machine code and the right number lands in the right place.</div>
   </div>
@@ -1513,7 +1521,7 @@ article.stage:last-of-type { border-bottom: 0; }
       a translator from it into your assembly.
     </p>
     <p>
-      Skipping this layer is the most common way this project dies. Compiling a
+      Skipping this layer is a common way for the project to stall. Compiling a
       high-level language directly to machine code means every language feature
       has to be solved in the same breath as every hardware detail, and the two
       problems tangle. This layer cuts the knot: the compiler above it only has
@@ -1539,8 +1547,8 @@ article.stage:last-of-type { border-bottom: 0; }
       Because you are targeting the intermediate language rather than the metal,
       each construct becomes a small, local translation &mdash; a <code>while</code> is
       a couple of labels and a conditional jump, an expression is a walk over its
-      own tree emitting pushes. It is a satisfying piece of work rather than a
-      grim one.
+      own tree emitting pushes. That keeps each construct small enough to hold in
+      your head.
     </p>
     <div class="done"><b>Done when</b>A program with a loop and a function call compiles all the way down and runs on your hardware.</div>
   </div>
@@ -1681,9 +1689,9 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="body">
     <h2>One last thing</h2>
     <p>
-      This will take longer than you expect, and the stretch between 2.06 and
-      3.04 is where most attempts stall. Push through that and the rest is
-      momentum.
+      This will probably take longer than you expect, and the stretch between
+      2.06 and 3.04 is the one to watch: it is where the ideas are densest. Past
+      it, the rest builds momentum.
     </p>
     <p>
       Test everything. Name everything. Never build the same part twice.
