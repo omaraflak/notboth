@@ -433,7 +433,11 @@ article.stage:last-of-type { border-bottom: 0; }
 
 @media (max-width: 46rem) {
   body { font-size: 16px; }
-  article.stage, .part-head { grid-template-columns: 1fr; gap: 0; }
+  /* minmax(0,...), not a bare 1fr: a bare one is minmax(auto, 1fr), whose
+     floor is the widest thing inside. One long signature would then stretch
+     the column past the screen and set the whole page scrolling sideways,
+     instead of scrolling inside its own box the way .sig is set up to. */
+  article.stage, .part-head { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .rail {
     position: static;
     display: flex;
@@ -1073,7 +1077,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">3.02</span><span class="deps"><b>Needs</b>3.01</span></div>
   <div>
     <h3>The latch</h3>
-    <div class="sig">two gates, cross-coupled: set, reset &rarr; q</div>
+    <div class="sig">SRLatch(set, reset) &rarr; q</div>
     <p>
       Two gates, each feeding the other&rsquo;s input. Pulse one and the pair locks
       into one state; pulse the other and it locks into the opposite. Release
@@ -1259,7 +1263,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b>paper</span></div>
   <div>
     <h3>Design the instruction set first</h3>
-    <div class="sig">no chip &mdash; a specification</div>
+    <div class="sig">no new chip &mdash; a specification</div>
     <p>
       Do not wire anything in this Part until you have written down your
       instruction set. The hardware is a <em>consequence</em> of the instruction
@@ -1288,7 +1292,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b>4.01</span></div>
   <div>
     <h3>The memory map</h3>
-    <div class="sig">no chip &mdash; a decision</div>
+    <div class="sig">no new chip &mdash; a decision</div>
     <p>
       Decide what lives at which addresses, and write that down too. Some region
       is working memory. If you want a screen or a keyboard, they get addresses
@@ -1309,7 +1313,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.03</span><span class="deps"><b>Needs</b>3.06, 4.01</span></div>
   <div>
     <h3>Two registers</h3>
-    <div class="sig">A and D</div>
+    <div class="sig">no new chip &mdash; two Registers from 3.06</div>
     <p>
       Your CPU needs somewhere to hold values it is working on. Two registers is
       enough, and each has a distinct character worth respecting.
@@ -1333,7 +1337,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.04</span><span class="deps"><b>Needs</b>4.01</span></div>
   <div>
     <h3>The decoder is mostly wires</h3>
-    <div class="sig">instruction[16] &rarr; control signals</div>
+    <div class="sig">Decode(instruction[16]) &rarr; zx, nx, zy, ny, f, no, useM, loadA, loadD, writeM, jump[n]</div>
     <p>
       &ldquo;Instruction decoding&rdquo; sounds like it needs a large and clever chip.
       With a well-chosen instruction set it needs almost nothing: the bits
@@ -1347,6 +1351,17 @@ article.stage:last-of-type { border-bottom: 0; }
       you are looking at, and gating the control signals accordingly &mdash; because a
       constant-loading instruction must not accidentally trigger a memory write.
     </p>
+    <p>
+      That list of outputs is not a choice. It is fixed by what your machine
+      already has that needs controlling: the ALU&rsquo;s six bits from 2.06, a load
+      line for each of the two registers, whether memory is written, whether the
+      ALU&rsquo;s second input comes from memory or from the address register
+      (<code>useM</code>), and the jump field passed on to 4.06. What <em>is</em>
+      yours is which instruction bits produce them, and how wide the jump field
+      is &mdash; the <code>n</code> in the signature is whatever your table in 4.01
+      says.
+    </p>
+
     <p>
       If this chip is turning out large, the problem is upstream in 4.01. Go back
       and simplify the encoding; that is much cheaper than building the decoder
@@ -1386,13 +1401,14 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>4.05, 3.08</span></div>
   <div>
     <h3>Jumps</h3>
-    <div class="sig">ALU flags + jump field &rarr; PC load</div>
+    <div class="sig">Jump(zr, ng, jump[n]) &rarr; load</div>
     <p>
       The last piece of the CPU, and the one that turns a calculator into a
-      computer. Your ALU reports two facts about its result: it was zero, it was
-      negative. Your instruction carries a small field saying which outcomes
-      should cause a jump. Compare the two, and if they agree, tell the program
-      counter to load instead of increment.
+      computer. Your ALU reports two facts about its result: it was zero
+      (<code>zr</code>) and it was negative (<code>ng</code>). Your instruction
+      carries a small field saying which outcomes should cause a jump. Compare
+      the two, and if they agree, tell the program counter to load instead of
+      increment.
     </p>
     <p>
       That handful of gates is where every <code>if</code>, every <code>while</code>,
@@ -1407,7 +1423,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.07</span><span class="deps"><b>Needs</b>4.02</span></div>
   <div>
     <h3>Talking to the world</h3>
-    <div class="sig">memory-mapped regions</div>
+    <div class="sig">no new chip &mdash; a region of RAM that something else is watching</div>
     <p>
       Optional, and worth it. If you reserved addresses for a screen and a
       keyboard back in 4.02, wire them up now &mdash; a region of memory whose contents
@@ -1427,7 +1443,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">4.08</span><span class="deps"><b>Needs</b>4.05, 4.06, 3.07</span></div>
   <div>
     <h3>The computer</h3>
-    <div class="sig">Computer(reset, clk)</div>
+    <div class="sig">Computer(reset, clk) &rarr; nothing &mdash; the output is what it leaves in memory</div>
     <p>
       Three boxes and the wires between them: a ROM holding the program, the CPU,
       and the RAM. The counter&rsquo;s output addresses the ROM; the ROM&rsquo;s output is
@@ -1466,7 +1482,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">5.01</span><span class="deps"><b>Needs</b>4.08</span></div>
   <div>
     <h3>A program in binary</h3>
-    <div class="sig">by hand, into the ROM</div>
+    <div class="sig">your instruction table &rarr; bits in the ROM, by hand</div>
     <p>
       Write something tiny directly in machine code &mdash; add two numbers and store
       the result &mdash; encode it by hand from your table in 4.01, load it into the
@@ -1510,7 +1526,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">5.03</span><span class="deps"><b>Needs</b>5.02</span></div>
   <div>
     <h3>A stack, and a convention for calling things</h3>
-    <div class="sig">a region of RAM, plus rules</div>
+    <div class="sig">a region of RAM, plus rules &rarr; functions that can call functions</div>
     <p>
       Functions need somewhere to keep their local variables and their return
       address, and it must nest &mdash; a function can call a function that calls a
@@ -1576,7 +1592,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">5.06</span><span class="deps"><b>Needs</b>5.05</span></div>
   <div>
     <h3>A runtime</h3>
-    <div class="sig">multiply, divide, memory, screen</div>
+    <div class="sig">your language &rarr; multiply, divide, allocate, draw</div>
     <p>
       Your hardware can add. It cannot multiply, divide, allocate memory or draw
       a line. Those are library functions, written in your own language, and this
@@ -1596,7 +1612,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">5.07</span><span class="deps"><b>Needs</b>5.06</span></div>
   <div>
     <h3>Primes</h3>
-    <div class="sig">a program</div>
+    <div class="sig">your language &rarr; the primes below a thousand</div>
     <p>
       Write a sieve, in your language, and print the primes below a thousand.
     </p>
