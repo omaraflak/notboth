@@ -1,0 +1,1721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a Computer from One Gate</title>
+<meta name="description" content="A build manual: what to make, in what order, and why each part exists.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('nand.manual.theme');
+      if (saved) document.documentElement.dataset.theme = saved;
+    } catch (e) { /* private browsing */ }
+  })();
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<style>
+/* ==================================================================
+   Two-colour service manual: graphite ink and one signal orange,
+   printed on cool technical paper.
+   ================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --paper:      #f4f5f7;
+  --surface:    #ffffff;
+  --ink:        #16181c;
+  --ink-2:      #4a4f57;
+  --ink-3:      #878d96;
+  --rule:       #d8dbe0;
+  --rule-soft:  #e6e8ec;
+  --spot:       #e2560f;
+  --spot-deep:  #b8430a;
+  --tint:       #fdefe6;
+
+  --measure: 34rem;
+  --rail: 7.5rem;
+
+  --sans: "IBM Plex Sans Condensed", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:     #101215;
+    --surface:   #171a1f;
+    --ink:       #e6e9ed;
+    --ink-2:     #a2a9b3;
+    --ink-3:     #6e757e;
+    --rule:      #262a31;
+    --rule-soft: #1e2127;
+    --spot:      #ff8a47;
+    --spot-deep: #ffa670;
+    --tint:      #2a1710;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:     #101215;
+  --surface:   #171a1f;
+  --ink:       #e6e9ed;
+  --ink-2:     #a2a9b3;
+  --ink-3:     #6e757e;
+  --rule:      #262a31;
+  --rule-soft: #1e2127;
+  --spot:      #ff8a47;
+  --spot-deep: #ffa670;
+  --tint:      #2a1710;
+}
+
+* { box-sizing: border-box; }
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  padding: 0 0.7rem;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.theme-toggle:hover { color: var(--spot); border-color: var(--spot); }
+.theme-toggle:focus-visible { outline: 2px solid var(--spot); outline-offset: 2px; }
+.theme-toggle svg { width: 13px; height: 13px; display: block; }
+.theme-toggle .sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .sun { display: block; }
+  :root:not([data-theme="light"]) .theme-toggle .moon { display: none; }
+}
+@media (max-width: 46rem) { .theme-toggle { top: 0.5rem; right: 0.5rem; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: calc(var(--rail) + var(--measure) + 6rem);
+  margin: 0 auto;
+  padding: 0 1.5rem 8rem;
+}
+
+p { margin: 0 0 1em; max-width: var(--measure); }
+p:last-child { margin-bottom: 0; }
+em { font-style: italic; }
+strong { font-weight: 600; }
+
+a { color: var(--spot); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--spot); outline-offset: 3px; border-radius: 2px; }
+
+code, .sig, .num, .deps, .label {
+  font-family: var(--mono);
+  font-variant-ligatures: none;
+}
+
+/* ---------------- masthead ---------------- */
+
+.masthead {
+  padding: 5rem 0 2.5rem;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 0;
+}
+
+.stamp {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--spot);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.4rem;
+}
+.stamp::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--spot);
+  opacity: 0.4;
+}
+
+h1 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 6.5vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.1rem;
+  text-wrap: balance;
+  max-width: 20ch;
+}
+
+.standfirst {
+  font-size: 1.18rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 38rem;
+}
+
+.colophon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6rem 2.4rem;
+  margin-top: 2.4rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+.colophon div { display: flex; flex-direction: column; gap: 0.25rem; }
+.colophon b {
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.colophon span { color: var(--ink); font-size: 0.82rem; }
+
+/* ---------------- the stack diagram ---------------- */
+
+figure.stack {
+  margin: 3.5rem 0 0;
+  padding: 2.5rem 0 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+figure.stack svg { display: block; width: 100%; height: auto; max-width: 46rem; margin: 0 auto; }
+figcaption {
+  max-width: var(--measure);
+  margin: 1.6rem auto 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* ---------------- prose sections ---------------- */
+
+section.front { padding: 3rem 0; border-bottom: 1px solid var(--rule); }
+section.front h2 {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.4rem;
+}
+section.front .body { max-width: var(--measure); }
+section.front .body p { font-size: 1.05rem; }
+
+/* ---------------- contents ---------------- */
+
+nav.toc { padding: 3rem 0; border-bottom: 2px solid var(--ink); }
+nav.toc h2 {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.6rem;
+}
+.toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.8rem 2.5rem;
+}
+.toc-part b {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.toc-part b i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--spot);
+  margin-right: 0.5rem;
+}
+.toc-part a {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 0.16rem 0;
+}
+.toc-part a:hover { color: var(--spot); }
+.toc-part a i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  margin-right: 0.55rem;
+}
+
+/* ---------------- parts ---------------- */
+
+.part-head {
+  padding: 5.5rem 0 2.5rem;
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 2.5rem;
+  align-items: start;
+}
+.part-head .roman {
+  font-family: var(--mono);
+  font-size: 2.4rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--spot);
+  letter-spacing: -0.02em;
+}
+.part-head h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.6vw, 2.2rem);
+  line-height: 1.1;
+  margin: 0 0 0.9rem;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.part-head p {
+  color: var(--ink-2);
+  font-size: 1.05rem;
+  margin: 0;
+}
+.part-rule { height: 2px; background: var(--ink); }
+
+/* ---------------- stages ---------------- */
+
+article.stage {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 2.5rem;
+  padding: 2.4rem 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+article.stage:last-of-type { border-bottom: 0; }
+
+.rail { position: sticky; top: 1.5rem; align-self: start; }
+.num {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--spot);
+  letter-spacing: 0.01em;
+  display: block;
+}
+.deps {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 0.68rem;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.deps b {
+  display: block;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.1rem;
+}
+
+.stage h3 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin: -0.2rem 0 0.35rem;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.sig {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--spot);
+  border-radius: 2px;
+  padding: 0.35rem 0.6rem;
+  display: inline-block;
+  margin: 0 0 1.1rem;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.done, .watch {
+  max-width: var(--measure);
+  margin: 1.3rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--rule);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.done b, .watch b {
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.done b { color: var(--ink-3); }
+.watch { border-top-color: var(--spot); }
+.watch b { color: var(--spot); }
+
+.stage code {
+  font-size: 0.86em;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  padding: 0.05em 0.32em;
+}
+
+/* ---------------- closing ---------------- */
+
+.envoi {
+  margin-top: 5rem;
+  padding: 3rem 0 0;
+  border-top: 2px solid var(--ink);
+}
+.envoi .body { max-width: var(--measure); }
+.envoi h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+.envoi p { font-size: 1.05rem; }
+
+/* ---------------- narrow ---------------- */
+
+@media (max-width: 46rem) {
+  body { font-size: 16px; }
+  article.stage, .part-head { grid-template-columns: 1fr; gap: 0; }
+  .rail {
+    position: static;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.7rem;
+  }
+  .deps { margin-top: 0; }
+  .deps b { display: inline; margin-right: 0.35rem; }
+  .part-head .roman { margin-bottom: 0.6rem; }
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch between light and dark">
+  <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+  <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4V2M12 22v-2M4 12H2M22 12h-2M6 6L4.5 4.5M19.5 19.5L18 18M18 6l1.5-1.5M4.5 19.5L6 18M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+  <span id="theme-label">Light</span>
+</button>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="stamp">Build manual &middot; Revision 1</div>
+  <h1>Building a Computer from One Gate</h1>
+  <p class="standfirst">
+    What to make, in what order, and why each part earns its place. This manual
+    does not hand you circuits. It tells you which piece is next and what job it
+    has to do &mdash; the working out is the part worth having.
+  </p>
+  <div class="colophon">
+    <div><b>Parts</b><span>Five, plus an appendix</span></div>
+    <div><b>Stages</b><span>39</span></div>
+    <div><b>Given to you</b><span>NAND, a clock, a switch</span></div>
+    <div><b>Ends with</b><span>A program that finds primes</span></div>
+  </div>
+</header>
+
+<figure class="stack">
+  <svg viewBox="0 0 720 372" role="img" aria-label="A pyramid standing on its point: the NAND gate at the bottom, with each layer of the computer resting on the one below.">
+    <g font-family="IBM Plex Mono, monospace" font-size="13">
+      <!-- Part V -->
+      <rect x="30" y="8" width="660" height="42" rx="2" fill="none" stroke="var(--rule)" stroke-width="1"/>
+      <text x="360" y="34" text-anchor="middle" fill="var(--ink-2)">a program that finds primes</text>
+      <text x="702" y="34" text-anchor="end" fill="var(--ink-3)" font-size="11">V</text>
+
+      <rect x="75" y="58" width="570" height="42" rx="2" fill="none" stroke="var(--rule)" stroke-width="1"/>
+      <text x="360" y="84" text-anchor="middle" fill="var(--ink-2)">compiler &nbsp;&middot;&nbsp; runtime &nbsp;&middot;&nbsp; assembler</text>
+      <text x="702" y="84" text-anchor="end" fill="var(--ink-3)" font-size="11">V</text>
+
+      <!-- Part IV -->
+      <rect x="120" y="108" width="480" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="134" text-anchor="middle" fill="var(--ink)">ROM &nbsp;&middot;&nbsp; CPU &nbsp;&middot;&nbsp; RAM</text>
+      <text x="702" y="134" text-anchor="end" fill="var(--ink-3)" font-size="11">IV</text>
+
+      <!-- Part III -->
+      <rect x="165" y="158" width="390" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="184" text-anchor="middle" fill="var(--ink)">registers &nbsp;&middot;&nbsp; counter &nbsp;&middot;&nbsp; memory</text>
+      <text x="702" y="184" text-anchor="end" fill="var(--ink-3)" font-size="11">III</text>
+
+      <!-- Part II -->
+      <rect x="210" y="208" width="300" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="234" text-anchor="middle" fill="var(--ink)">adders &nbsp;&middot;&nbsp; the ALU</text>
+      <text x="702" y="234" text-anchor="end" fill="var(--ink-3)" font-size="11">II</text>
+
+      <!-- Part I -->
+      <rect x="255" y="258" width="210" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="284" text-anchor="middle" fill="var(--ink)">mux &nbsp;&middot;&nbsp; xor &nbsp;&middot;&nbsp; and &nbsp;&middot;&nbsp; or</text>
+      <text x="702" y="284" text-anchor="end" fill="var(--ink-3)" font-size="11">I</text>
+
+      <!-- The one gate -->
+      <rect x="300" y="308" width="120" height="44" rx="2" fill="var(--spot)" stroke="none"/>
+      <text x="360" y="335" text-anchor="middle" fill="var(--paper)" font-weight="600" letter-spacing="1">NAND</text>
+
+      <line x1="360" y1="352" x2="360" y2="366" stroke="var(--spot)" stroke-width="1.5"/>
+      <circle cx="360" cy="368" r="3" fill="var(--spot)"/>
+    </g>
+  </svg>
+  <figcaption>
+    Everything above balances on the block at the bottom. Nothing in this manual
+    is given to you except that one gate &mdash; and a switch to feed it, and a
+    clock to keep time.
+  </figcaption>
+</figure>
+
+<section class="front">
+  <h2>Before you switch anything on</h2>
+  <div class="body">
+    <p>
+      A NAND gate answers one question: <em>are both of my inputs on?</em> &mdash;
+      and then says the opposite. That is the whole of it. It has no memory, no
+      arithmetic, no notion of a number. From that, in thirty-nine moves, you
+      are going to get a machine that runs software you wrote in a language you
+      designed.
+    </p>
+    <p>
+      This works because NAND is <em>functionally complete</em>: every logical
+      function that can exist can be written as some arrangement of NANDs. You do
+      not have to take that on faith for long &mdash; the first three stages prove it
+      by construction.
+    </p>
+    <p>
+      Three habits will decide whether you finish. <strong>Build small.</strong> A
+      component should do one nameable thing. If you cannot name it in one word,
+      it is two components. <strong>Test before you move on.</strong> Every chip
+      gets a truth table before it gets used, without exception; a wrong wire
+      inside a four-gate part is invisible from the outside and will resurface
+      three layers later as &ldquo;my CPU computes nonsense&rdquo;, at which point you will
+      have a hundred suspects instead of four. <strong>Never reopen a solved
+      problem.</strong> Once a chip passes its tests, it is furniture. Use it and
+      forget how it works.
+    </p>
+    <p>
+      Each stage below gives you the name of the part, its inputs and outputs,
+      why the machine needs it, and how you will know it works. The circuit
+      inside is yours to find. When you are stuck, the answer is almost always
+      a part you already built.
+    </p>
+  </div>
+</section>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <div class="toc-grid">
+    <div class="toc-part">
+      <b><i>I</i>The gates</b>
+      <a href="#s101"><i>1.01</i>Not</a>
+      <a href="#s102"><i>1.02</i>And</a>
+      <a href="#s103"><i>1.03</i>Or</a>
+      <a href="#s104"><i>1.04</i>Xor</a>
+      <a href="#s105"><i>1.05</i>Mux</a>
+      <a href="#s106"><i>1.06</i>DMux</a>
+      <a href="#s107"><i>1.07</i>Widen to sixteen</a>
+      <a href="#s108"><i>1.08</i>Or8Way</a>
+      <a href="#s109"><i>1.09</i>Mux8Way16</a>
+      <a href="#s110"><i>1.10</i>DMux8Way</a>
+    </div>
+    <div class="toc-part">
+      <b><i>II</i>Arithmetic</b>
+      <a href="#s201"><i>2.01</i>HalfAdder</a>
+      <a href="#s202"><i>2.02</i>FullAdder</a>
+      <a href="#s203"><i>2.03</i>Add16</a>
+      <a href="#s204"><i>2.04</i>Inc16</a>
+      <a href="#s205"><i>2.05</i>Negative numbers</a>
+      <a href="#s206"><i>2.06</i>The ALU</a>
+    </div>
+    <div class="toc-part">
+      <b><i>III</i>Memory</b>
+      <a href="#s301"><i>3.01</i>The leap into time</a>
+      <a href="#s302"><i>3.02</i>The latch</a>
+      <a href="#s303"><i>3.03</i>The gated latch</a>
+      <a href="#s304"><i>3.04</i>The flip-flop</a>
+      <a href="#s305"><i>3.05</i>Bit</a>
+      <a href="#s306"><i>3.06</i>Register</a>
+      <a href="#s307"><i>3.07</i>RAM8, and the pattern</a>
+      <a href="#s308"><i>3.08</i>Program counter</a>
+    </div>
+    <div class="toc-part">
+      <b><i>IV</i>The machine</b>
+      <a href="#s401"><i>4.01</i>Design the language first</a>
+      <a href="#s402"><i>4.02</i>The memory map</a>
+      <a href="#s403"><i>4.03</i>Two registers</a>
+      <a href="#s404"><i>4.04</i>The decoder is wires</a>
+      <a href="#s405"><i>4.05</i>The datapath</a>
+      <a href="#s406"><i>4.06</i>Jumps</a>
+      <a href="#s407"><i>4.07</i>Talking to the world</a>
+      <a href="#s408"><i>4.08</i>The computer</a>
+    </div>
+    <div class="toc-part">
+      <b><i>V</i>Software</b>
+      <a href="#s501"><i>5.01</i>A program in binary</a>
+      <a href="#s502"><i>5.02</i>The assembler</a>
+      <a href="#s503"><i>5.03</i>A stack</a>
+      <a href="#s504"><i>5.04</i>An intermediate language</a>
+      <a href="#s505"><i>5.05</i>The compiler</a>
+      <a href="#s506"><i>5.06</i>A runtime</a>
+      <a href="#s507"><i>5.07</i>Primes</a>
+    </div>
+    <div class="toc-part">
+      <b><i>&mdash;</i>Appendix</b>
+      <a href="#a1">When it will not settle</a>
+      <a href="#a2">Debugging by bisection</a>
+      <a href="#a3">Library hygiene</a>
+      <a href="#a4">When you are stuck</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== PART I ===================== -->
+
+<div class="part-head">
+  <div class="roman">I</div>
+  <div>
+    <h2>The gates</h2>
+    <p>
+      Ten parts, none of them larger than a handful of NANDs. By the end of this
+      Part you will have stopped thinking in gates and started thinking in
+      operations &mdash; which is the actual point of it.
+    </p>
+  </div>
+</div>
+<div class="part-rule"></div>
+
+<article class="stage" id="s101">
+  <div class="rail"><span class="num">1.01</span><span class="deps"><b>Needs</b>nothing</span></div>
+  <div>
+    <h3>Not</h3>
+    <div class="sig">Not(in) &rarr; out</div>
+    <p>
+      Negation. Start here because everything else leans on it, and because it is
+      the smallest possible proof that one gate is enough: you have a part with
+      two inputs and you need a part with one, so the first thing you must work
+      out is what to do with the spare.
+    </p>
+    <p>
+      Once this exists you can stop thinking of NAND as &ldquo;not-and&rdquo; and start
+      thinking of it as raw material.
+    </p>
+    <div class="done"><b>Done when</b>Two vectors pass: 0 gives 1, 1 gives 0.</div>
+  </div>
+</article>
+
+<article class="stage" id="s102">
+  <div class="rail"><span class="num">1.02</span><span class="deps"><b>Needs</b>1.01</span></div>
+  <div>
+    <h3>And</h3>
+    <div class="sig">And(a, b) &rarr; out</div>
+    <p>
+      &ldquo;Both.&rdquo; The most direct question you can ask about two signals, and the
+      one the ALU will lean on hardest. This one is nearly free &mdash; you have a gate
+      that computes the opposite of it and a part that reverses things.
+    </p>
+    <p>
+      The lesson here is not the circuit, it is the reflex: when a part looks
+      like something you already have with a twist, it usually is.
+    </p>
+    <div class="done"><b>Done when</b>All four input combinations pass.</div>
+  </div>
+</article>
+
+<article class="stage" id="s103">
+  <div class="rail"><span class="num">1.03</span><span class="deps"><b>Needs</b>1.01</span></div>
+  <div>
+    <h3>Or</h3>
+    <div class="sig">Or(a, b) &rarr; out</div>
+    <p>
+      &ldquo;Either.&rdquo; Harder than it looks, because NAND is fundamentally an
+      <em>and</em>-shaped gate and you are asking it for an <em>or</em>. The way through
+      is De Morgan&rsquo;s observation: saying &ldquo;a or b&rdquo; is the same as saying &ldquo;not
+      both of them are off.&rdquo; Read that sentence again with your parts list in
+      hand and the circuit falls out of it.
+    </p>
+    <p>
+      This is the first time the manual asks you to change the shape of a
+      question rather than build a bigger circuit. You will do it constantly
+      from here.
+    </p>
+    <div class="done"><b>Done when</b>All four combinations pass, and you can say out loud why it works.</div>
+  </div>
+</article>
+
+<article class="stage" id="s104">
+  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b>1.01&ndash;1.03</span></div>
+  <div>
+    <h3>Xor</h3>
+    <div class="sig">Xor(a, b) &rarr; out</div>
+    <p>
+      &ldquo;Different.&rdquo; This one earns its keep twice over. In Part II it turns out
+      to <em>be</em> binary addition &mdash; 1 plus 1 is 0, carry the 1, which is exactly
+      what Xor says about two bits. And inverted, it is equality, which is how
+      your machine will eventually compare two numbers.
+    </p>
+    <p>
+      Xor is the first part with real internal structure. If it comes out at
+      four or five NANDs you are in good company.
+    </p>
+    <div class="done"><b>Done when</b>All four combinations pass. Keep this one close; you will use it constantly.</div>
+  </div>
+</article>
+
+<article class="stage" id="s105">
+  <div class="rail"><span class="num">1.05</span><span class="deps"><b>Needs</b>1.01&ndash;1.03</span></div>
+  <div>
+    <h3>Mux</h3>
+    <div class="sig">Mux(a, b, sel) &rarr; out</div>
+    <p>
+      A multiplexer: two data inputs, one selector, and the output is whichever
+      input the selector points at. Read that again as a sentence about software
+      and it says <code>out = sel ? b : a</code>. This is an <em>if</em>, in copper.
+    </p>
+    <p>
+      If you build only one part from this Part with real care, make it this
+      one. A computer is very largely muxes. Choosing which number the ALU
+      operates on is a mux. Deciding whether a register keeps its value or takes
+      a new one is a mux. Choosing whether the program counter steps forward or
+      jumps is a mux. Almost every decision your machine ever makes is this
+      chip, wearing a different label.
+    </p>
+    <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code> &mdash; eight vectors, not four. A mux that only works when the data happens to agree is a classic silent failure.</div>
+  </div>
+</article>
+
+<article class="stage" id="s106">
+  <div class="rail"><span class="num">1.06</span><span class="deps"><b>Needs</b>1.01&ndash;1.03</span></div>
+  <div>
+    <h3>DMux</h3>
+    <div class="sig">DMux(in, sel) &rarr; a, b</div>
+    <p>
+      The mirror image: one input, two outputs, and the selector decides which
+      one receives it. The other output goes quiet.
+    </p>
+    <p>
+      Where a mux <em>gathers</em>, a demux <em>routes</em>. You will need this the
+      moment you build memory, because storing a value at an address means
+      delivering a write signal to exactly one storage cell out of many and to
+      none of the others. Addressing is demultiplexing.
+    </p>
+    <div class="done"><b>Done when</b>Both selector settings route correctly and the unselected output is reliably 0.</div>
+  </div>
+</article>
+
+<article class="stage" id="s107">
+  <div class="rail"><span class="num">1.07</span><span class="deps"><b>Needs</b>1.01&ndash;1.05</span></div>
+  <div>
+    <h3>Widen everything to sixteen</h3>
+    <div class="sig">Not16(in[16]) &rarr; out[16] &nbsp;&nbsp;&middot;&nbsp;&nbsp; And16, Or16, Mux16</div>
+    <p>
+      Your machine will work on <em>words</em>, not bits &mdash; sixteen bits at a time is
+      a good size: big enough to address a useful amount of memory, small enough
+      to wire without losing your mind. So each of the gates you just built needs
+      a wide sibling that applies it to every bit position independently.
+    </p>
+    <p>
+      There is no cleverness here and that is the point: this is the first stage
+      that is purely mechanical, and it is where you will be grateful that pins
+      have widths and wires can carry a whole bus. Sixteen copies of a part, side
+      by side, sharing a control signal.
+    </p>
+    <p>
+      Note what <code>Mux16</code> is: a single selector bit choosing between two
+      entire numbers. That is the shape of nearly every control decision to come.
+    </p>
+    <div class="watch"><b>Watch out</b>Test the ends and the middle, not just <code>0000…</code> and <code>1111…</code>. A bus wired one bit out of alignment passes both of those and nothing else.</div>
+  </div>
+</article>
+
+<article class="stage" id="s108">
+  <div class="rail"><span class="num">1.08</span><span class="deps"><b>Needs</b>1.03</span></div>
+  <div>
+    <h3>Or8Way</h3>
+    <div class="sig">Or8Way(in[8]) &rarr; out</div>
+    <p>
+      &ldquo;Is anything at all switched on in here?&rdquo; A single bit summarising a whole
+      bus.
+    </p>
+    <p>
+      It looks like a throwaway utility. It is not: this is how your machine will
+      eventually answer &ldquo;is this number zero?&rdquo;, and that question is the entire
+      basis of conditional branching. Every <code>if</code> and every <code>while</code>
+      in every program you ever write on this machine will come down to a chip
+      like this one looking at a bus and shrugging.
+    </p>
+    <div class="done"><b>Done when</b>All-zeros gives 0, and each single bit set on its own gives 1.</div>
+  </div>
+</article>
+
+<article class="stage" id="s109">
+  <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b>1.05, 1.07</span></div>
+  <div>
+    <h3>Mux4Way16 and Mux8Way16</h3>
+    <div class="sig">Mux8Way16(a..h[16], sel[3]) &rarr; out[16]</div>
+    <p>
+      Choosing between two things is not enough; you will need to choose between
+      eight. Three selector bits, eight candidate words, one winner.
+    </p>
+    <p>
+      Do not invent a new mechanism for this. Build it out of the two-way mux you
+      already have, in layers &mdash; and notice while you do that a selector bit is
+      just an address bit. That realisation is most of Part III.
+    </p>
+    <div class="done"><b>Done when</b>All eight selector values pick the right input. Feed each input a distinct recognisable value so a mis-order is obvious.</div>
+  </div>
+</article>
+
+<article class="stage" id="s110">
+  <div class="rail"><span class="num">1.10</span><span class="deps"><b>Needs</b>1.06</span></div>
+  <div>
+    <h3>DMux4Way and DMux8Way</h3>
+    <div class="sig">DMux8Way(in, sel[3]) &rarr; a..h</div>
+    <p>
+      The routing counterpart, and your address decoder. Three bits in, one of
+      eight lines raised, seven held down.
+    </p>
+    <p>
+      When you build RAM you will hand it an address and expect exactly one cell
+      to react. This chip is what makes that true. Build it the same way as the
+      wide mux: in layers, out of the part you already have.
+    </p>
+    <div class="done"><b>Done when</b>Every selector value raises exactly one output and no other.</div>
+  </div>
+</article>
+
+<!-- ===================== PART II ===================== -->
+
+<div class="part-head">
+  <div class="roman">II</div>
+  <div>
+    <h2>Arithmetic</h2>
+    <p>
+      Six parts that turn logic into mathematics. This Part ends with the single
+      most important chip in the machine, and it is a good deal less frightening
+      than its reputation.
+    </p>
+  </div>
+</div>
+<div class="part-rule"></div>
+
+<article class="stage" id="s201">
+  <div class="rail"><span class="num">2.01</span><span class="deps"><b>Needs</b>1.02, 1.04</span></div>
+  <div>
+    <h3>HalfAdder</h3>
+    <div class="sig">HalfAdder(a, b) &rarr; sum, carry</div>
+    <p>
+      Add two bits. There are only four cases and you can write them on your
+      hand: 0+0, 0+1, 1+0, and 1+1 &mdash; which is two, which does not fit in one
+      bit, which is why there is a second output.
+    </p>
+    <p>
+      Look at the two output columns separately and you will find you built both
+      of these chips in Part I. That is the whole stage: arithmetic is not a new
+      kind of thing, it is logic looked at from a different angle.
+    </p>
+    <div class="done"><b>Done when</b>All four cases produce the right sum and carry.</div>
+  </div>
+</article>
+
+<article class="stage" id="s202">
+  <div class="rail"><span class="num">2.02</span><span class="deps"><b>Needs</b>2.01, 1.03</span></div>
+  <div>
+    <h3>FullAdder</h3>
+    <div class="sig">FullAdder(a, b, c) &rarr; sum, carry</div>
+    <p>
+      Add <em>three</em> bits. The third is the carry arriving from the column to
+      the right &mdash; the same thing you do by hand when you add 17 and 25 and put
+      a little 1 above the tens column.
+    </p>
+    <p>
+      This is the unit cell of all your arithmetic, so build it out of half
+      adders rather than from scratch. Getting the carry-out right is the fiddly
+      bit: think about when a column produces a carry rather than trying to draw
+      the circuit first.
+    </p>
+    <div class="done"><b>Done when</b>All eight input combinations pass. Write all eight; there is no excuse at this size.</div>
+  </div>
+</article>
+
+<article class="stage" id="s203">
+  <div class="rail"><span class="num">2.03</span><span class="deps"><b>Needs</b>2.02</span></div>
+  <div>
+    <h3>Add16</h3>
+    <div class="sig">Add16(a[16], b[16]) &rarr; out[16]</div>
+    <p>
+      Sixteen full adders in a row, each one&rsquo;s carry-out feeding the next one&rsquo;s
+      carry-in. Now your machine can add two numbers, which &mdash; with the negation
+      trick two stages from here &mdash; means it can also subtract, compare, and
+      count.
+    </p>
+    <p>
+      What happens to the carry off the far end is your decision to make. Most
+      designs simply drop it and let numbers wrap around; that is what
+      &ldquo;overflow&rdquo; means and it is a perfectly respectable choice.
+    </p>
+    <p>
+      This design is called <em>ripple carry</em> because the carry has to walk the
+      whole width before the answer is final. It is the slowest adder anyone
+      builds and it is the right one to build first. If you later want it faster,
+      the search term is <em>carry-lookahead</em>, and swapping it in is one command
+      once your test vectors exist.
+    </p>
+    <div class="watch"><b>Watch out</b>Test the carry chain deliberately: something plus one that ripples the whole way, and the largest possible pair, which should wrap to a small number.</div>
+  </div>
+</article>
+
+<article class="stage" id="s204">
+  <div class="rail"><span class="num">2.04</span><span class="deps"><b>Needs</b>2.03</span></div>
+  <div>
+    <h3>Inc16</h3>
+    <div class="sig">Inc16(in[16]) &rarr; out[16]</div>
+    <p>
+      Add one. You could of course use the adder with a hard-wired 1, and you
+      may &mdash; but adding one is such a common operation that it is worth having its
+      own name in your library.
+    </p>
+    <p>
+      The reason is Part III. A program counter spends almost its entire life
+      doing exactly this, once per instruction, forever. Naming the operation now
+      means the counter reads as what it is instead of as a special case of
+      addition.
+    </p>
+    <div class="done"><b>Done when</b>Zero becomes one, and the maximum value wraps to zero.</div>
+  </div>
+</article>
+
+<article class="stage" id="s205">
+  <div class="rail"><span class="num">2.05</span><span class="deps"><b>Needs</b>2.03, 2.04, 1.07</span></div>
+  <div>
+    <h3>Negative numbers, and why subtraction is free</h3>
+    <div class="sig">no new chip &mdash; a decision</div>
+    <p>
+      This stage builds nothing. It settles a question, and the answer shapes
+      everything after it.
+    </p>
+    <p>
+      You need negative numbers, and you emphatically do not want to build a
+      second machine for subtracting. The convention that saves you is
+      <em>two&rsquo;s complement</em>: negate a number by inverting every bit and adding
+      one. Under that convention <code>a - b</code> is literally <code>a + (-b)</code>,
+      the adder you already have does both jobs, and comparison becomes
+      subtraction followed by a glance at the result.
+    </p>
+    <p>
+      Convince yourself it works before moving on. Take a small number, invert
+      it, add one, then add the original back and check that you land on zero.
+      Do it with pencil and paper &mdash; this is the one stage where the understanding
+      matters more than the circuit.
+    </p>
+    <div class="done"><b>Done when</b>You can negate a number using only parts you already own, and <code>x + (-x)</code> comes out zero.</div>
+  </div>
+</article>
+
+<article class="stage" id="s206">
+  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>all of Part I, 2.03&ndash;2.05</span></div>
+  <div>
+    <h3>The ALU</h3>
+    <div class="sig">ALU(x[16], y[16], control bits) &rarr; out[16], zr, ng</div>
+    <p>
+      The arithmetic and logic unit: one box that computes any of a couple of
+      dozen useful functions of two numbers, with control bits selecting which.
+      Add, subtract, negate, increment, and, or, pass one input through, produce
+      a constant &mdash; all from one chip.
+    </p>
+    <p>
+      Do not build a dozen circuits and mux between them. The trick that makes
+      this tractable is to work in three phases: <em>pre-condition</em> each input
+      (optionally zero it, optionally invert it), then perform <em>one</em>
+      operation on the results (either add or and &mdash; that is all you need), then
+      <em>post-condition</em> the answer (optionally invert it). Six control bits
+      driving those choices give you the whole menu, and each phase is a mux or
+      two. Work out for yourself which settings produce subtraction; when it
+      clicks, it is genuinely delightful.
+    </p>
+    <p>
+      Two extra outputs matter as much as the number itself. <code>zr</code> says
+      the result was zero; <code>ng</code> says it was negative. These are the only
+      things your machine will ever know about a computation, and every
+      conditional in every program will be decided by them. Notice that
+      <code>ng</code> is free &mdash; under two&rsquo;s complement the sign is just the top
+      bit &mdash; and that <code>zr</code> is what stage 1.08 was for.
+    </p>
+    <div class="watch"><b>Watch out</b>This is the largest chip so far and the most punishing to debug later. Test <em>every</em> control combination you intend to use, with at least one negative operand. An hour of test vectors here saves a week in Part IV.</div>
+  </div>
+</article>
+
+<!-- ===================== PART III ===================== -->
+
+<div class="part-head">
+  <div class="roman">III</div>
+  <div>
+    <h2>Memory</h2>
+    <p>
+      Everything so far has been a function: inputs in, outputs out, no history.
+      This Part breaks that. It is the conceptually hardest stretch of the whole
+      build, and the most worthwhile.
+    </p>
+  </div>
+</div>
+<div class="part-rule"></div>
+
+<article class="stage" id="s301">
+  <div class="rail"><span class="num">3.01</span><span class="deps"><b>Needs</b>a clear head</span></div>
+  <div>
+    <h3>The leap into time</h3>
+    <div class="sig">no new chip &mdash; an idea</div>
+    <p>
+      Up to now every circuit has been a pure function of its inputs. Nothing you
+      have built can answer &ldquo;what was it a moment ago?&rdquo; But a computer is
+      nothing but a device for remembering things, so something has to change.
+    </p>
+    <p>
+      Here is the change: <strong>connect a gate&rsquo;s output back to its own
+      input.</strong> That is not a mistake and it is not a trick. Because a real
+      gate takes time to respond, the value arriving back at the input is the
+      value from <em>before</em>, and a circuit that can see its own past can hold a
+      state. Memory is not a new kind of component. It is ordinary gates plus
+      delay.
+    </p>
+    <p>
+      Try it on the bench before you build anything: wire one gate&rsquo;s output back
+      into its own input, switch the power on, and watch what happens. Then slow
+      the clock right down and watch it again. Understanding what you see is the
+      admission price for the rest of this Part.
+    </p>
+    <div class="done"><b>Done when</b>You can explain why feedback plus delay produces memory, without using the word &ldquo;somehow&rdquo;.</div>
+  </div>
+</article>
+
+<article class="stage" id="s302">
+  <div class="rail"><span class="num">3.02</span><span class="deps"><b>Needs</b>3.01</span></div>
+  <div>
+    <h3>The latch</h3>
+    <div class="sig">two gates, cross-coupled: set, reset &rarr; q</div>
+    <p>
+      Two gates, each feeding the other&rsquo;s input. Pulse one and the pair locks
+      into one state; pulse the other and it locks into the opposite. Release
+      both and it stays where it was. This is the first circuit you will build
+      that remembers, and it is only two gates wide.
+    </p>
+    <p>
+      It also has two flaws, and you should meet both now rather than later.
+      Asserting both inputs at once is meaningless &mdash; you are demanding it be one
+      and zero simultaneously. And on power-up, with both inputs idle, the two
+      gates are perfectly symmetric and the latch has no way to choose; in this
+      simulator that shows up honestly as an oscillation rather than as a
+      convenient zero. Real hardware breaks the tie with manufacturing
+      imperfection. You will break it with a reset.
+    </p>
+    <p>
+      Both flaws are why the next two stages exist.
+    </p>
+    <div class="watch"><b>Watch out</b>If the status bar says the circuit is oscillating, that may well be correct behaviour rather than a bug. Set one input before you switch on.</div>
+  </div>
+</article>
+
+<article class="stage" id="s303">
+  <div class="rail"><span class="num">3.03</span><span class="deps"><b>Needs</b>3.02</span></div>
+  <div>
+    <h3>The gated latch</h3>
+    <div class="sig">DLatch(d, enable) &rarr; q</div>
+    <p>
+      One data input instead of two, plus an enable. While enable is high the
+      output follows <code>d</code>; when enable drops, whatever was there is held.
+      Now you have something you can actually store a bit in, and the
+      contradictory-input problem is gone by construction.
+    </p>
+    <p>
+      One problem remains, and it is fatal for a computer: while enable is high
+      this thing is <em>transparent</em>. Changes flow straight through it. If you
+      chain two of them and enable both at once, a value races down the whole
+      chain in one go instead of moving one step. A machine built from these
+      would have no notion of &ldquo;one step at a time&rdquo;.
+    </p>
+    <div class="done"><b>Done when</b>The output tracks <code>d</code> while enabled and freezes when not.</div>
+  </div>
+</article>
+
+<article class="stage" id="s304">
+  <div class="rail"><span class="num">3.04</span><span class="deps"><b>Needs</b>3.03, the clock</span></div>
+  <div>
+    <h3>The flip-flop</h3>
+    <div class="sig">DFF(d, clk) &rarr; q</div>
+    <p>
+      The most important idea in the sequential half of this build. A flip-flop
+      samples its input at one <em>instant</em> &mdash; the moment the clock changes &mdash;
+      and holds it steady for the rest of the cycle. Never transparent, ever.
+    </p>
+    <p>
+      The standard construction is two gated latches back to back, enabled on
+      opposite halves of the clock, so that whichever one is listening, the other
+      is holding. The value can only ever advance one stage per clock tick. That
+      restriction is not a limitation, it is the entire discipline that makes a
+      computer possible: it means the whole machine changes state together, in
+      lockstep, and that every part of it can rely on the others staying still
+      while it thinks.
+    </p>
+    <p>
+      When this works, connect a handful in a chain, feed the clock, and watch a
+      single 1 march through them one stage per tick. That picture is worth
+      keeping.
+    </p>
+    <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge. Too fast a clock does not run your machine faster; it runs it wrongly.</div>
+  </div>
+</article>
+
+<article class="stage" id="s305">
+  <div class="rail"><span class="num">3.05</span><span class="deps"><b>Needs</b>3.04, 1.05</span></div>
+  <div>
+    <h3>Bit</h3>
+    <div class="sig">Bit(in, load, clk) &rarr; out</div>
+    <p>
+      A flip-flop stores whatever arrives every single tick. What you actually
+      want is storage that <em>keeps</em> its value until told otherwise. So: on
+      each tick, store either the new input or the value already held &mdash; and
+      choose between those two with a <code>load</code> signal.
+    </p>
+    <p>
+      Read that sentence once more. Choosing between two values with a control
+      bit is a multiplexer, and the second value comes from the flip-flop&rsquo;s own
+      output. A one-bit register is a flip-flop with a mux in its feedback path,
+      and that is the moment stage 1.05 pays for itself.
+    </p>
+    <div class="done"><b>Done when</b>Loading a value sticks, and many ticks with <code>load</code> low leave it untouched.</div>
+  </div>
+</article>
+
+<article class="stage" id="s306">
+  <div class="rail"><span class="num">3.06</span><span class="deps"><b>Needs</b>3.05</span></div>
+  <div>
+    <h3>Register</h3>
+    <div class="sig">Register(in[16], load, clk) &rarr; out[16]</div>
+    <p>
+      Sixteen Bits side by side, sharing one load signal and one clock. A whole
+      number, remembered.
+    </p>
+    <p>
+      Mechanical, quick, and worth pausing over: this is the first component that
+      would be recognisable to someone who has only ever seen a computer from the
+      software side. It is a variable.
+    </p>
+    <div class="done"><b>Done when</b>A sixteen-bit value survives a dozen ticks with <code>load</code> low, and changes on the tick you ask it to.</div>
+  </div>
+</article>
+
+<article class="stage" id="s307">
+  <div class="rail"><span class="num">3.07</span><span class="deps"><b>Needs</b>3.06, 1.09, 1.10</span></div>
+  <div>
+    <h3>RAM8, and the pattern behind it</h3>
+    <div class="sig">RAM8(in[16], load, address[3], clk) &rarr; out[16]</div>
+    <p>
+      Eight registers, an address that selects one of them, and two jobs: route
+      the write signal to exactly one register (that is your demux), and select
+      one register&rsquo;s output to present (that is your wide mux). Reading needs no
+      clock; writing happens on the tick.
+    </p>
+    <p>
+      Build this one, and see the recursion: RAM64 is eight RAM8s addressed by
+      three more bits. RAM512 is eight RAM64s. The structure never changes, only
+      the depth of the address.
+    </p>
+    <p>
+      Then stop. Having proved you can, use the built-in RAM part for the real
+      machine. This is not a cop-out and it is worth being clear about why: a
+      sixteen-thousand-word memory made of flip-flops is around two and a half
+      million gates, and real hardware does not build it that way either &mdash; an
+      SRAM cell is six transistors, not a netlist of gates. You have demonstrated
+      that memory <em>can</em> be made of NANDs. Now buy it off the shelf and spend
+      your gates on the CPU, where the interesting decisions are.
+    </p>
+    <div class="done"><b>Done when</b>Writes land at the right address, reads come back unchanged, and writing one address demonstrably leaves its neighbours alone.</div>
+  </div>
+</article>
+
+<article class="stage" id="s308">
+  <div class="rail"><span class="num">3.08</span><span class="deps"><b>Needs</b>3.06, 2.04, 1.05</span></div>
+  <div>
+    <h3>Program counter</h3>
+    <div class="sig">PC(in[16], load, inc, reset, clk) &rarr; out[16]</div>
+    <p>
+      The register that says which instruction to run next, and the last piece of
+      Part III. It needs exactly three behaviours, and each one corresponds to
+      something a program does:
+    </p>
+    <p>
+      <strong>Increment</strong> &mdash; run the next instruction. This is what happens
+      almost always. <strong>Load</strong> &mdash; jump to a given address, which is how
+      you get <code>if</code>, <code>while</code> and function calls.
+      <strong>Reset</strong> &mdash; go back to the beginning, which is what happens when
+      you switch the machine on.
+    </p>
+    <p>
+      Three behaviours, one output: that is a register with a stack of muxes in
+      front of it deciding what to store. You will have to settle which takes
+      priority when more than one is asserted. Choose deliberately, write it
+      down, and test it.
+    </p>
+    <div class="done"><b>Done when</b>It counts on its own, jumps when told, resets when told, and does the right thing when two controls are asserted at once.</div>
+  </div>
+</article>
+
+<!-- ===================== PART IV ===================== -->
+
+<div class="part-head">
+  <div class="roman">IV</div>
+  <div>
+    <h2>The machine</h2>
+    <p>
+      You now own every component a computer is made of. What remains is deciding
+      what your computer <em>is</em> &mdash; and that is a design problem, not a wiring
+      problem.
+    </p>
+  </div>
+</div>
+<div class="part-rule"></div>
+
+<article class="stage" id="s401">
+  <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b>paper</span></div>
+  <div>
+    <h3>Design the instruction set first</h3>
+    <div class="sig">no chip &mdash; a specification</div>
+    <p>
+      Do not wire anything in this Part until you have written down your
+      instruction set. The hardware is a <em>consequence</em> of the instruction
+      set, not the other way round, and every hour spent here saves several
+      later.
+    </p>
+    <p>
+      What you are deciding: how wide an instruction is, what an instruction can
+      say, and how few kinds of instruction you can get away with. Fewer is
+      dramatically better &mdash; every additional instruction format is more decoding
+      logic and more ways to be wrong.
+    </p>
+    <p>
+      One proven shape, worth understanding before you invent your own: two
+      instruction types, distinguished by a single bit. One loads a constant into
+      a register. The other says &ldquo;compute something, put the answer somewhere,
+      and maybe jump&rdquo; &mdash; with separate little fields for <em>what to compute</em>,
+      <em>where to put it</em>, and <em>when to jump</em>. Two formats is enough to be
+      a real computer. It is a remarkably small hinge for a very large door.
+    </p>
+    <div class="done"><b>Done when</b>You have a written table: every bit of an instruction, what it means, and an example encoded by hand.</div>
+  </div>
+</article>
+
+<article class="stage" id="s402">
+  <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b>4.01</span></div>
+  <div>
+    <h3>The memory map</h3>
+    <div class="sig">no chip &mdash; a decision</div>
+    <p>
+      Decide what lives at which addresses, and write that down too. Some region
+      is working memory. If you want a screen or a keyboard, they get addresses
+      as well.
+    </p>
+    <p>
+      That last point is worth dwelling on. If a screen is simply a range of
+      memory addresses whose contents happen to be displayed, then drawing a
+      pixel is <em>storing a number</em>, and you need no new instructions, no new
+      hardware path, and no concept of input or output at all. It is one of the
+      great economies in computer design and it costs you nothing but a decision
+      made now.
+    </p>
+    <div class="done"><b>Done when</b>You have an address map on paper, with a reason for each boundary.</div>
+  </div>
+</article>
+
+<article class="stage" id="s403">
+  <div class="rail"><span class="num">4.03</span><span class="deps"><b>Needs</b>3.06, 4.01</span></div>
+  <div>
+    <h3>Two registers</h3>
+    <div class="sig">A and D</div>
+    <p>
+      Your CPU needs somewhere to hold values it is working on. Two registers is
+      enough, and each has a distinct character worth respecting.
+    </p>
+    <p>
+      One holds <em>data</em> &mdash; a number being worked on. The other does double
+      duty: it holds either a value, or an <em>address</em> &mdash; which memory location
+      to read or write, or which instruction to jump to. That double duty is what
+      lets a machine with almost no instructions still reach any part of memory.
+      To use a memory location, you first put its address in that register, then
+      operate.
+    </p>
+    <p>
+      Sixteen bits of storage each, a load signal each. You already built these.
+    </p>
+    <div class="done"><b>Done when</b>Both registers hold values across ticks and load only when instructed.</div>
+  </div>
+</article>
+
+<article class="stage" id="s404">
+  <div class="rail"><span class="num">4.04</span><span class="deps"><b>Needs</b>4.01</span></div>
+  <div>
+    <h3>The decoder is mostly wires</h3>
+    <div class="sig">instruction[16] &rarr; control signals</div>
+    <p>
+      &ldquo;Instruction decoding&rdquo; sounds like it needs a large and clever chip. If
+      you designed your instruction set well, it needs almost nothing: the bits
+      of the instruction <em>are</em> the control signals. The field that says what
+      to compute is wired straight to the ALU&rsquo;s control inputs. The field that
+      says where to store the answer is wired straight to the load inputs of the
+      registers.
+    </p>
+    <p>
+      The only real logic is a handful of gates deciding which instruction type
+      you are looking at, and gating the control signals accordingly &mdash; because a
+      constant-loading instruction must not accidentally trigger a memory write.
+    </p>
+    <p>
+      If this chip is turning out large, the problem is upstream in 4.01. Go back
+      and simplify the encoding; that is much cheaper than building the decoder
+      it demands.
+    </p>
+    <div class="done"><b>Done when</b>Every instruction bit has a named destination, and you can point at where each one goes.</div>
+  </div>
+</article>
+
+<article class="stage" id="s405">
+  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b>2.06, 4.03, 4.04</span></div>
+  <div>
+    <h3>The datapath</h3>
+    <div class="sig">CPU(instruction[16], inM[16], clk) &rarr; outM[16], writeM, addressM[15], pc[15]</div>
+    <p>
+      Now assemble the CPU. This is the largest chip you will draw and the one
+      that will feel, briefly, like too much. It is not: everything in it is a
+      part you have already built and tested.
+    </p>
+    <p>
+      The structure is a loop. The ALU takes two inputs &mdash; one always from the
+      data register, the other selected between the address register and a value
+      fetched from memory. Its output goes back to the registers and out to
+      memory. Which of those actually happen is decided by the control bits from
+      4.04. Every one of those choices is a mux; every mux is stage 1.05.
+    </p>
+    <p>
+      Work in the order the signal flows and test as you go: get the ALU fed
+      correctly first, then get its output stored correctly, then worry about
+      jumps.
+    </p>
+    <div class="watch"><b>Watch out</b>The single most common bug here is a value being read in the same tick it is written. Sketch on paper what is stable when. This is exactly the discipline the flip-flop bought you in 3.04 &mdash; use it.</div>
+  </div>
+</article>
+
+<article class="stage" id="s406">
+  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>4.05, 3.08</span></div>
+  <div>
+    <h3>Jumps</h3>
+    <div class="sig">ALU flags + jump field &rarr; PC load</div>
+    <p>
+      The last piece of the CPU, and the one that turns a calculator into a
+      computer. Your ALU reports two facts about its result: it was zero, it was
+      negative. Your instruction carries a small field saying which outcomes
+      should cause a jump. Compare the two, and if they agree, tell the program
+      counter to load instead of increment.
+    </p>
+    <p>
+      That handful of gates is where every <code>if</code>, every <code>while</code>,
+      every function call and every loop in every program that will ever run on
+      this machine comes from. It is worth a moment of respect.
+    </p>
+    <div class="done"><b>Done when</b>Each jump condition fires exactly when it should, tested with a positive, a negative and a zero result.</div>
+  </div>
+</article>
+
+<article class="stage" id="s407">
+  <div class="rail"><span class="num">4.07</span><span class="deps"><b>Needs</b>4.02</span></div>
+  <div>
+    <h3>Talking to the world</h3>
+    <div class="sig">memory-mapped regions</div>
+    <p>
+      Optional, and worth it. If you reserved addresses for a screen and a
+      keyboard back in 4.02, wire them up now &mdash; a region of memory whose contents
+      are displayed, and a location that holds whichever key is currently down.
+    </p>
+    <p>
+      Notice that the CPU needs no changes whatsoever. It has no idea a screen
+      exists. It stores a number at an address, exactly as it always does, and
+      something else is watching. Getting output out of a machine you built from
+      one gate is a good day.
+    </p>
+    <div class="done"><b>Done when</b>Storing to a display address changes something you can see.</div>
+  </div>
+</article>
+
+<article class="stage" id="s408">
+  <div class="rail"><span class="num">4.08</span><span class="deps"><b>Needs</b>4.05, 4.06, 3.07</span></div>
+  <div>
+    <h3>The computer</h3>
+    <div class="sig">Computer(reset, clk)</div>
+    <p>
+      Three boxes and the wires between them: a ROM holding the program, the CPU,
+      and the RAM. The counter&rsquo;s output addresses the ROM; the ROM&rsquo;s output is
+      the instruction; the CPU&rsquo;s memory outputs go to the RAM and back.
+    </p>
+    <p>
+      Keeping instructions and data in separate memories is a real architectural
+      choice, called Harvard, and what it buys you is simplicity: the machine can
+      fetch an instruction and touch data in the same tick without them queuing
+      for the same memory. The cost is that a program cannot modify itself, which
+      you will not miss.
+    </p>
+    <p>
+      Wire it up. Then stop, because you have built a computer, and there is
+      nothing left to add to the hardware. Everything after this is software.
+    </p>
+    <div class="done"><b>Done when</b>You can load a program, press reset, run the clock, and watch the counter advance through it.</div>
+  </div>
+</article>
+
+<!-- ===================== PART V ===================== -->
+
+<div class="part-head">
+  <div class="roman">V</div>
+  <div>
+    <h2>Software</h2>
+    <p>
+      The hardware is finished and will not change again. Everything from here is
+      built on top of it, in layers, each one making the next one bearable.
+    </p>
+  </div>
+</div>
+<div class="part-rule"></div>
+
+<article class="stage" id="s501">
+  <div class="rail"><span class="num">5.01</span><span class="deps"><b>Needs</b>4.08</span></div>
+  <div>
+    <h3>A program in binary</h3>
+    <div class="sig">by hand, into the ROM</div>
+    <p>
+      Write something tiny directly in machine code &mdash; add two numbers and store
+      the result &mdash; encode it by hand from your table in 4.01, load it into the
+      ROM, and run it.
+    </p>
+    <p>
+      Do this exactly once. It is the moment the hardware stops being a diagram
+      and becomes a machine, and it will teach you more about your instruction
+      set in ten minutes than an afternoon of staring at it. It will also make
+      you want an assembler with an intensity you cannot currently imagine,
+      which is the point.
+    </p>
+    <div class="done"><b>Done when</b>You single-step through your own machine code and the right number lands in the right place.</div>
+  </div>
+</article>
+
+<article class="stage" id="s502">
+  <div class="rail"><span class="num">5.02</span><span class="deps"><b>Needs</b>5.01</span></div>
+  <div>
+    <h3>The assembler</h3>
+    <div class="sig">text &rarr; machine code</div>
+    <p>
+      A program that turns readable mnemonics into the bits you just encoded by
+      hand. Write it in whatever language you like; it runs on your own computer,
+      not on the one you built.
+    </p>
+    <p>
+      Two features earn their keep immediately: <strong>symbolic names</strong> for
+      instructions, and <strong>labels</strong> for addresses, so that a jump target
+      is <code>@loop</code> and not the number 47 &mdash; a number that changes the moment
+      you insert a line. Everything else is optional.
+    </p>
+    <p>
+      This is also the first opportunity to write a real test: assemble the
+      program from 5.01 and check you get the same bits you produced by hand.
+    </p>
+    <div class="done"><b>Done when</b>A labelled loop assembles and runs correctly on the hardware.</div>
+  </div>
+</article>
+
+<article class="stage" id="s503">
+  <div class="rail"><span class="num">5.03</span><span class="deps"><b>Needs</b>5.02</span></div>
+  <div>
+    <h3>A stack, and a convention for calling things</h3>
+    <div class="sig">a region of RAM, plus rules</div>
+    <p>
+      Functions need somewhere to keep their local variables and their return
+      address, and it must nest &mdash; a function can call a function that calls a
+      function. A stack is the structure that does this, and it is not hardware:
+      it is a region of RAM plus a register holding a pointer to the top of it,
+      plus a set of rules everyone agrees to follow.
+    </p>
+    <p>
+      Design the rules deliberately and write them down: who pushes the
+      arguments, who saves what, where the return value lives, who cleans up.
+      This is the bridge between a machine that runs instructions and a machine
+      that runs <em>programs</em>, and almost every hard bug in the rest of the
+      project will be a violation of these rules.
+    </p>
+    <div class="done"><b>Done when</b>A function calls another function, both return correctly, and recursion to a depth of ten does not corrupt anything.</div>
+  </div>
+</article>
+
+<article class="stage" id="s504">
+  <div class="rail"><span class="num">5.04</span><span class="deps"><b>Needs</b>5.03</span></div>
+  <div>
+    <h3>An intermediate language</h3>
+    <div class="sig">stack operations &rarr; assembly</div>
+    <p>
+      A small stack-based language &mdash; push, pop, add, compare, call, return &mdash; and
+      a translator from it into your assembly.
+    </p>
+    <p>
+      Skipping this layer is the most common way this project dies. Compiling a
+      high-level language directly to machine code means every language feature
+      has to be solved in the same breath as every hardware detail, and the two
+      problems tangle. This layer cuts the knot: the compiler above it only has
+      to think about meaning, and this translator only has to think about your
+      CPU. Each half becomes something you can hold in your head.
+    </p>
+    <div class="done"><b>Done when</b>A hand-written program in your intermediate language translates, assembles, and runs.</div>
+  </div>
+</article>
+
+<article class="stage" id="s505">
+  <div class="rail"><span class="num">5.05</span><span class="deps"><b>Needs</b>5.04</span></div>
+  <div>
+    <h3>The compiler</h3>
+    <div class="sig">your language &rarr; the intermediate language</div>
+    <p>
+      Now design a language you would actually enjoy writing, and compile it down
+      one level. Variables, expressions, <code>if</code>, <code>while</code>,
+      functions, and some way to group data together. That is enough for real
+      programs; resist adding more until you have run something.
+    </p>
+    <p>
+      Because you are targeting the intermediate language rather than the metal,
+      each construct becomes a small, local translation &mdash; a <code>while</code> is
+      a couple of labels and a conditional jump, an expression is a walk over its
+      own tree emitting pushes. It is a satisfying piece of work rather than a
+      grim one.
+    </p>
+    <div class="done"><b>Done when</b>A program with a loop and a function call compiles all the way down and runs on your hardware.</div>
+  </div>
+</article>
+
+<article class="stage" id="s506">
+  <div class="rail"><span class="num">5.06</span><span class="deps"><b>Needs</b>5.05</span></div>
+  <div>
+    <h3>A runtime</h3>
+    <div class="sig">multiply, divide, memory, screen</div>
+    <p>
+      Your hardware can add. It cannot multiply, divide, allocate memory or draw
+      a line. Those are library functions, written in your own language, and this
+      is the layer people forget to budget for.
+    </p>
+    <p>
+      Multiplication is repeated addition until you make it cleverer. Division is
+      the same in reverse. Memory allocation is bookkeeping over a region of RAM.
+      Each one is a small program, and writing them is the first time you get to
+      <em>use</em> the thing you built rather than build it.
+    </p>
+    <div class="done"><b>Done when</b>Multiply and divide are correct, including for negative numbers and zero.</div>
+  </div>
+</article>
+
+<article class="stage" id="s507">
+  <div class="rail"><span class="num">5.07</span><span class="deps"><b>Needs</b>5.06</span></div>
+  <div>
+    <h3>Primes</h3>
+    <div class="sig">a program</div>
+    <p>
+      Write a sieve, in your language, and print the primes below a thousand.
+    </p>
+    <p>
+      When it runs, trace what actually happened. A number you typed was compiled
+      to a stack language, translated to assembly, assembled into bits, stored in
+      a ROM you configured, fetched by a counter you designed, decoded by wires
+      you placed, and computed by an arithmetic unit that is, at the bottom, some
+      thousands of copies of a single gate that only knows how to say &ldquo;not
+      both&rdquo;.
+    </p>
+    <p>
+      There is no part of that chain you took on trust.
+    </p>
+  </div>
+</article>
+
+<!-- ===================== APPENDIX ===================== -->
+
+<div class="part-head">
+  <div class="roman">&mdash;</div>
+  <div>
+    <h2>Appendix: working practices</h2>
+    <p>Four things that are not stages but will decide how the build goes.</p>
+  </div>
+</div>
+<div class="part-rule"></div>
+
+<article class="stage" id="a1">
+  <div class="rail"><span class="num">A.1</span></div>
+  <div>
+    <h3>When it will not settle</h3>
+    <p>
+      A circuit that reports oscillating is telling you something specific: some
+      loop of gates has no stable answer. Three usual causes. You have accidental
+      feedback &mdash; a signal reaching backwards into something that feeds it. You
+      have a genuine latch that started symmetric, in which case it is behaving
+      correctly and needs a defined initial state. Or your clock is faster than
+      the logic it drives, so the next edge arrives before the last one has
+      finished propagating.
+    </p>
+    <p>
+      Slow the clock right down first. Most of the time the answer becomes
+      obvious the moment you can watch it happen.
+    </p>
+  </div>
+</article>
+
+<article class="stage" id="a2">
+  <div class="rail"><span class="num">A.2</span></div>
+  <div>
+    <h3>Debugging by bisection</h3>
+    <p>
+      When a large chip misbehaves, do not read the whole diagram. Put a probe
+      halfway along and ask one question: is the value here already wrong? That
+      halves the search. Repeat. Six probes will find a fault in a chip with
+      sixty components.
+    </p>
+    <p>
+      If the halfway point is correct and the output is wrong, you have
+      eliminated half your circuit without understanding any of it. That is the
+      whole trick, and it works just as well on the compiler in Part V as on the
+      ALU in Part II.
+    </p>
+  </div>
+</article>
+
+<article class="stage" id="a3">
+  <div class="rail"><span class="num">A.3</span></div>
+  <div>
+    <h3>Library hygiene</h3>
+    <p>
+      Name parts after what they do, not how they work: <code>Mux16</code>, not
+      <code>BigSelectThing</code>. Group them into folders by Part as you go, so
+      the list stays navigable when it reaches forty entries.
+    </p>
+    <p>
+      When you improve a chip, edit it in place rather than making
+      <code>Adder2</code> &mdash; every circuit using it picks up the fix. And if you do
+      end up with a genuinely better rewrite alongside the original, swap the old
+      one out wholesale rather than rewiring by hand; that way the tool can tell
+      you which connections will not survive before anything breaks.
+    </p>
+  </div>
+</article>
+
+<article class="stage" id="a4">
+  <div class="rail"><span class="num">A.4</span></div>
+  <div>
+    <h3>When you are stuck</h3>
+    <p>
+      Three questions, in order. <em>What exactly should this part do?</em> &mdash; write
+      the truth table before the circuit; half the time the answer appears while
+      you write it. <em>What do I already have?</em> &mdash; the piece you need has
+      usually been built already, two stages ago, under a different name.
+      <em>Can I say it differently?</em> &mdash; &ldquo;a or b&rdquo; became buildable the moment it
+      was restated as &ldquo;not both off&rdquo;, and that move works far more often than it
+      has any right to.
+    </p>
+    <p>
+      And if none of that helps: build the smaller thing. A part that resists you
+      is nearly always two parts that have not been separated yet.
+    </p>
+  </div>
+</article>
+
+<section class="envoi">
+  <div class="body">
+    <h2>One last thing</h2>
+    <p>
+      This will take longer than you expect, and the stretch between 2.06 and
+      3.04 is where most attempts stall. Push through that and the rest is
+      momentum.
+    </p>
+    <p>
+      Test everything. Name everything. Never build the same part twice.
+    </p>
+  </div>
+</section>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var button = document.getElementById('theme-toggle');
+    var label = document.getElementById('theme-label');
+
+    function current() {
+      if (root.dataset.theme) return root.dataset.theme;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function sync() {
+      // The label names where the button will take you, not where you are.
+      label.textContent = current() === 'dark' ? 'Light' : 'Dark';
+    }
+    button.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try { localStorage.setItem('nand.manual.theme', next); } catch (e) { /* ignore */ }
+      sync();
+    });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sync);
+    sync();
+  })();
+</script>
+</body>
+</html>

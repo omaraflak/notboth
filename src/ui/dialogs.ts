@@ -1,0 +1,707 @@
+import { formatValue } from '../core/layout';
+import { clampWidth } from '../core/primitives';
+import { createProject, defSignature, previewReplace, replaceAllUses, signatureOf, usageCount } from '../core/project';
+import { downloadFile, exportProject, importProject, listProjects, pickFile, saveProject, deleteProject } from '../core/storage';
+import { normalizeVectors, runTests } from '../core/testbench';
+import type { ComponentDef, Id, Instance, Project, TestVector } from '../core/types';
+import type { App } from './app';
+import { append, button, clear, h, icon } from './dom';
+
+/* ------------------------------------------------------------------ *
+ * Primitives
+ * ------------------------------------------------------------------ */
+
+interface ModalSpec {
+  title: string;
+  wide?: boolean;
+  build: (body: HTMLElement, close: (value?: unknown) => void) => void;
+  foot?: (foot: HTMLElement, close: (value?: unknown) => void) => void;
+}
+
+export function openModal(spec: ModalSpec): Promise<unknown> {
+  return new Promise((resolve) => {
+    const scrim = h('div', { class: 'scrim' });
+    const modal = h('div', { class: `modal ${spec.wide ? 'wide' : ''}` });
+    const body = h('div', { class: 'body' });
+    const foot = h('div', { class: 'foot' });
+
+    let settled = false;
+    const close = (value?: unknown) => {
+      if (settled) return;
+      settled = true;
+      scrim.remove();
+      document.removeEventListener('keydown', onKey, true);
+      resolve(value);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); close(undefined); return; }
+      // Enter confirms -- except in a textarea, where it is a newline, and
+      // inside a data grid, where it steps to the next row. This listener runs
+      // in the capture phase, so it has to stand aside explicitly.
+      const target = e.target as HTMLElement | null;
+      const inGrid = !!target?.closest?.('table.grid-table');
+      if (e.key === 'Enter' && !e.shiftKey && target?.tagName !== 'TEXTAREA' && !inGrid) {
+        const primary = foot.querySelector('.btn.primary') as HTMLButtonElement | null;
+        if (primary) { e.preventDefault(); e.stopPropagation(); primary.click(); }
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) close(undefined); });
+
+    modal.appendChild(h('h2', null, spec.title));
+    modal.appendChild(body);
+    modal.appendChild(foot);
+    scrim.appendChild(modal);
+    document.body.appendChild(scrim);
+
+    spec.build(body, close);
+    if (spec.foot) spec.foot(foot, close);
+    else foot.appendChild(button('Close', { className: 'bordered', onClick: () => close(undefined) }));
+
+    const first = modal.querySelector('input, textarea, select') as HTMLElement | null;
+    first?.focus();
+    if (first instanceof HTMLInputElement) first.select();
+  });
+}
+
+export function promptText(
+  title: string, label: string, initial = '', placeholder = '',
+): Promise<string | null> {
+  return openModal({
+    title,
+    build: (body) => {
+      const input = h('input', { type: 'text', value: initial, placeholder });
+      body.appendChild(h('div', { class: 'field field-col' }, h('label', null, label), input));
+    },
+    foot: (foot, close) => {
+      const input = () => (foot.parentElement!.querySelector('input') as HTMLInputElement);
+      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(null) }));
+      foot.appendChild(button('OK', { className: 'primary', onClick: () => close(input().value.trim() || null) }));
+    },
+  }) as Promise<string | null>;
+}
+
+export function confirmDialog(
+  title: string, message: string,
+  opts: { confirmLabel?: string; danger?: boolean } = {},
+): Promise<boolean> {
+  return openModal({
+    title,
+    build: (body) => { body.appendChild(h('div', { class: 'hint', style: { fontSize: '12px' } }, message)); },
+    foot: (foot, close) => {
+      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(false) }));
+      foot.appendChild(button(opts.confirmLabel ?? 'Confirm', {
+        className: opts.danger ? 'primary' : 'primary',
+        onClick: () => close(true),
+      }));
+    },
+  }).then((v) => v === true);
+}
+
+export type MenuItem =
+  | 'divider'
+  | { header: string }
+  | { label: string; icon?: string; danger?: boolean; onClick: () => void };
+
+export function contextMenu(x: number, y: number, items: MenuItem[]) {
+  document.querySelector('.menu')?.remove();
+  const menu = h('div', { class: 'menu' });
+  for (const item of items) {
+    if (item === 'divider') { menu.appendChild(h('div', { class: 'divider' })); continue; }
+    if ('header' in item) { menu.appendChild(h('div', { class: 'label' }, item.header)); continue; }
+    const b = h('button', {
+      class: item.danger ? 'danger' : '',
+      onclick: () => { menu.remove(); item.onClick(); },
+    });
+    if (item.icon) b.appendChild(icon(item.icon, 12));
+    else b.appendChild(h('span', { class: 'icon-slot' }));
+    b.appendChild(h('span', null, item.label));
+    menu.appendChild(b);
+  }
+  document.body.appendChild(menu);
+  const r = menu.getBoundingClientRect();
+  menu.style.left = `${Math.min(x, window.innerWidth - r.width - 8)}px`;
+  menu.style.top = `${Math.min(y, window.innerHeight - r.height - 8)}px`;
+
+  const dismiss = (e: Event) => {
+    if (menu.contains(e.target as Node)) return;
+    menu.remove();
+    window.removeEventListener('pointerdown', dismiss, true);
+    window.removeEventListener('keydown', onKey, true);
+  };
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismiss(e); };
+  setTimeout(() => {
+    window.addEventListener('pointerdown', dismiss, true);
+    window.addEventListener('keydown', onKey, true);
+  }, 0);
+}
+
+/* ------------------------------------------------------------------ *
+ * Number parsing shared by the memory and test-bench editors
+ * ------------------------------------------------------------------ */
+
+export function parseNumber(token: string): number | null {
+  const t = token.trim().toLowerCase().replace(/_/g, '');
+  if (!t) return null;
+  let n: number;
+  if (t.startsWith('0x')) n = parseInt(t.slice(2), 16);
+  else if (t.startsWith('0b')) n = parseInt(t.slice(2), 2);
+  else if (/^-?\d+$/.test(t)) n = parseInt(t, 10);
+  else n = NaN;
+  return Number.isFinite(n) ? n >>> 0 : null;
+}
+
+export function parseWords(text: string): { words: number[]; bad: number } {
+  const words: number[] = [];
+  let bad = 0;
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.split('//')[0];
+    for (const token of line.split(/[\s,]+/)) {
+      if (!token) continue;
+      const n = parseNumber(token);
+      if (n === null) bad++;
+      else words.push(n);
+    }
+  }
+  return { words, bad };
+}
+
+/* ------------------------------------------------------------------ *
+ * Memory editor
+ * ------------------------------------------------------------------ */
+
+/**
+ * Loading a program is deliberately a text paste, not a wiring exercise --
+ * the whole point of a ROM is that you do not enter software one bit at a time.
+ */
+export function memoryEditor(app: App, inst: Instance, kind: 'ROM' | 'RAM') {
+  const addrWidth = clampWidth(inst.props.addrWidth, 8);
+  const dataWidth = clampWidth(inst.props.dataWidth, 16);
+  const capacity = 1 << addrWidth;
+
+  openModal({
+    title: `${kind} contents`,
+    wide: true,
+    build: (body, close) => {
+      const initial = (inst.props.contents ?? [])
+        .map((v) => '0x' + (v >>> 0).toString(16).toUpperCase().padStart(Math.ceil(dataWidth / 4), '0'))
+        .join('\n');
+      const area = h('textarea', {
+        class: 'hex-editor',
+        value: initial,
+        spellcheck: false,
+        placeholder: 'One word per line. 0x1F, 0b0101 and 42 all work.\n// comments are ignored',
+      });
+      const status = h('div', { class: 'hint' });
+      const update = () => {
+        const { words, bad } = parseWords(area.value);
+        const over = words.length > capacity;
+        status.textContent =
+          `${words.length} of ${capacity} words, ${dataWidth} bits each` +
+          (bad ? ` - ${bad} token${bad === 1 ? '' : 's'} could not be read` : '') +
+          (over ? ' - the extra words will not fit and are ignored' : '');
+        status.style.color = bad || over ? 'var(--danger)' : '';
+      };
+      area.addEventListener('input', update);
+
+      const load = button('Load file', {
+        icon: 'upload', className: 'bordered',
+        onClick: async () => {
+          const text = await pickFile('.txt,.hex,.bin,.asm,text/*');
+          if (text !== null) { area.value = text; update(); }
+        },
+      });
+
+      body.appendChild(h('div', { class: 'field', style: { marginBottom: '8px' } }, load));
+      body.appendChild(area);
+      body.appendChild(status);
+      update();
+
+      (body as HTMLElement & { commit?: () => void }).commit = () => {
+        const { words } = parseWords(area.value);
+        const mask = dataWidth >= 32 ? 0xffffffff : ((1 << dataWidth) - 1) >>> 0;
+        const clipped = words.slice(0, capacity).map((w) => (w & mask) >>> 0);
+        app.mutate(() => { inst.props.contents = clipped; });
+        // A running simulation picks the new program up without a reset.
+        const index = app.netlist?.mems.findIndex((m) => m.instId === inst.id) ?? -1;
+        if (index >= 0) app.sim?.loadMemory(index, clipped);
+        app.toast(`Loaded ${clipped.length} words`);
+        close(true);
+      };
+    },
+    foot: (foot, close) => {
+      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(false) }));
+      foot.appendChild(button('Load into ' + kind, {
+        className: 'primary',
+        onClick: () => {
+          const body = foot.parentElement!.querySelector('.body') as HTMLElement & { commit?: () => void };
+          body.commit?.();
+        },
+      }));
+    },
+  });
+}
+
+/** Read-only view of what a RAM currently holds, while the machine runs. */
+export function memoryViewer(app: App, inst: Instance) {
+  const index = app.netlist?.mems.findIndex((m) => m.instId === inst.id) ?? -1;
+  const data = index >= 0 ? app.sim?.memSnapshot(index) : undefined;
+  const dataWidth = clampWidth(inst.props.dataWidth, 16);
+
+  openModal({
+    title: 'Memory contents',
+    wide: true,
+    build: (body) => {
+      if (!data) {
+        body.appendChild(h('div', { class: 'hint' }, 'Switch the power on to inspect live memory.'));
+        return;
+      }
+      const pre = h('pre', { style: { fontFamily: 'var(--mono)', fontSize: '11px', lineHeight: '1.6' } });
+      const perRow = 8;
+      const lines: string[] = [];
+      let lastNonZero = 0;
+      for (let i = 0; i < data.length; i++) if (data[i]) lastNonZero = i;
+      const limit = Math.min(data.length, Math.max(64, lastNonZero + 8));
+      for (let a = 0; a < limit; a += perRow) {
+        const cells: string[] = [];
+        for (let i = 0; i < perRow && a + i < limit; i++) {
+          cells.push(formatValue(data[a + i], dataWidth, 'hex').slice(2));
+        }
+        lines.push(a.toString(16).padStart(4, '0') + ':  ' + cells.join(' '));
+      }
+      if (limit < data.length) lines.push(`... ${data.length - limit} more words, all zero`);
+      pre.textContent = lines.join('\n');
+      body.appendChild(pre);
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Test benches
+ * ------------------------------------------------------------------ */
+
+export function testBenchDialog(app: App, def: ComponentDef) {
+  const sig = signatureOf(def);
+  if (!sig.inputs.length && !sig.outputs.length) {
+    app.toast('Add IN and OUT port markers before writing tests', 'err');
+    return;
+  }
+  // Migrate any name-keyed vectors to pin ids as soon as they are opened, so a
+  // later rename cannot orphan them.
+  const migrated = normalizeVectors(sig, structuredClone(def.tests?.vectors ?? []));
+  const vectors: TestVector[] = migrated.vectors;
+  const orphaned = migrated.unknown;
+  let settleTicks = def.tests?.settleTicks ?? 0;
+  let resetEach = def.tests?.resetEachVector ?? false;
+
+  openModal({
+    title: `Tests for ${def.name}`,
+    wide: true,
+    build: (body, close) => {
+      const tableWrap = h('div', { style: { maxHeight: '340px', overflow: 'auto' } });
+      const summary = h('div', { class: 'hint' });
+
+      const focusCell = (row: number, col: number): boolean => {
+        const el = tableWrap.querySelector<HTMLInputElement>(
+          `input[data-row="${row}"][data-col="${col}"]`,
+        );
+        if (!el) return false;
+        el.focus();
+        el.select();
+        return true;
+      };
+
+      // Arrow keys walk the grid. Left and right only leave the cell when the
+      // caret is already at that edge, so they still move the caret while you
+      // are part-way through typing a value.
+      tableWrap.addEventListener('keydown', (e) => {
+        const input = e.target as HTMLInputElement;
+        if (!(input instanceof HTMLInputElement) || input.dataset.row === undefined) return;
+        const row = Number(input.dataset.row);
+        const col = Number(input.dataset.col);
+        const len = input.value.length;
+        const from = input.selectionStart ?? 0;
+        const to = input.selectionEnd ?? 0;
+        const wholeValueSelected = len > 0 && from === 0 && to === len;
+        const atStart = len === 0 || wholeValueSelected || (from === 0 && to === 0);
+        const atEnd = len === 0 || wholeValueSelected || (from === len && to === len);
+
+        let target: [number, number] | null = null;
+        switch (e.key) {
+          case 'ArrowUp': target = [row - 1, col]; break;
+          case 'ArrowDown': target = [row + 1, col]; break;
+          case 'ArrowLeft': if (atStart) target = [row, col - 1]; break;
+          case 'ArrowRight': if (atEnd) target = [row, col + 1]; break;
+          case 'Enter': target = [row + (e.shiftKey ? -1 : 1), col]; break;
+          default: return;
+        }
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        focusCell(target[0], target[1]);
+      });
+
+      const render = (results?: ReturnType<typeof runTests>) => {
+        clear(tableWrap);
+        const table = h('table', { class: 'grid-table' });
+        const head = h('tr');
+        head.appendChild(h('th', null, ''));
+        for (const p of sig.inputs) head.appendChild(h('th', null, `${p.name}${p.width > 1 ? `[${p.width}]` : ''}`));
+        for (const p of sig.outputs) head.appendChild(h('th', null, `= ${p.name}`));
+        head.appendChild(h('th', null, ''));
+        table.appendChild(h('thead', null, head));
+
+        const tbody = h('tbody');
+        vectors.forEach((vec, i) => {
+          const result = results?.results[i];
+          const tr = h('tr', { class: result ? (result.pass ? 'pass' : 'fail') : '' });
+          tr.appendChild(h('td', { class: 'res', style: { color: 'var(--text-faint)' } }, String(i)));
+          let col = 0;
+          for (const p of sig.inputs) {
+            const cell = numberCell(vec.in[p.id] ?? 0, (v) => { vec.in[p.id] = v; });
+            cell.dataset.row = String(i);
+            cell.dataset.col = String(col++);
+            tr.appendChild(h('td', null, cell));
+          }
+          for (const p of sig.outputs) {
+            const cell = numberCell(vec.out[p.id] ?? 0, (v) => { vec.out[p.id] = v; });
+            cell.dataset.row = String(i);
+            cell.dataset.col = String(col++);
+            const td = h('td', null, cell);
+            if (result && !result.pass) {
+              td.title = `got ${formatValue(result.actual[p.name] ?? 0, p.width, 'hex')}`;
+            }
+            tr.appendChild(td);
+          }
+          const del = button(null, {
+            icon: 'x', title: 'Remove row',
+            onClick: () => { vectors.splice(i, 1); render(); },
+          });
+          tr.appendChild(h('td', { class: 'res' }, del));
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+
+        clear(summary);
+        const unmatched = [...new Set([...orphaned, ...(results?.unknownPins ?? [])])];
+        if (unmatched.length) {
+          const names = sig.inputs.concat(sig.outputs).map((p) => p.name).join(', ');
+          summary.appendChild(h('div', { style: { color: 'var(--warn)' } },
+            `Dropped ${unmatched.length} column${unmatched.length === 1 ? '' : 's'} `
+            + `(${unmatched.join(', ')}) - no pin by that name any more. This component's pins are: ${names}.`));
+        }
+        if (results?.ran) {
+          const failed = results.total - results.passed;
+          summary.appendChild(h('div', {
+            style: { color: failed ? 'var(--danger)' : 'var(--ok)' },
+          }, failed
+            ? `${results.passed} of ${results.total} vectors pass. Hover a red cell to see what it produced.`
+            : results.total === 1 ? 'The vector passes.' : `All ${results.total} vectors pass.`));
+        } else if (results && results.errors.length) {
+          summary.appendChild(h('div', { style: { color: 'var(--danger)' } }, results.errors[0].message));
+        }
+      };
+
+      const addRow = button('Add vector', {
+        icon: 'plus', className: 'bordered',
+        onClick: () => {
+          const blank: TestVector = { in: {}, out: {} };
+          for (const p of sig.inputs) blank.in[p.id] = 0;
+          for (const p of sig.outputs) blank.out[p.id] = 0;
+          vectors.push(blank);
+          render();
+          focusCell(vectors.length - 1, 0);
+        },
+      });
+
+      const ticksInput = h('input', {
+        type: 'number', min: '0', value: String(settleTicks), style: { width: '70px' },
+        oninput: (e: Event) => { settleTicks = Number((e.target as HTMLInputElement).value) || 0; },
+      });
+      const resetInput = h('input', {
+        type: 'checkbox', checked: resetEach, style: { width: 'auto' },
+        onchange: (e: Event) => { resetEach = (e.target as HTMLInputElement).checked; },
+      });
+
+      body.appendChild(tableWrap);
+      body.appendChild(h('div', { class: 'field', style: { marginTop: '10px' } }, addRow));
+      body.appendChild(h('div', { class: 'field' },
+        h('label', null, 'Ticks'), h('div', { class: 'control' }, ticksInput)));
+      body.appendChild(h('div', { class: 'field' },
+        h('label', null, 'Reset'), h('div', { class: 'control' }, resetInput)));
+      body.appendChild(h('div', { class: 'hint' },
+        'Arrow keys move between cells, Enter steps down a row. '
+        + 'Leave ticks at 0 for combinational logic; the runner settles until nothing is left to propagate. '
+        + 'Set it for sequential circuits so each vector advances the clock by a fixed amount.'));
+      body.appendChild(summary);
+      render();
+
+      (body as HTMLElement & { save?: () => void; run?: () => void }).run = () => {
+        render(runTests(app.project, def.id, { vectors, settleTicks, resetEachVector: resetEach }));
+      };
+      (body as HTMLElement & { save?: () => void }).save = () => {
+        app.mutate(() => {
+          def.tests = vectors.length ? { vectors, settleTicks, resetEachVector: resetEach } : undefined;
+        });
+        close(true);
+      };
+    },
+    foot: (foot, close) => {
+      const body = () => foot.parentElement!.querySelector('.body') as HTMLElement & { save?: () => void; run?: () => void };
+      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(false) }));
+      foot.appendChild(h('div', { class: 'spacer' }));
+      foot.appendChild(button('Run', { icon: 'beaker', className: 'bordered', onClick: () => body().run?.() }));
+      foot.appendChild(button('Save', { className: 'primary', onClick: () => body().save?.() }));
+    },
+  });
+}
+
+function numberCell(value: number, onChange: (v: number) => void): HTMLInputElement {
+  const input = h('input', { type: 'text', value: String(value) });
+  input.addEventListener('input', () => {
+    const n = parseNumber(input.value);
+    input.style.color = n === null ? 'var(--danger)' : '';
+    if (n !== null) onChange(n);
+  });
+  return input;
+}
+
+/* ------------------------------------------------------------------ *
+ * Replace and delete
+ * ------------------------------------------------------------------ */
+
+/**
+ * The direct operation that user-editable component ids would only
+ * approximate -- and unlike an id rewrite it can say what will break first.
+ */
+export function replaceDialog(app: App, fromId: Id) {
+  const from = app.project.defs.find((d) => d.id === fromId);
+  if (!from) return;
+  const candidates = app.project.defs.filter((d) => d.id !== fromId);
+  if (!candidates.length) { app.toast('There is nothing else to swap in', 'err'); return; }
+
+  openModal({
+    title: `Replace every use of ${from.name}`,
+    build: (body, close) => {
+      const select = h('select', null,
+        ...candidates.map((d) => h('option', { value: d.id }, d.name)));
+      const report = h('div', { class: 'hint' });
+
+      const update = () => {
+        const preview = previewReplace(app.project, fromId, select.value);
+        clear(report);
+        const lines = [
+          `${preview.instances} instance${preview.instances === 1 ? '' : 's'} across ${preview.defs} component${preview.defs === 1 ? '' : 's'}.`,
+        ];
+        if (preview.droppedPins.length) lines.push(`No match for pin${preview.droppedPins.length === 1 ? '' : 's'}: ${[...new Set(preview.droppedPins)].join(', ')}.`);
+        if (preview.resizedPins.length) lines.push(`Different width: ${[...new Set(preview.resizedPins)].join(', ')}.`);
+        if (preview.wiresDropped) lines.push(`${preview.wiresDropped} wire${preview.wiresDropped === 1 ? '' : 's'} will be removed.`);
+        else lines.push('Every wire reconnects cleanly.');
+        for (const line of lines) report.appendChild(h('div', null, line));
+        report.style.color = preview.wiresDropped ? 'var(--danger)' : '';
+      };
+      select.addEventListener('change', update);
+
+      body.appendChild(h('div', { class: 'field field-col' },
+        h('label', null, 'Replace with'), select));
+      body.appendChild(report);
+      update();
+
+      (body as HTMLElement & { commit?: () => void }).commit = () => {
+        const toId = select.value;
+        app.mutate(() => { replaceAllUses(app.project, fromId, toId); });
+        app.toast(`Swapped every ${from.name} for ${app.project.defs.find((d) => d.id === toId)?.name}`);
+        close(true);
+      };
+    },
+    foot: (foot, close) => {
+      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(false) }));
+      foot.appendChild(button('Replace', {
+        className: 'primary',
+        onClick: () => {
+          const body = foot.parentElement!.querySelector('.body') as HTMLElement & { commit?: () => void };
+          body.commit?.();
+        },
+      }));
+    },
+  });
+}
+
+/**
+ * Deleting a component in use is the moment to offer a replacement, which is
+ * the workflow that "recreate it with the same id" was really reaching for.
+ */
+export async function deleteComponentDialog(app: App, defId: Id, onDelete: () => void) {
+  const def = app.project.defs.find((d) => d.id === defId);
+  if (!def) return;
+  const uses = usageCount(app.project, defId);
+  if (!uses) {
+    const ok = await confirmDialog('Delete component', `Delete "${def.name}"? It is not used anywhere.`, {
+      confirmLabel: 'Delete', danger: true,
+    });
+    if (ok) onDelete();
+    return;
+  }
+
+  openModal({
+    title: `Delete ${def.name}`,
+    build: (body) => {
+      body.appendChild(h('div', { style: { fontSize: '12px', lineHeight: '1.6' } },
+        `"${def.name}" is used ${uses} time${uses === 1 ? '' : 's'}. Deleting it removes every instance and the wires attached to them.`));
+      body.appendChild(h('div', { class: 'hint' },
+        'If you built a replacement, swap the uses over first - that keeps the circuits wired.'));
+    },
+    foot: (foot, close) => {
+      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(false) }));
+      foot.appendChild(h('div', { class: 'spacer' }));
+      foot.appendChild(button('Replace with...', {
+        icon: 'swap', className: 'bordered',
+        onClick: () => { close(false); replaceDialog(app, defId); },
+      }));
+      foot.appendChild(button('Delete anyway', {
+        className: 'primary danger',
+        onClick: () => { close(true); onDelete(); },
+      }));
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Projects
+ * ------------------------------------------------------------------ */
+
+export function projectsDialog(app: App) {
+  openModal({
+    title: 'Projects',
+    build: async (body, close) => {
+      const list = h('div');
+      body.appendChild(list);
+
+      const refresh = async () => {
+        clear(list);
+        const projects = await listProjects();
+        for (const p of projects) {
+          const current = p.id === app.project.id;
+          const row = h('div', { class: `row ${current ? 'selected' : ''}` });
+          row.appendChild(h('div', { class: 'row-glyph' }, icon('layers', 12)));
+          row.appendChild(h('div', { class: 'row-name' }, p.name));
+          row.appendChild(h('div', { class: 'row-meta' }, `${p.defs.length} comp`));
+          row.addEventListener('click', async () => {
+            if (current) return close(false);
+            await app.switchProject(p);
+            close(true);
+          });
+          const more = h('button', { class: 'row-more' }, icon('more', 12));
+          more.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const r = more.getBoundingClientRect();
+            contextMenu(r.left, r.bottom + 4, [
+              { label: 'Export JSON', icon: 'download', onClick: () => downloadFile(`${slug(p.name)}.nand.json`, exportProject(p)) },
+              'divider',
+              {
+                label: 'Delete project', icon: 'trash', danger: true,
+                onClick: async () => {
+                  const ok = await confirmDialog('Delete project', `Delete "${p.name}" permanently? This cannot be undone.`, { confirmLabel: 'Delete', danger: true });
+                  if (!ok) return;
+                  await deleteProject(p.id);
+                  if (current) {
+                    const rest = (await listProjects())[0];
+                    if (rest) await app.switchProject(rest);
+                  }
+                  refresh();
+                },
+              },
+            ]);
+          });
+          row.appendChild(more);
+          list.appendChild(row);
+        }
+        if (!projects.length) list.appendChild(h('div', { class: 'empty-note' }, 'No saved projects yet.'));
+      };
+      await refresh();
+      (body as HTMLElement & { refresh?: () => void }).refresh = refresh;
+    },
+    foot: (foot, close) => {
+      foot.appendChild(button('Import', {
+        icon: 'upload', className: 'bordered',
+        onClick: async () => {
+          const text = await pickFile('.json,application/json');
+          if (!text) return;
+          try {
+            const project = importProject(text);
+            await saveProject(project);
+            await app.switchProject(project);
+            app.toast(`Imported ${project.name}`);
+            close(true);
+          } catch (err) {
+            app.toast(`Could not import: ${(err as Error).message}`, 'err');
+          }
+        },
+      }));
+      foot.appendChild(h('div', { class: 'spacer' }));
+      foot.appendChild(button('New project', {
+        icon: 'plus', className: 'primary',
+        onClick: async () => {
+          const name = await promptText('New project', 'Name', 'Untitled');
+          if (!name) return;
+          const project = createProject(name);
+          await saveProject(project);
+          await app.switchProject(project);
+          close(true);
+        },
+      }));
+    },
+  });
+}
+
+export function shortcutsDialog() {
+  const rows: [string, string][] = [
+    ['Pan', 'Space + drag, middle drag, or two-finger scroll'],
+    ['Zoom', 'Cmd/Ctrl + scroll'],
+    ['Fit to circuit', 'Shift F'],
+    ['Draw a wire', 'Drag from an output pin to an input pin'],
+    ['Detach a wire', 'Drag away from the input pin it feeds'],
+    ['Switch editor', 'Schematic / Text, next to the component name'],
+    ['Apply text', 'Cmd/Ctrl Enter while writing'],
+    ['Select next occurrence', 'Cmd/Ctrl D in the text editor, then type to change them all'],
+    ['Place a component', 'Click it in the library, then click the grid'],
+    ['Edit a component', 'Double-click it in the library, or its box on the canvas'],
+    ['Make a component', 'Select parts, then right-click - or Cmd/Ctrl G'],
+    ['Select many', 'Drag on empty canvas, or Shift-click'],
+    ['Delete selection', 'Delete or Backspace'],
+    ['Nudge selection', 'Arrow keys'],
+    ['Copy / paste', 'Cmd/Ctrl C, Cmd/Ctrl V'],
+    ['Undo / redo', 'Cmd/Ctrl Z, Shift Cmd/Ctrl Z'],
+    ['Power on/off', 'Cmd/Ctrl Enter'],
+    ['Single tick', 'Right arrow while paused, or the Step button'],
+    ['Place repeatedly', 'Hold Shift while placing'],
+  ];
+  openModal({
+    title: 'Keyboard and mouse',
+    build: (body) => {
+      for (const [what, how] of rows) {
+        body.appendChild(h('div', { class: 'field' },
+          h('label', { style: { width: '150px' } }, what),
+          h('div', { class: 'control', style: { color: 'var(--text-dim)' } }, how)));
+      }
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Component signature preview, used by the library tooltip
+ * ------------------------------------------------------------------ */
+
+export function signatureSummary(project: Project, defId: Id): string {
+  const sig = defSignature(project, defId);
+  const fmt = (list: typeof sig.inputs) =>
+    list.map((p) => (p.width > 1 ? `${p.name}[${p.width}]` : p.name)).join(', ') || '-';
+  return `in: ${fmt(sig.inputs)}\nout: ${fmt(sig.outputs)}`;
+}
+
+export function slug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
+}
+
+export { append };
