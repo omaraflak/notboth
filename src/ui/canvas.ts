@@ -195,9 +195,18 @@ export class CanvasView {
         from,
         to,
         via: w.via,
+        fromInst: w.from.inst,
+        toInst: w.to.inst,
       });
     }
-    this.routes = planRoutes(geoms);
+    // Parts are handed to the router as space to keep out of, so a wire is
+    // never drawn straight through a box that has nothing to do with it.
+    const obstacles = this.placed.map((p) => ({
+      id: p.inst.id,
+      x0: p.inst.x, y0: p.inst.y,
+      x1: p.inst.x + p.box.w, y1: p.inst.y + p.box.h,
+    }));
+    this.routes = planRoutes(geoms, obstacles);
   }
 
   private pinPoint(p: Placed, pin: PinLayout): Point {

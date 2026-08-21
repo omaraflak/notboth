@@ -83,8 +83,8 @@ y = g1.y
 the other.** Pin order and statement order come from the order things are
 written, so reordering lines sticks. Where a box sits is pure presentation —
 which is why there is an **Arrange schematic** button (in the inspector, or on
-the canvas right-click menu) that tidies everything into columns by depth
-without altering a single character of the text. Reorder pins from the
+the canvas right-click menu) that redraws the whole picture without altering a
+single character of the text. Reorder pins from the
 schematic side with the arrows in a port marker's inspector.
 
 The text saves itself, exactly as the schematic does — there is no Apply
@@ -120,6 +120,26 @@ Two things text does not carry: memory contents, because a ROM's program is
 data rather than structure (it survives by identity, and you edit it from the
 schematic), and comments, which live in the editor buffer rather than in the
 saved component.
+
+## Arranging a schematic
+
+Position is presentation — it has no effect on what a circuit does — so
+**Arrange schematic** is free to redraw everything. It is the standard layered
+graph drawing, which is also just how a schematic is read:
+
+- **Columns by depth.** A part sits in the column after the deepest thing
+  feeding it, so signals flow left to right. Outputs get a column of their own
+  at the right.
+- **Order follows the wires.** Each column is sorted by where the parts feeding
+  it ended up, swept forwards and backwards until it settles. This is the
+  barycentre heuristic, and it is the difference between rows that line up with
+  what drives them and a random stack.
+- **Long wires get a lane.** A wire that skips a column would otherwise be
+  drawn straight through whatever is standing there, so a slot is reserved for
+  it in each column it crosses. The parts move apart to make room.
+
+Feedback loops have no "first" gate, so they are laid out by breaking the tie
+rather than by recursing forever. A latch is supposed to look like that.
 
 ## Buses
 
@@ -173,12 +193,19 @@ one tick.
 Wires light up when they carry current. Colour is yours to choose; brightness
 belongs to the simulator.
 
-Wires are routed together rather than one at a time, and a vertical channel is
-claimed per *signal*: everything driven by the same pin shares a trunk, because
-overlapping there is honest, and any other signal wanting that column is moved
-aside. So two lines running into each other always means one signal. Where a
+Wires are routed together rather than one at a time, against a map of what the
+schematic has already committed to. Every run remembers which *signal* put it
+there, and space is only contested between different signals — everything
+driven by the same pin shares a trunk, because overlapping there is honest.
+**So two lines running along each other always means one signal**, and where a
 branch leaves a trunk mid-run there is a junction dot; a crossing without a dot
 is two signals passing, not joining.
+
+Parts go into the same map, as space to keep out of, which means routing around
+a gate and routing around another signal are the same search. A run with
+nowhere clear to go steps off its own row rather than being drawn on top of
+something: two extra bends is a smaller price than two wires that look like
+one.
 
 If a circuit oscillates — a NAND driving its own input, or a latch with no
 defined initial state — the status bar says so rather than hanging.
@@ -251,7 +278,7 @@ src/core/     no DOM anywhere in here, and fully unit-tested
   project.ts    components, folders, replace-all-uses
   compile.ts    hierarchy -> flat NAND netlist, via union-find
   sim.ts        event-driven simulator, uniform unit delay
-  autolayout.ts arranging a schematic into columns by depth
+  autolayout.ts arranging a schematic: columns, order, and lanes
   extract.ts    selection -> new component
   hdl.ts        component <-> text, round-tripping identity and layout
   layout.ts     box geometry and wire routing (pure, so it is testable)

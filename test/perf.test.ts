@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { compile, type Netlist } from '../src/core/compile';
 import { Simulator } from '../src/core/sim';
 import { newId } from '../src/core/ids';
-import { addPrimitive, createProject, emptyDef } from '../src/core/project';
+import { addPrimitive, connect, createProject, defSignature, emptyDef } from '../src/core/project';
+import { arrangeDef } from '../src/core/autolayout';
+import { approxMeasure, layoutBox, planRoutes, type Obstacle, type WireGeom } from '../src/core/layout';
+import { primLabel } from '../src/core/primitives';
 import type { ComponentDef, Id, Project, Wire } from '../src/core/types';
 
 /**
@@ -527,6 +530,73 @@ describe('degenerate circuits', () => {
     note(`edit loop   worst of 5 recompiles of a 10,000-gate circuit: ${worst.toFixed(0)}ms`);
     expect(worst).toBeLessThan(400);
   }, 60_000);
+});
+
+/** Route a whole component the way the canvas does, boxes and all. */
+function routeAll(project: Project, def: ComponentDef) {
+  const placed = new Map(def.instances.map((i) => [i.id,
+    { inst: i, box: layoutBox(defSignature(project, i.def, i.props), primLabel(i), approxMeasure) }]));
+  const obstacles: Obstacle[] = [...placed.values()].map((p) => ({
+    id: p.inst.id,
+    x0: p.inst.x, y0: p.inst.y,
+    x1: p.inst.x + p.box.w, y1: p.inst.y + p.box.h,
+  }));
+  const geoms: WireGeom[] = [];
+  for (const w of def.wires) {
+    const a = placed.get(w.from.inst);
+    const b = placed.get(w.to.inst);
+    const pa = a?.box.pins.find((x) => x.pin.id === w.from.pin);
+    const pb = b?.box.pins.find((x) => x.pin.id === w.to.pin);
+    if (!a || !b || !pa || !pb) continue;
+    geoms.push({
+      id: w.id,
+      net: `${w.from.inst}:${w.from.pin}:${w.from.lo}-${w.from.hi}`,
+      from: { x: a.inst.x + pa.x, y: a.inst.y + pa.y },
+      to: { x: b.inst.x + pb.x, y: b.inst.y + pb.y },
+      fromInst: w.from.inst,
+      toInst: w.to.inst,
+    });
+  }
+  return planRoutes(geoms, obstacles);
+}
+
+describe('schematic layout', () => {
+  it('arranges and routes a large schematic without going quadratic', () => {
+    // Many small circuits stacked in the same few columns: the shape that
+    // makes every wire compete for the same space between two columns.
+    const build = (n: number) => {
+      const project = createProject('perf');
+      const def = project.defs[0];
+      for (let i = 0; i < n; i++) {
+        const a = addPrimitive(def, 'IN', 0, i * 5, { name: `a${i}`, width: 1 });
+        const g = addPrimitive(def, 'NAND', 0, i * 5);
+        const h = addPrimitive(def, 'NAND', 0, i * 5);
+        const o = addPrimitive(def, 'OUT', 0, i * 5, { name: `o${i}`, width: 1 });
+        connect(project, def, { inst: a.id, pin: 'out' }, { inst: g.id, pin: 'a' });
+        connect(project, def, { inst: a.id, pin: 'out' }, { inst: g.id, pin: 'b' });
+        connect(project, def, { inst: g.id, pin: 'y' }, { inst: h.id, pin: 'a' });
+        connect(project, def, { inst: g.id, pin: 'y' }, { inst: h.id, pin: 'b' });
+        connect(project, def, { inst: h.id, pin: 'y' }, { inst: o.id, pin: 'in' });
+      }
+      return { project, def };
+    };
+
+    const run = (n: number) => {
+      const { project, def } = build(n);
+      const a = time(() => arrangeDef(project, def));
+      const r = time(() => routeAll(project, def));
+      return { parts: def.instances.length, ms: a.ms + r.ms, arrange: a.ms, route: r.ms };
+    };
+
+    const small = run(50);
+    const large = run(200);
+    note(`layout      ${large.parts} parts: arrange ${large.arrange.toFixed(0)}ms,`
+      + ` route ${large.route.toFixed(0)}ms`);
+
+    // Four times the parts must not cost anything like sixteen times the work.
+    expect((large.ms + 1) / (small.ms + 1)).toBeLessThan(10);
+    expect(large.ms).toBeLessThan(1500);
+  });
 });
 
 describe('summary', () => {

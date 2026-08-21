@@ -133,6 +133,9 @@ export interface WireGeom {
   from: Point;
   to: Point;
   via?: Point[];
+  /** The parts at each end, which this wire is allowed to touch. */
+  fromInst?: string;
+  toInst?: string;
 }
 
 export interface Junction { x: number; y: number; net: string }
@@ -144,19 +147,146 @@ export interface RoutePlan {
 }
 
 const MAX_CHANNEL_SHIFT = 8;
+/** How far off a pin's own row a run may be detoured to find clear space. */
+const MAX_DETOUR = 6;
+/**
+ * Above this many wires the schematic is past the point of being read, and the
+ * search for clear space stops earning its keep -- so it is skipped and every
+ * wire takes the direct route. Routing runs on every edit, and a circuit this
+ * size is one you navigate by zooming in, not by following lines across it.
+ */
+const AVOIDANCE_LIMIT = 1500;
+/** Grid cells per bucket in the occupancy index. */
+const CELL = 8;
 
 /**
- * Route every wire at once.
+ * What the schematic has already committed to, so that a later wire can be
+ * asked to go somewhere else.
  *
- * Choosing each wire's vertical channel independently lets unrelated signals
- * land on the same column and merge into what looks like a single wire. So the
- * channel is chosen per *net* instead: wires driven by the same pin share one
- * trunk -- they carry the same signal, so overlapping is honest -- and any
- * other net that wants the same column is pushed aside until it finds a free
- * one. Whatever crossings remain are genuine crossings, and only a junction
- * dot means "joined".
+ * Every reserved run remembers which signal put it there. Two wires driven by
+ * the same pin *should* lie on top of each other -- that is one signal, drawn
+ * once, branching -- so occupancy only counts against a different net. That
+ * single rule is the whole difference between a schematic you can read and one
+ * where two unrelated wires look like one.
  */
-export function planRoutes(wires: WireGeom[]): RoutePlan {
+class Occupancy {
+  private vertical = new Map<number, Map<number, Span[]>>();
+  private horizontal = new Map<number, Map<number, Span[]>>();
+
+  /**
+   * Runs are filed by the cell they fall in, not just by the row, so a query
+   * reads the few spans near where it is looking instead of every span on the
+   * row. Without this the router is quadratic in the size of the schematic --
+   * every part contributes a span to every row it covers, and every candidate
+   * route reads them all.
+   */
+  private static file(map: Map<number, Map<number, Span[]>>, line: number, a: number, b: number, net: string) {
+    const span: Span = { lo: Math.min(a, b), hi: Math.max(a, b), net };
+    let cells = map.get(line);
+    if (!cells) { cells = new Map(); map.set(line, cells); }
+    for (let k = Math.floor(span.lo / CELL); k <= Math.floor(span.hi / CELL); k++) {
+      const list = cells.get(k);
+      if (list) list.push(span); else cells.set(k, [span]);
+    }
+  }
+
+  /** Length of the longest run of `a..b` already held by something else. */
+  private static clash(
+    map: Map<number, Map<number, Span[]>>, line: number, a: number, b: number, exempt: Set<string>,
+  ): number {
+    const cells = map.get(line);
+    if (!cells) return 0;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    let worst = 0;
+    // A span filed in several cells is seen more than once, which is harmless:
+    // the answer is the longest overlap, not their total.
+    for (let k = Math.floor(lo / CELL); k <= Math.floor(hi / CELL); k++) {
+      const list = cells.get(k);
+      if (!list) continue;
+      for (const s of list) {
+        if (exempt.has(s.net)) continue;
+        const over = Math.min(hi, s.hi) - Math.max(lo, s.lo);
+        if (over > worst) worst = over;
+      }
+    }
+    return worst;
+  }
+
+  /**
+   * Total length of this path that would be drawn over something it should not
+   * be: another signal, or the body of a part. `exempt` holds the names this
+   * particular wire is allowed to overlap -- its own signal, and the two parts
+   * it is attached to, which it obviously has to touch.
+   */
+  cost(pts: Point[], exempt: Set<string>): number {
+    let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p = pts[i];
+      const q = pts[i + 1];
+      if (p.x === q.x) total += Occupancy.clash(this.vertical, p.x, p.y, q.y, exempt);
+      else if (p.y === q.y) total += Occupancy.clash(this.horizontal, p.y, p.x, q.x, exempt);
+    }
+    return total;
+  }
+
+  claim(pts: Point[], net: string) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p = pts[i];
+      const q = pts[i + 1];
+      if (p.x === q.x) Occupancy.file(this.vertical, p.x, p.y, q.y, net);
+      else if (p.y === q.y) Occupancy.file(this.horizontal, p.y, p.x, q.x, net);
+    }
+  }
+
+  /**
+   * Reserve the body of a part. A box is simply space a wire may not occupy,
+   * so it costs nothing extra to express it the same way as a wire: routing
+   * around parts and routing around other signals become one search.
+   */
+  block(r: Obstacle) {
+    const name = boxNet(r.id);
+    for (let y = r.y0; y <= r.y1; y++) Occupancy.file(this.horizontal, y, r.x0, r.x1, name);
+    for (let x = r.x0; x <= r.x1; x++) Occupancy.file(this.vertical, x, r.y0, r.y1, name);
+  }
+}
+
+interface Span { lo: number; hi: number; net: string }
+
+/** The body of a part, in grid units, that wires should route around. */
+export interface Obstacle { id: string; x0: number; y0: number; x1: number; y1: number }
+
+const boxNet = (id: string) => `\u0000box:${id}`;
+
+/**
+ * A path that leaves the source on its own row, crosses on `track`, and comes
+ * back to the sink's row at the end. Used when the direct route would be drawn
+ * on top of another signal: two extra bends is a smaller price than two wires
+ * that look like one.
+ */
+function aroundWire(start: Point, end: Point, track: number): Point[] {
+  const outX = start.x + 1;
+  const inX = end.x - 1;
+  return dedupe([
+    start,
+    { x: outX, y: start.y }, { x: outX, y: track },
+    { x: inX, y: track }, { x: inX, y: end.y },
+    end,
+  ]);
+}
+
+function detourWire(start: Point, end: Point, track: number): Point[] {
+  const outX = start.x + 1;
+  const inX = Math.max(outX + 1, end.x - 1);
+  return dedupe([
+    start,
+    { x: outX, y: start.y }, { x: outX, y: track },
+    { x: inX, y: track }, { x: inX, y: end.y },
+    end,
+  ]);
+}
+
+export function planRoutes(wires: WireGeom[], obstacles: Obstacle[] = []): RoutePlan {
   const paths = new Map<string, Point[]>();
   const junctions: Junction[] = [];
 
@@ -173,44 +303,96 @@ export function planRoutes(wires: WireGeom[]): RoutePlan {
     return fa.x - fb.x || fa.y - fb.y || (a[0] < b[0] ? -1 : 1);
   });
 
-  const taken = new Map<number, [number, number][]>();
-  const collides = (x: number, y0: number, y1: number) =>
-    (taken.get(x) ?? []).some(([a, b]) => Math.min(y1, b) - Math.max(y0, a) > 0);
-  const reserve = (x: number, y0: number, y1: number) => {
-    const spans = taken.get(x);
-    if (spans) spans.push([y0, y1]); else taken.set(x, [[y0, y1]]);
-  };
+  const held = new Occupancy();
+  const avoiding = wires.length <= AVOIDANCE_LIMIT;
+  if (avoiding) for (const r of obstacles) held.block(r);
 
   for (const [net, group] of ordered) {
     const from = group[0].from;
-    const straight = group.filter((w) => !w.via?.length && w.to.x - from.x >= 2);
-    for (const w of group) {
-      if (straight.includes(w)) continue;
-      paths.set(w.id, routeWire(w.from, w.to, w.via ?? []));
-    }
-    if (!straight.length) continue;
+    // Wires that can use the net's trunk: forwards, and not hand-routed.
+    const trunk = group.filter((w) => !w.via?.length && w.to.x - from.x >= 2);
+    const direct = group.filter((w) => !trunk.includes(w));
 
-    const nearest = Math.min(...straight.map((w) => w.to.x));
+    const exemptOf = (w: WireGeom) =>
+      new Set([net, boxNet(w.fromInst ?? ''), boxNet(w.toInst ?? '')]);
+
+    // Wires that run backwards -- the feedback in every latch -- have to come
+    // round the outside of their own gates. Which row they come round on is
+    // free, so it is worth choosing one that is not already taken.
+    for (const w of direct) {
+      let path = routeWire(w.from, w.to, w.via ?? []);
+      if (avoiding && !w.via?.length) {
+        const exempt = exemptOf(w);
+        let bestCost = held.cost(path, exempt);
+        const home = w.from.y === w.to.y
+          ? w.from.y + 2
+          : Math.round((w.from.y + w.to.y) / 2);
+        for (let d = 1; d <= MAX_DETOUR && bestCost > 0; d++) {
+          for (const track of [home + d, home - d]) {
+            const candidate = aroundWire(w.from, w.to, track);
+            const cost = held.cost(candidate, exempt);
+            if (cost < bestCost) { bestCost = cost; path = candidate; }
+            if (cost === 0) break;
+          }
+        }
+      }
+      paths.set(w.id, path);
+      held.claim(path, net);
+    }
+    if (!trunk.length) continue;
+
+    const nearest = Math.min(...trunk.map((w) => w.to.x));
     const lo = from.x + 1;
     const hi = nearest - 1;
-    const ys = [from.y, ...straight.map((w) => w.to.y)];
-    const top = Math.min(...ys);
-    const bottom = Math.max(...ys);
+    const mid = Math.min(hi, Math.max(lo, Math.round((from.x + nearest) / 2)));
 
-    let channel = Math.min(hi, Math.max(lo, Math.round((from.x + nearest) / 2)));
-    // A net that never runs vertically cannot be confused with anything.
-    if (bottom > top) {
-      for (let shift = 0; shift <= MAX_CHANNEL_SHIFT; shift++) {
-        const tries = shift === 0 ? [channel] : [channel + shift, channel - shift];
-        const free = tries.find((c) => c >= lo && c <= hi && !collides(c, top, bottom));
-        if (free !== undefined) { channel = free; break; }
+    // Pick the column for this net's trunk. Every segment it implies counts,
+    // not just the vertical one: moving the trunk right lengthens the run out
+    // of the source and shortens the runs into the sinks, so the best column
+    // is genuinely a trade-off and worth searching for.
+    let channel = mid;
+    let bestCost = avoiding ? Infinity : 0;
+    for (let shift = 0; shift <= MAX_CHANNEL_SHIFT && bestCost > 0; shift++) {
+      for (const c of shift === 0 ? [mid] : [mid + shift, mid - shift]) {
+        if (c < lo || c > hi) continue;
+        let cost = 0;
+        for (const w of trunk) cost += held.cost(routeWire(w.from, w.to, [], c), exemptOf(w));
+        if (cost < bestCost) { bestCost = cost; channel = c; }
+        if (cost === 0) break;
       }
-      reserve(channel, top, bottom);
     }
 
-    for (const w of straight) paths.set(w.id, routeWire(w.from, w.to, [], channel));
+    for (const w of trunk) {
+      const exempt = exemptOf(w);
+      let path = routeWire(w.from, w.to, [], channel);
+      if (avoiding && held.cost(path, exempt) > 0) {
+        // Still sitting on someone else's signal -- most often a run straight
+        // along a row that another wire is already using. Step off the row.
+        const home = w.from.y === w.to.y ? w.from.y : Math.round((w.from.y + w.to.y) / 2);
+        let best: Point[] | null = null;
+        let bestDetour = held.cost(path, exempt);
+        for (let d = 1; d <= MAX_DETOUR && bestDetour > 0; d++) {
+          for (const track of [home - d, home + d]) {
+            const candidate = detourWire(w.from, w.to, track);
+            const cost = held.cost(candidate, exempt);
+            if (cost < bestDetour) { bestDetour = cost; best = candidate; }
+            if (cost === 0) break;
+          }
+        }
+        if (best) path = best;
+      }
+      paths.set(w.id, path);
+      held.claim(path, net);
+    }
 
-    if (straight.length > 1) {
+    // A dot wherever the trunk carries on past a branch, so a T is told apart
+    // from a crossing.
+    const onTrunk = trunk.filter((w) => (paths.get(w.id)?.length ?? 0) > 0
+      && paths.get(w.id)!.some((p) => p.x === channel));
+    if (onTrunk.length > 1) {
+      const ys = [from.y, ...onTrunk.map((w) => w.to.y)];
+      const top = Math.min(...ys);
+      const bottom = Math.max(...ys);
       for (const y of new Set(ys)) {
         if (y > top && y < bottom) junctions.push({ x: channel, y, net });
       }

@@ -5,9 +5,20 @@
  * pin order, or on how it reads in the text editor. That makes rearranging
  * completely safe, and means it can be done on demand.
  *
- * The arrangement is by depth -- sources on the left, sinks on the right,
- * everything else in the column after the deepest thing feeding it -- which is
- * how a schematic is read anyway.
+ * The shape is the one every schematic has: signals flow left to right, so a
+ * part sits in the column after the deepest thing feeding it. Columns alone
+ * are not much of an arrangement though -- they say nothing about the order
+ * within a column, and a bad order is what makes a picture look like a bowl of
+ * spaghetti. Two things fix that here.
+ *
+ *  - **Order follows the wires.** Each column is sorted by where the parts
+ *    feeding it ended up, swept forwards and backwards a few times until it
+ *    settles. This is the barycentre heuristic, and it is what turns a random
+ *    stack into rows that line up with what drives them.
+ *  - **Long wires get a lane.** A wire that skips a column would otherwise be
+ *    drawn straight through whatever is standing there. Reserving a slot for
+ *    it in each column it crosses keeps that space empty, so the wire has
+ *    somewhere to go and the parts move apart to make room.
  */
 import { approxMeasure, layoutBox, type Measure } from './layout';
 import { isPrim, primKind } from './primitives';
@@ -17,11 +28,26 @@ import type { ComponentDef, Id, Instance, Project, Wire } from './types';
 const COLUMN_GAP = 4;
 const ROW_GAP = 1;
 const MARGIN = 2;
+/** Vertical room kept clear in a column for one wire passing through it. */
+const LANE_HEIGHT = 1;
+/** Forward-and-back ordering sweeps. Beyond about this it stops improving. */
+const SWEEPS = 4;
 
 export interface ArrangeOptions {
   /** Restrict the move to these parts; everything else stays put. */
   only?: Set<Id>;
   measure?: Measure;
+}
+
+interface Node {
+  key: string;
+  layer: number;
+  /** Absent on a lane, which is reserved space rather than a part. */
+  inst?: Instance;
+  height: number;
+  /** Where this sat before, used to seed the order and to break ties. */
+  hint: number;
+  index: number;
 }
 
 /** Lay parts out in columns. Returns how many actually moved. */
@@ -35,6 +61,18 @@ export function arrange(
   const measure = options.measure ?? approxMeasure;
   const byId = new Map(instances.map((i) => [i.id, i]));
 
+  const layerOf = assignLayers(instances, wires, byId);
+  const { layers, predecessors, successors } = buildGraph(instances, wires, layerOf, measure, project);
+
+  order(layers, predecessors, successors);
+  return place(layers, project, measure, options);
+}
+
+/* ------------------------------------------------------------------ *
+ * Columns
+ * ------------------------------------------------------------------ */
+
+function assignLayers(instances: Instance[], wires: Wire[], byId: Map<Id, Instance>): Map<Id, number> {
   const feeders = new Map<Id, Id[]>();
   for (const w of wires) {
     const list = feeders.get(w.to.inst);
@@ -42,9 +80,9 @@ export function arrange(
   }
 
   const kindOf = (inst: Instance) => (isPrim(inst.def) ? primKind(inst.def) : null);
-
   const depth = new Map<Id, number>();
   const visiting = new Set<Id>();
+
   const depthOf = (id: Id): number => {
     const known = depth.get(id);
     if (known !== undefined) return known;
@@ -64,35 +102,174 @@ export function arrange(
 
   let deepest = 0;
   for (const inst of instances) deepest = Math.max(deepest, depthOf(inst.id));
-  // Outputs belong at the right edge whatever feeds them.
-  for (const inst of instances) if (kindOf(inst) === 'OUT') depth.set(inst.id, deepest);
-
-  const columns = new Map<number, Instance[]>();
+  // Outputs belong at the right edge whatever feeds them -- and in a column of
+  // their own past it. Sharing the last column with the gates that drive them
+  // would leave those wires with no room to run forwards, so every one of them
+  // would have to double back around its own neighbours.
+  const hasOthers = instances.some((i) => kindOf(i) !== 'OUT');
   for (const inst of instances) {
-    const d = depth.get(inst.id) ?? 0;
-    const list = columns.get(d);
-    if (list) list.push(inst); else columns.set(d, [inst]);
+    if (kindOf(inst) === 'OUT') depth.set(inst.id, hasOthers ? deepest + 1 : 0);
+  }
+  return depth;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ordering graph
+ * ------------------------------------------------------------------ */
+
+function buildGraph(
+  instances: Instance[],
+  wires: Wire[],
+  layerOf: Map<Id, number>,
+  measure: Measure,
+  project: Project,
+) {
+  const layers: Node[][] = [];
+  const nodeOf = new Map<string, Node>();
+  const predecessors = new Map<string, string[]>();
+  const successors = new Map<string, string[]>();
+
+  const put = (node: Node) => {
+    (layers[node.layer] ??= []).push(node);
+    nodeOf.set(node.key, node);
+    return node;
+  };
+  const link = (from: string, to: string) => {
+    (successors.get(from) ?? successors.set(from, []).get(from)!).push(to);
+    (predecessors.get(to) ?? predecessors.set(to, []).get(to)!).push(from);
+  };
+
+  for (const inst of instances) {
+    const box = layoutBox(defSignature(project, inst.def, inst.props), labelOf(project, inst), measure);
+    put({
+      key: inst.id,
+      layer: layerOf.get(inst.id) ?? 0,
+      inst,
+      height: box.h,
+      hint: inst.y,
+      index: 0,
+    });
   }
 
+  // A wire that skips columns gets a reserved slot in each one it crosses, so
+  // nothing is standing in its way when the router comes to draw it. The cap
+  // keeps a pathological circuit -- one signal crossing a hundred columns --
+  // from generating more filler than the schematic has parts.
+  let budget = instances.length * 4;
+
+  for (const w of wires) {
+    const a = layerOf.get(w.from.inst);
+    const b = layerOf.get(w.to.inst);
+    if (a === undefined || b === undefined) continue;
+    // Feedback runs right to left; for ordering purposes it pulls its two ends
+    // together just the same, so read it in the direction the columns go.
+    const [lo, hi, from, to] = a <= b
+      ? [a, b, w.from.inst, w.to.inst]
+      : [b, a, w.to.inst, w.from.inst];
+    if (lo === hi) continue;
+
+    const spanned = hi - lo - 1;
+    if (spanned <= 0 || budget < spanned) {
+      link(from, to);
+      continue;
+    }
+    budget -= spanned;
+    const midpoint = ((nodeOf.get(from)?.hint ?? 0) + (nodeOf.get(to)?.hint ?? 0)) / 2;
+    let previous = from;
+    for (let l = lo + 1; l < hi; l++) {
+      const lane = put({ key: `lane:${w.id}:${l}`, layer: l, height: LANE_HEIGHT, hint: midpoint, index: 0 });
+      link(previous, lane.key);
+      previous = lane.key;
+    }
+    link(previous, to);
+  }
+
+  for (const column of layers) {
+    if (!column) continue;
+    column.sort((p, q) => p.hint - q.hint || (p.inst?.x ?? 0) - (q.inst?.x ?? 0));
+    column.forEach((n, i) => { n.index = i; });
+  }
+  return { layers, predecessors, successors };
+}
+
+/* ------------------------------------------------------------------ *
+ * Ordering
+ * ------------------------------------------------------------------ */
+
+/**
+ * Sort each column by the average position of what it is attached to in the
+ * column before it, then do the same backwards, a few times over. A node with
+ * nothing to go on keeps where it is, so an arrangement never churns for no
+ * reason.
+ */
+function order(
+  layers: Node[][],
+  predecessors: Map<string, string[]>,
+  successors: Map<string, string[]>,
+) {
+  const positionOf = new Map<string, number>();
+  const reindex = (column: Node[]) => column.forEach((n, i) => {
+    n.index = i;
+    positionOf.set(n.key, i);
+  });
+  for (const column of layers) if (column) reindex(column);
+
+  const sweep = (column: Node[], neighbours: Map<string, string[]>) => {
+    const scored = column.map((n) => {
+      const near = neighbours.get(n.key) ?? [];
+      let sum = 0;
+      let count = 0;
+      for (const k of near) {
+        const at = positionOf.get(k);
+        if (at !== undefined) { sum += at; count++; }
+      }
+      return { node: n, score: count ? sum / count : n.index };
+    });
+    scored.sort((p, q) => p.score - q.score || p.node.index - q.node.index);
+    const next = scored.map((s) => s.node);
+    column.length = 0;
+    column.push(...next);
+    reindex(column);
+  };
+
+  for (let pass = 0; pass < SWEEPS; pass++) {
+    for (let l = 1; l < layers.length; l++) if (layers[l]) sweep(layers[l], predecessors);
+    for (let l = layers.length - 2; l >= 0; l--) if (layers[l]) sweep(layers[l], successors);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Coordinates
+ * ------------------------------------------------------------------ */
+
+function place(
+  layers: Node[][],
+  project: Project,
+  measure: Measure,
+  options: ArrangeOptions,
+): number {
   let moved = 0;
   let x = MARGIN;
-  for (const d of [...columns.keys()].sort((a, b) => a - b)) {
-    const column = columns.get(d)!;
-    // Keep the vertical order the author already had, so an arrange feels
-    // like tidying rather than shuffling.
-    column.sort((a, b) => a.y - b.y || a.x - b.x);
 
+  for (const column of layers) {
+    if (!column?.length) continue;
     let widest = 4;
     let y = MARGIN;
-    for (const inst of column) {
-      const box = layoutBox(defSignature(project, inst.def, inst.props), labelOf(project, inst), measure);
-      widest = Math.max(widest, box.w);
-      if (!options.only || options.only.has(inst.id)) {
-        if (inst.x !== x || inst.y !== y) moved++;
-        inst.x = x;
-        inst.y = y;
+    for (const node of column) {
+      if (node.inst) {
+        const box = layoutBox(
+          defSignature(project, node.inst.def, node.inst.props),
+          labelOf(project, node.inst),
+          measure,
+        );
+        widest = Math.max(widest, box.w);
+        if (!options.only || options.only.has(node.inst.id)) {
+          if (node.inst.x !== x || node.inst.y !== y) moved++;
+          node.inst.x = x;
+          node.inst.y = y;
+        }
       }
-      y += box.h + ROW_GAP;
+      y += node.height + ROW_GAP;
     }
     x += widest + COLUMN_GAP;
   }
