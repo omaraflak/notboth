@@ -3,7 +3,9 @@ import { Builder } from './helpers';
 import { extractSelection } from '../src/core/extract';
 import { compile } from '../src/core/compile';
 import { Simulator } from '../src/core/sim';
-import { signatureOf } from '../src/core/project';
+import { createProject, makeInstance, nameNewInstances, signatureOf } from '../src/core/project';
+import { primDefId } from '../src/core/primitives';
+import type { ComponentDef } from '../src/core/types';
 
 /** AND built inline: two NANDs, the second acting as an inverter. */
 function inlineAnd() {
@@ -119,5 +121,60 @@ describe('extractSelection', () => {
   it('returns null when nothing extractable is selected', () => {
     const { b, a } = inlineAnd();
     expect(extractSelection(b.project, b.def, new Set([a]), 'Nope')).toBeNull();
+  });
+});
+
+describe('naming newly placed markers', () => {
+  const place = (def: ComponentDef, kind: 'IN' | 'OUT' | 'TOGGLE') => {
+    const inst = makeInstance(primDefId(kind), 0, 0);
+    nameNewInstances(def, [inst]);
+    def.instances.push(inst);
+    return inst;
+  };
+
+  it('does not let two ports share a name', () => {
+    const p = createProject();
+    const def = p.defs[0];
+    expect(place(def, 'IN').props.name).toBe('in');
+    expect(place(def, 'IN').props.name).toBe('in2');
+    expect(place(def, 'IN').props.name).toBe('in3');
+  });
+
+  it('counts each kind separately, since the names differ anyway', () => {
+    const p = createProject();
+    const def = p.defs[0];
+    expect(place(def, 'IN').props.name).toBe('in');
+    expect(place(def, 'OUT').props.name).toBe('out');
+    expect(place(def, 'TOGGLE').props.name).toBe('sw');
+    expect(place(def, 'OUT').props.name).toBe('out2');
+  });
+
+  it('fills a gap left by a renamed port rather than counting past it', () => {
+    const p = createProject();
+    const def = p.defs[0];
+    place(def, 'IN');
+    const second = place(def, 'IN');
+    expect(second.props.name).toBe('in2');
+    second.props.name = 'carry';
+    expect(place(def, 'IN').props.name).toBe('in2');
+  });
+
+  it('treats a trailing number as a counter when several arrive at once', () => {
+    const p = createProject();
+    const def = p.defs[0];
+    const a = makeInstance(primDefId('IN'), 0, 0, { name: 'a1', width: 1 });
+    const b = makeInstance(primDefId('IN'), 0, 2, { name: 'a1', width: 1 });
+    nameNewInstances(def, [a, b]);
+    expect([a.props.name, b.props.name]).toEqual(['a1', 'a2']);
+  });
+
+  it('leaves kinds that have no name alone', () => {
+    const p = createProject();
+    const def = p.defs[0];
+    const nand = makeInstance(primDefId('NAND'), 0, 0);
+    const konst = makeInstance(primDefId('CONST'), 0, 2);
+    nameNewInstances(def, [nand, konst]);
+    expect(nand.props.name).toBeUndefined();
+    expect(konst.props.name).toBeUndefined();
   });
 });

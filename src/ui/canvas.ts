@@ -5,7 +5,7 @@ import {
 } from '../core/layout';
 import { arrangeDef } from '../core/autolayout';
 import { clampWidth, isPrim, primKind, primLabel } from '../core/primitives';
-import { connect, defSignature, makeInstance, removeInstances, removeWires, wouldRecurse } from '../core/project';
+import { connect, defSignature, makeInstance, nameNewInstances, removeInstances, removeWires, wouldRecurse } from '../core/project';
 import type { Id, Instance, Point, Signature, Wire } from '../core/types';
 import type { App } from './app';
 import { contextMenu, memoryEditor, type MenuItem } from './dialogs';
@@ -538,6 +538,7 @@ export class CanvasView {
       return;
     }
     const inst = makeInstance(defId, x, y);
+    nameNewInstances(open, [inst]);
     app.mutate(() => { open.instances.push(inst); });
     app.selection.instances = new Set([inst.id]);
     app.selection.wires.clear();

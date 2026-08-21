@@ -123,10 +123,12 @@ saved component.
 
 ## Buses
 
-A pin has a width. One wire can carry sixteen bits. Select a wire and edit its
-bit range to slice a bus apart (`out[3..0]`), or drive different ranges of the
-same input pin from different sources to merge signals back together — there is
-no separate splitter component because wire endpoints already do the job.
+A pin is as many bits wide as you say, up to 32 — set **Bits** in a port
+marker's inspector, or write `in a[16]` in the text view — and one wire carries
+all of them. Select a wire and edit its bit range to slice a bus apart
+(`out[3..0]`), or drive different ranges of the same input pin from different
+sources to merge signals back together — there is no separate splitter
+component because wire endpoints already do the job.
 
 Buses exist only in the editor. At compile time the whole hierarchy is flattened
 to single-bit nets and bare NAND gates, so nothing about them costs anything at

@@ -283,7 +283,7 @@ export function memoryViewer(app: App, inst: Instance) {
 export function testBenchDialog(app: App, def: ComponentDef) {
   const sig = signatureOf(def);
   if (!sig.inputs.length && !sig.outputs.length) {
-    app.toast('Add IN and OUT port markers before writing tests', 'err');
+    app.toast('Add In and Out port markers before writing tests', 'err');
     return;
   }
   // Migrate any name-keyed vectors to pin ids as soon as they are opened, so a

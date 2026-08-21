@@ -2,7 +2,7 @@ import { compile, type Netlist } from '../core/compile';
 import { Simulator } from '../core/sim';
 import { newId } from '../core/ids';
 import {
-  createProject, getDef, requireDef,
+  createProject, getDef, nameNewInstances, requireDef,
 } from '../core/project';
 import { getLastOpen, listProjects, loadProject, saveProject, setLastOpen } from '../core/storage';
 import type { ComponentDef, Id, Instance, Project, Wire } from '../core/types';
@@ -238,6 +238,7 @@ export class App {
       from: { ...w.from, inst: remap.get(w.from.inst)! },
       to: { ...w.to, inst: remap.get(w.to.inst)! },
     }));
+    nameNewInstances(this.openDef, fresh);
     this.mutate(() => {
       const def = this.openDef;
       def.instances.push(...fresh);
@@ -270,6 +271,7 @@ export class App {
         from: { ...w.from, inst: remap.get(w.from.inst)! },
         to: { ...w.to, inst: remap.get(w.to.inst)! },
       }));
+    nameNewInstances(def, fresh);
     this.mutate(() => { def.instances.push(...fresh); def.wires.push(...wires); });
     this.selection.instances = new Set(fresh.map((i) => i.id));
     this.selection.wires.clear();

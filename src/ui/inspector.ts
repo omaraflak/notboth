@@ -83,7 +83,7 @@ export class Inspector {
     list('Outputs', sig.outputs);
     if (!sig.inputs.length && !sig.outputs.length) {
       pins.appendChild(h('div', { class: 'hint' },
-        'No ports yet. Place IN and OUT markers to give this component pins; their vertical order sets the pin order.'));
+        'No ports yet. Place In and Out markers to give this component pins; each one carries as many bits as its Width says.'));
     }
 
     const arrangeRow = h('div', { class: 'field', style: { marginTop: '10px' } },
@@ -173,8 +173,9 @@ export class Inspector {
             h('span', { class: 'row-meta' }, `${at + 1} of ${list.length}`),
           )));
         fields.push(h('div', { class: 'hint' },
-          'Port markers are this component\'s pins. Their order is independent of where they sit, '
-          + 'so arranging the schematic never changes the interface.'));
+          'Port markers are this component\'s pins. Bits is how wide the pin is -- 1 for a single '
+          + 'signal, 16 for a whole 16-bit bus down one wire. Their order is independent of where '
+          + 'they sit, so arranging the schematic never changes the interface.'));
         break;
       }
 
@@ -389,7 +390,7 @@ export class Inspector {
   }
 
   private widthField(inst: Instance, mutate: (fn: () => void) => void): HTMLElement {
-    return this.numberField('Width', clampWidth(inst.props.width), (v) => {
+    return this.numberField('Bits', clampWidth(inst.props.width), (v) => {
       mutate(() => { inst.props.width = clampWidth(v); });
     }, 1, MAX_WIDTH);
   }

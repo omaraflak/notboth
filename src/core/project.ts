@@ -80,6 +80,55 @@ export function makeInstance(defId: Id, x: number, y: number, props = {}): Insta
   return { id: newId('i_'), def: defId, x, y, props: { ...base, ...props } };
 }
 
+/**
+ * Kinds whose `name` prop the rest of the app reads back: the port markers,
+ * which become the component's pins, and the two readouts.
+ */
+const NAMED_KINDS = new Set<PrimitiveKind>(['IN', 'OUT', 'TOGGLE', 'PROBE']);
+
+function nameOf(inst: Instance): string | null {
+  if (!isPrim(inst.def) || !NAMED_KINDS.has(primKind(inst.def))) return null;
+  return inst.props.name || null;
+}
+
+/**
+ * Give newly arrived markers names nothing else in the component is using.
+ *
+ * Two pins called `in` is not a cosmetic clash: a port marker's name *is* the
+ * pin's name, so a duplicate leaves the component with an ambiguous interface
+ * and text that will not parse. Every path that brings an instance into a
+ * component -- placing, pasting, duplicating -- goes through here, before the
+ * instances are added.
+ *
+ * A trailing number is treated as a counter rather than part of the name, so
+ * duplicating `a1` gives `a2` instead of `a11`.
+ */
+export function nameNewInstances(def: ComponentDef, fresh: Instance[]): void {
+  const arriving = new Set(fresh.map((i) => i.id));
+  const taken = new Set<string>();
+  for (const inst of def.instances) {
+    if (arriving.has(inst.id)) continue;
+    const name = nameOf(inst);
+    if (name) taken.add(name);
+  }
+  for (const inst of fresh) {
+    const name = nameOf(inst);
+    if (!name) continue;
+    const chosen = freeName(name, taken);
+    inst.props.name = chosen;
+    taken.add(chosen);
+  }
+}
+
+function freeName(name: string, taken: Set<string>): string {
+  if (!taken.has(name)) return name;
+  const base = name.replace(/\d+$/, '') || name;
+  for (let n = 2; ; n++) {
+    const candidate = `${base}${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
 export function addPrimitive(
   def: ComponentDef, kind: PrimitiveKind, x: number, y: number, props = {},
 ): Instance {
