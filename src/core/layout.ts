@@ -45,15 +45,16 @@ export function layoutBox(sig: Signature, name: string, measure: Measure = appro
   const rows = Math.max(sig.inputs.length, sig.outputs.length, 1);
   const h = rows + 1;
 
-  // A single-purpose primitive names its box and its only pin the same thing;
-  // drawing it twice is noise, so it is neither measured nor painted.
+  // A single-purpose primitive is named by its box; labelling its one pin as
+  // well is noise, so it is neither measured nor painted.
+  const pinCount = sig.inputs.length + sig.outputs.length;
   let maxIn = 0;
   for (const p of sig.inputs) {
-    if (showPinLabel(p, name)) maxIn = Math.max(maxIn, measure(p.name, PIN_FONT));
+    if (showPinLabel(p, name, pinCount)) maxIn = Math.max(maxIn, measure(p.name, PIN_FONT));
   }
   let maxOut = 0;
   for (const p of sig.outputs) {
-    if (showPinLabel(p, name)) maxOut = Math.max(maxOut, measure(p.name, PIN_FONT));
+    if (showPinLabel(p, name, pinCount)) maxOut = Math.max(maxOut, measure(p.name, PIN_FONT));
   }
   const nameW = measure(name, NAME_FONT);
 
@@ -66,8 +67,13 @@ export function layoutBox(sig: Signature, name: string, measure: Measure = appro
   return { w, h, pins };
 }
 
-/** False when the pin label would merely repeat the box name. */
-export function showPinLabel(pin: Pin, boxName: string): boolean {
+/**
+ * False when the pin label would tell you nothing the box does not already.
+ * That covers a pin named after its box, and any box with only one pin -- a
+ * const, a clock, a port marker -- where the box label is the whole story.
+ */
+export function showPinLabel(pin: Pin, boxName: string, pinCount = 2): boolean {
+  if (pinCount <= 1) return false;
   return pin.name !== boxName;
 }
 

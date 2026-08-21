@@ -18,7 +18,7 @@
 import { arrange } from './autolayout';
 import { newId } from './ids';
 import { clampWidth, isPrim, primDefId, primKind, primName } from './primitives';
-import { defSignature, signatureOf } from './project';
+import { asIdentifier, defSignature, signatureOf } from './project';
 import type {
   ComponentDef, Id, Instance, Notes, Pin, PrimitiveKind, Project, Signature, Wire,
 } from './types';
@@ -75,7 +75,9 @@ export function labelsFor(project: Project, def: ComponentDef): Map<Id, string> 
 
   for (const inst of def.instances) {
     if (isPortInstance(inst)) {
-      const name = inst.props.name || 'port';
+      // Sanitised on the way out too: a name from before this was enforced
+      // would otherwise leave the component unreadable, and so unsaveable.
+      const name = asIdentifier(inst.props.name || 'port', 'port');
       labels.set(inst.id, name);
       taken.add(name);
     }

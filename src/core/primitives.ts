@@ -26,6 +26,21 @@ export function maskOf(width: number): number {
   return width >= 32 ? 0xffffffff : ((1 << width) - 1) >>> 0;
 }
 
+/**
+ * A name the text form can write down and read back.
+ *
+ * A port marker's name *is* the pin's name, and the text form writes it after
+ * a dot or after `in`/`out`. A space or a leading digit in there produces a
+ * line the parser cannot read, which leaves the component impossible to save
+ * from the code view -- so names are held to what an identifier can be at the
+ * point they are typed, rather than being allowed to trap the file later.
+ */
+export function asIdentifier(name: string, fallback = 'x'): string {
+  const cleaned = name.replace(/[^A-Za-z0-9_]/g, '');
+  if (!cleaned) return fallback;
+  return /^[A-Za-z_]/.test(cleaned) ? cleaned : `${fallback}${cleaned}`;
+}
+
 export function defaultProps(kind: PrimitiveKind): InstanceProps {
   switch (kind) {
     case 'NAND':   return {};
@@ -55,15 +70,18 @@ export function primSignature(kind: PrimitiveKind, props: InstanceProps): Signat
     case 'CLOCK':
       return { inputs: [], outputs: [pin('clk', 'clk', 1)] };
     case 'TOGGLE':
-      return { inputs: [], outputs: [pin('out', props.name || 'sw', w)] };
+      return { inputs: [], outputs: [pin('out', asIdentifier(props.name || 'sw', 'sw'), w)] };
+    // Named `out`, not named after its value: a pin's name is what the text
+    // form writes after the dot, and `const1.0` is not something the parser can
+    // read back. The value is on the box already.
     case 'CONST':
-      return { inputs: [], outputs: [pin('out', String(props.value ?? 0), w)] };
+      return { inputs: [], outputs: [pin('out', 'out', w)] };
     case 'IN':
-      return { inputs: [], outputs: [pin('out', props.name || 'in', w)] };
+      return { inputs: [], outputs: [pin('out', asIdentifier(props.name || 'in', 'in'), w)] };
     case 'OUT':
-      return { inputs: [pin('in', props.name || 'out', w)], outputs: [] };
+      return { inputs: [pin('in', asIdentifier(props.name || 'out', 'out'), w)], outputs: [] };
     case 'PROBE':
-      return { inputs: [pin('in', props.name || 'probe', w)], outputs: [] };
+      return { inputs: [pin('in', asIdentifier(props.name || 'probe', 'probe'), w)], outputs: [] };
     // Pin names stay plain -- the width belongs to the pin, not to its name,
     // and a name like `addr[8]` cannot be written in the text editor because
     // brackets already mean a bit range there. The box shows the size anyway.

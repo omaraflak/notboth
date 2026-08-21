@@ -1,7 +1,7 @@
 import { formatValue } from '../core/layout';
 import { MAX_WIDTH } from '../core/types';
 import { clampWidth, isPrim, primKind, primName } from '../core/primitives';
-import { defSignature, movePort, signatureOf, usageCount } from '../core/project';
+import { asIdentifier, defSignature, movePort, signatureOf, usageCount } from '../core/project';
 import type { Instance, NumberFormat, Wire } from '../core/types';
 import type { App } from './app';
 import { button, clear, h, icon } from './dom';
@@ -146,7 +146,8 @@ export class Inspector {
 
       case 'IN':
       case 'OUT': {
-        fields.push(this.textField('Name', inst.props.name ?? kind.toLowerCase(), (v) => mutate(() => { inst.props.name = v; })));
+        fields.push(this.textField('Name', inst.props.name ?? kind.toLowerCase(),
+          (v) => mutate(() => { inst.props.name = asIdentifier(v, kind.toLowerCase()); })));
         fields.push(this.widthField(inst, mutate));
         const sig = signatureOf(app.openDef);
         const list = kind === 'IN' ? sig.inputs : sig.outputs;
@@ -174,7 +175,8 @@ export class Inspector {
       }
 
       case 'TOGGLE': {
-        fields.push(this.textField('Name', inst.props.name ?? 'sw', (v) => mutate(() => { inst.props.name = v; })));
+        fields.push(this.textField('Name', inst.props.name ?? 'sw',
+          (v) => mutate(() => { inst.props.name = asIdentifier(v, 'sw'); })));
         fields.push(this.widthField(inst, mutate));
         fields.push(this.valueField(inst));
         break;
@@ -195,7 +197,8 @@ export class Inspector {
       }
 
       case 'PROBE': {
-        fields.push(this.textField('Name', inst.props.name ?? 'probe', (v) => mutate(() => { inst.props.name = v; })));
+        fields.push(this.textField('Name', inst.props.name ?? 'probe',
+          (v) => mutate(() => { inst.props.name = asIdentifier(v, 'probe'); })));
         fields.push(this.widthField(inst, mutate));
         fields.push(this.selectField('Format', inst.props.format ?? 'hex',
           [['hex', 'Hex'], ['bin', 'Binary'], ['dec', 'Decimal'], ['sdec', 'Signed']],

@@ -910,7 +910,7 @@ export class CanvasView {
         ctx.stroke();
       }
 
-      if (this.view.zoom > 0.55 && showPinLabel(pin.pin, name)) {
+      if (this.view.zoom > 0.55 && showPinLabel(pin.pin, name, box.pins.length)) {
         ctx.fillStyle = c['box-pin-text'];
         ctx.textAlign = pin.side === 'in' ? 'left' : 'right';
         ctx.fillText(pin.pin.name, pin.side === 'in' ? px + 7 : px - 7, py);

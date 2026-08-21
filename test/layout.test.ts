@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { distanceToPolyline, formatValue, layoutBox, planRoutes, routeWire, sliceLabel } from '../src/core/layout';
+import {
+  distanceToPolyline, formatValue, layoutBox, planRoutes, routeWire, showPinLabel, sliceLabel,
+} from '../src/core/layout';
 import type { Signature } from '../src/core/types';
 
 const sig = (ins: number, outs: number): Signature => ({
@@ -32,9 +34,25 @@ describe('box layout', () => {
 
 describe('pin labels', () => {
   it('drops a pin label that only repeats the box name', () => {
-    const probe: Signature = { inputs: [{ id: 'in', name: 'probe', width: 1 }], outputs: [] };
-    const other: Signature = { inputs: [{ id: 'in', name: 'value', width: 1 }], outputs: [] };
-    expect(layoutBox(probe, 'probe').w).toBeLessThan(layoutBox(other, 'probe').w);
+    // The repeated name is the widest pin, so hiding it is what narrows the box.
+    const same: Signature = {
+      inputs: [{ id: 'a', name: 'thelongname', width: 1 }, { id: 'b', name: 'b', width: 1 }],
+      outputs: [],
+    };
+    const different: Signature = {
+      inputs: [{ id: 'a', name: 'anothername', width: 1 }, { id: 'b', name: 'b', width: 1 }],
+      outputs: [],
+    };
+    expect(layoutBox(same, 'thelongname').w)
+      .toBeLessThan(layoutBox(different, 'thelongname').w);
+  });
+
+  it('drops the label on a box that has only one pin, whatever it is called', () => {
+    // The box name is the whole story on a const, a clock or a port marker.
+    const lone: Signature = { inputs: [], outputs: [{ id: 'out', name: 'out', width: 1 }] };
+    const bare: Signature = { inputs: [], outputs: [{ id: 'out', name: '', width: 1 }] };
+    expect(showPinLabel(lone.outputs[0], '0', 1)).toBe(false);
+    expect(layoutBox(lone, '0').w).toBe(layoutBox(bare, '0').w);
   });
 });
 

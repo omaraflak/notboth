@@ -555,3 +555,52 @@ describe('comments', () => {
     expect(d.notes).toBeUndefined();
   });
 });
+
+describe('names the text form has to be able to write', () => {
+  const zero = () => {
+    const p = project();
+    const d = def(p, 'Zero');
+    const k = addPrimitive(d, 'CONST', 0, 0, { width: 1, value: 0 });
+    const g = addPrimitive(d, 'NAND', 4, 0);
+    const o = addPrimitive(d, 'OUT', 8, 0, { name: 'y', width: 1 });
+    connect(p, d, { inst: k.id, pin: 'out' }, { inst: g.id, pin: 'a' });
+    connect(p, d, { inst: k.id, pin: 'out' }, { inst: g.id, pin: 'b' });
+    connect(p, d, { inst: g.id, pin: 'y' }, { inst: o.id, pin: 'in' });
+    return { p, d, k };
+  };
+
+  it('writes a const output as a name, not as its value', () => {
+    const { p, d } = zero();
+    const text = toText(p, d);
+    expect(text).toContain('const1.out');
+    expect(text).not.toContain('const1.0');
+  });
+
+  it('reads back a circuit driven by a constant', () => {
+    const { p, d } = zero();
+    expect(applyText(p, d, toText(p, d))).toEqual([]);
+  });
+
+  it('reads back whatever the value is, including one', () => {
+    const { p, d, k } = zero();
+    k.props.value = 1;
+    const text = toText(p, d);
+    expect(text).toContain('value = 1');
+    expect(applyText(p, d, text)).toEqual([]);
+  });
+
+  it('will not let a port name make a component unwritable', () => {
+    const { p, d } = zero();
+    const out = d.instances.find((i) => i.props.name === 'y')!;
+    out.props.name = 'my out!';
+    expect(signatureOf(d).outputs[0].name).toBe('myout');
+    expect(applyText(p, d, toText(p, d))).toEqual([]);
+  });
+
+  it('keeps a name that starts with a digit reachable', () => {
+    const { p, d } = zero();
+    const out = d.instances.find((i) => i.props.name === 'y')!;
+    out.props.name = '2nd';
+    expect(applyText(p, d, toText(p, d))).toEqual([]);
+  });
+});

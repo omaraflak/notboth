@@ -1,5 +1,7 @@
 import { newId } from './ids';
-import { clampWidth, defaultProps, isPrim, primDefId, primKind, primSignature } from './primitives';
+import {
+  asIdentifier, clampWidth, defaultProps, isPrim, primDefId, primKind, primSignature,
+} from './primitives';
 import type {
   ComponentDef, Folder, Id, Instance, Pin, PrimitiveKind, Project, Signature, Wire,
 } from './types';
@@ -58,10 +60,20 @@ export function signatureOf(def: ComponentDef): Signature {
   for (const inst of def.instances) {
     if (!isPrim(inst.def)) continue;
     const kind = primKind(inst.def);
+    // The pin's name is what the text form writes after `in`/`out` and after a
+    // dot, so it has to be something that form can read back.
     if (kind === 'IN') {
-      inputs.push({ id: inst.id, name: inst.props.name || 'in', width: clampWidth(inst.props.width) });
+      inputs.push({
+        id: inst.id,
+        name: asIdentifier(inst.props.name || 'in', 'in'),
+        width: clampWidth(inst.props.width),
+      });
     } else if (kind === 'OUT') {
-      outputs.push({ id: inst.id, name: inst.props.name || 'out', width: clampWidth(inst.props.width) });
+      outputs.push({
+        id: inst.id,
+        name: asIdentifier(inst.props.name || 'out', 'out'),
+        width: clampWidth(inst.props.width),
+      });
     }
   }
   return { inputs, outputs };
@@ -103,6 +115,8 @@ function nameOf(inst: Instance): string | null {
  * A trailing number is treated as a counter rather than part of the name, so
  * duplicating `a1` gives `a2` instead of `a11`.
  */
+export { asIdentifier };
+
 export function nameNewInstances(def: ComponentDef, fresh: Instance[]): void {
   const arriving = new Set(fresh.map((i) => i.id));
   const taken = new Set<string>();
