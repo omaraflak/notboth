@@ -979,7 +979,7 @@ article.stage:last-of-type { border-bottom: 0; }
   <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>all of Part I, 2.03&ndash;2.05</span></div>
   <div>
     <h3>The ALU</h3>
-    <div class="sig">ALU(x[16], y[16], control bits) &rarr; out[16], zr, ng</div>
+    <div class="sig">ALU(x[16], y[16], zx, nx, zy, ny, f, no) &rarr; out[16], zr, ng</div>
     <p>
       The arithmetic and logic unit: one box that computes any of a couple of
       dozen useful functions of two numbers, with control bits selecting which.
@@ -987,14 +987,32 @@ article.stage:last-of-type { border-bottom: 0; }
       a constant &mdash; all from one chip.
     </p>
     <p>
-      Do not build a dozen circuits and mux between them. The trick that makes
-      this tractable is to work in three phases: <em>pre-condition</em> each input
-      (optionally zero it, optionally invert it), then perform <em>one</em>
-      operation on the results (either add or and &mdash; that is all you need), then
-      <em>post-condition</em> the answer (optionally invert it). Six control bits
-      driving those choices give you the whole menu, and each phase is a mux or
-      two. Work out for yourself which settings produce subtraction; it is a
-      satisfying thing to find.
+      Do not build a dozen circuits and mux between them. The whole menu comes
+      from three phases: <em>pre-condition</em> each input, perform <em>one</em>
+      operation on the results, then <em>post-condition</em> the answer. Six
+      single-bit controls decide what happens at each phase, and they act in the
+      order the numbers move through the chip.
+    </p>
+    <p>
+      <strong>zx</strong> &mdash; replace <code>x</code> with zero.
+      <strong>nx</strong> &mdash; invert <code>x</code>, after any zeroing.
+      <strong>zy</strong> and <strong>ny</strong> &mdash; the same two choices for
+      <code>y</code>. <strong>f</strong> &mdash; the operation itself: 1 adds the
+      two conditioned inputs, 0 ands them.
+      <strong>no</strong> &mdash; invert the answer on the way out.
+    </p>
+    <p>
+      Every one of those six is a choice between two values, which is the chip
+      you built in 1.05. So the ALU is layers of muxes with one adder and one
+      and&nbsp;gate in the middle of them, and nothing in it is new.
+    </p>
+    <p>
+      Try the bits on paper before wiring anything. Set <code>zx</code> and
+      <code>zy</code> and leave the rest at zero: both inputs become zero, and
+      zero added to zero &mdash; or anded with it &mdash; is zero, so the chip
+      produces the constant 0 without a constant anywhere in it. Then work out
+      for yourself which settings give you <code>x - y</code>; it is a satisfying
+      thing to find, and stage 2.05 is the hint.
     </p>
     <p>
       Two extra outputs matter as much as the number itself. <code>zr</code> says
