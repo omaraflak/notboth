@@ -45,6 +45,7 @@ const PATHS: Record<string, string> = {
   undo: 'M9 14L4 9l5-5M4 9h9a7 7 0 0 1 0 14H8',
   redo: 'M15 14l5-5-5-5M20 9h-9a7 7 0 0 0 0 14h5',
   plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   chip: 'M7 7h10v10H7zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4',
   trash: 'M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13',

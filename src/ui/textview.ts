@@ -1,11 +1,17 @@
 import { fromText, toText, type HdlIssue } from '../core/hdl';
 import type { ComponentDef, Id, Instance, Wire } from '../core/types';
 import type { App } from './app';
-import { clear, h, icon } from './dom';
+import { button, clear, h, icon } from './dom';
 import type { CodeEditor } from './editor';
 
 /** How long the typing has to stop before the text is committed. */
 const COMMIT_DELAY = 500;
+
+/** Text size in the code view, in pixels. Small enough to read at either end. */
+const SIZE_MIN = 9;
+const SIZE_MAX = 22;
+const SIZE_DEFAULT = 12;
+const SIZE_KEY = 'nand.code.size';
 
 /**
  * The same component, written down instead of drawn.
@@ -37,6 +43,7 @@ export class TextView {
   private timer: number | null = null;
   /** Set while committing, so our own change is not mistaken for someone else's. */
   private committing = false;
+  private size = readSize();
 
   constructor(private app: App, host: HTMLElement) {
     this.problems = h('div', { class: 'editor-problems' });
@@ -46,9 +53,16 @@ export class TextView {
     this.root = h('div', { class: 'editor-pane' },
       this.body,
       this.problems,
-      h('div', { class: 'editor-foot' }, this.status),
+      h('div', { class: 'editor-foot' },
+        this.status,
+        h('div', { class: 'spacer' }),
+        h('span', { class: 'row-meta size-readout' }, ''),
+        button(null, { icon: 'minus', title: 'Smaller text  (Cmd/Ctrl -)', onClick: () => this.resize(-1) }),
+        button(null, { icon: 'plus', title: 'Larger text  (Cmd/Ctrl +)', onClick: () => this.resize(1) }),
+      ),
     );
     host.appendChild(this.root);
+    this.showSize();
 
     app.on('view', () => { void this.sync(); });
     // A project event that we did not cause means the component changed under
@@ -85,7 +99,29 @@ export class TextView {
     if (this.editor) return;
     const { CodeEditor } = await this.preload();
     if (this.editor) return; // Two switches raced; the first one won.
-    this.editor = new CodeEditor(this.body, { onChange: () => this.onChange() });
+    this.editor = new CodeEditor(this.body, {
+      onChange: () => this.onChange(),
+      onResize: (step) => this.resize(step),
+    }, this.size);
+  }
+
+  /**
+   * Text size is a reading preference, not a property of the circuit, so it
+   * lives in the browser rather than in the project and applies to whichever
+   * component is open.
+   */
+  private resize(step: number) {
+    const next = Math.max(SIZE_MIN, Math.min(SIZE_MAX, this.size + step));
+    if (next === this.size) return;
+    this.size = next;
+    try { localStorage.setItem(SIZE_KEY, String(next)); } catch { /* private mode */ }
+    this.showSize();
+    this.editor?.setFontSize(next);
+  }
+
+  private showSize() {
+    const el = this.root.querySelector('.size-readout');
+    if (el) el.textContent = `${this.size}px`;
   }
 
   /* ---------------- showing ---------------- */
@@ -202,4 +238,9 @@ export class TextView {
 function structural(instances: Instance[], wires: Wire[], def: ComponentDef): boolean {
   return JSON.stringify(instances) !== JSON.stringify(def.instances)
     || JSON.stringify(wires) !== JSON.stringify(def.wires);
+}
+
+function readSize(): number {
+  const stored = Number(localStorage.getItem(SIZE_KEY));
+  return Number.isFinite(stored) && stored >= SIZE_MIN && stored <= SIZE_MAX ? stored : SIZE_DEFAULT;
 }

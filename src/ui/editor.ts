@@ -28,7 +28,7 @@ import { currentTheme, onThemeChange } from './theme';
  * kept in step by hand.
  */
 const theme = EditorView.theme({
-  '&': { height: '100%', fontSize: '12px', backgroundColor: 'var(--bg-panel)', color: 'var(--text)' },
+  '&': { height: '100%', backgroundColor: 'var(--bg-panel)', color: 'var(--text)' },
   '&.cm-focused': { outline: 'none' },
   '.cm-scroller': { fontFamily: 'var(--mono)', lineHeight: '1.65', overflow: 'auto' },
   '.cm-content': { padding: '12px 0', caretColor: 'var(--accent)' },
@@ -87,6 +87,8 @@ const theme = EditorView.theme({
 export interface EditorHooks {
   /** The document changed because someone typed in it. */
   onChange(): void;
+  /** Cmd/Ctrl with plus or minus: a step up or down in text size. */
+  onResize(step: number): void;
 }
 
 /**
@@ -98,14 +100,25 @@ export interface EditorHooks {
  */
 const darkFlag = new Compartment();
 
+/**
+ * Text size lives in its own compartment rather than in a custom property.
+ * CodeMirror measures the character grid once and caches it; a size changed
+ * behind its back leaves it drawing the caret and the selection against the
+ * old grid. Reconfiguring is a change it knows about, so it measures again.
+ */
+const textSize = new Compartment();
+
+const sizeTheme = (px: number) => EditorView.theme({ '&': { fontSize: `${px}px` } });
+
 export class CodeEditor {
   private view: EditorView;
 
-  constructor(parent: HTMLElement, hooks: EditorHooks) {
+  constructor(parent: HTMLElement, hooks: EditorHooks, fontSize: number) {
     this.view = new EditorView({
       parent,
       extensions: [
         darkFlag.of(EditorView.darkTheme.of(currentTheme() === 'dark')),
+        textSize.of(sizeTheme(fontSize)),
         lineNumbers(),
         highlightActiveLineGutter(),
         highlightActiveLine(),
@@ -122,6 +135,9 @@ export class CodeEditor {
         hdlLanguage,
         keymap.of([
           { key: 'Mod-/', run: toggleComment, preventDefault: true },
+          { key: 'Mod-=', run: () => { hooks.onResize(1); return true; }, preventDefault: true },
+          { key: 'Mod-+', run: () => { hooks.onResize(1); return true; }, preventDefault: true },
+          { key: 'Mod--', run: () => { hooks.onResize(-1); return true; }, preventDefault: true },
           ...searchKeymap,
           ...historyKeymap,
           ...defaultKeymap,
@@ -166,5 +182,9 @@ export class CodeEditor {
   focus() {
     this.view.requestMeasure();
     this.view.focus();
+  }
+
+  setFontSize(px: number) {
+    this.view.dispatch({ effects: textSize.reconfigure(sizeTheme(px)) });
   }
 }

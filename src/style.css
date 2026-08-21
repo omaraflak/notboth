@@ -380,14 +380,17 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 .editor-problem .ln { font-family: var(--mono); font-size: 10.5px; opacity: .75; flex: none; }
 .editor-problem .msg { flex: 1; }
 
-/* Nothing to press: the editor saves itself, and this only reports whether
-   what is on screen made it into the component. */
+/* The editor saves itself, so this reports whether what is on screen made it
+   into the component -- and holds the one reading preference the code view
+   has, which is how big the text is. */
 .editor-foot {
-  display: flex; align-items: center;
+  display: flex; align-items: center; gap: 4px;
   padding: 6px 14px;
   border-top: 1px solid var(--line);
   background: var(--bg-panel);
 }
+.editor-foot .spacer { flex: 1; }
+.editor-foot .size-readout { min-width: 34px; text-align: right; }
 
 /* ---------------- Tests ---------------- */
 

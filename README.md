@@ -282,6 +282,7 @@ arguably the better half of the fun.
 | Select every occurrence at once | `Cmd/Ctrl Shift L` |
 | Find | `Cmd/Ctrl F` |
 | Comment out | `Cmd/Ctrl /` |
+| Bigger / smaller text | `Cmd/Ctrl` `+` / `-`, or the buttons under the editor |
 | Move / copy a line | `Alt` `↑``↓` / `Shift Alt` `↑``↓` |
 | Select all / copy / paste / duplicate | `Cmd/Ctrl` + `A` / `C` / `V` / `D` |
 | Add to the selection | `Shift`-click, or drag a band |
