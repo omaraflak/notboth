@@ -38,8 +38,6 @@ export class TestsView {
   private resetEach = false;
   private base: NumberFormat = 'dec';
   private results: ReturnType<typeof runTests> | undefined;
-  /** Set while saving, so our own change does not reload the table under us. */
-  private saving = false;
 
   constructor(private app: App, host: HTMLElement) {
     this.head = h('div', { class: 'tests-head' });
@@ -51,7 +49,7 @@ export class TestsView {
 
     this.bindGridKeys();
     app.on('view', () => this.sync());
-    app.on('project', () => { if (app.mode === 'tests' && !this.saving) this.sync(true); });
+    app.on('project', () => { if (app.mode === 'tests') this.sync(true); });
     this.sync();
   }
 
@@ -89,11 +87,10 @@ export class TestsView {
         base: this.base,
       }
       : undefined;
+    // Written straight to the component and persisted, without announcing a
+    // change: nothing else on screen shows the tests, and an announcement
+    // would rebuild this table out from under whoever is typing in it.
     this.app.persist();
-    // Let the rest of the app notice -- the inspector counts the vectors --
-    // without this table being rebuilt out from under whoever is typing in it.
-    this.saving = true;
-    try { this.app.emit('project'); } finally { this.saving = false; }
   }
 
   /* ---------------- the grid ---------------- */
@@ -231,7 +228,7 @@ export class TestsView {
       h('label', null, 'Reset each'), h('div', { class: 'control' }, reset)));
 
     this.head.appendChild(h('div', { class: 'spacer' }));
-    this.head.appendChild(button('Add vector', {
+    this.head.appendChild(button('Add test', {
       icon: 'plus', className: 'bordered',
       onClick: () => {
         const blank: TestVector = { in: {}, out: {} };
@@ -299,7 +296,7 @@ export class TestsView {
 
     if (!this.vectors.length) {
       this.tableWrap.appendChild(h('div', { class: 'hint', style: { padding: '12px 2px' } },
-        'No vectors yet. Add one, then fill in the inputs and what the outputs should be.'));
+        'No tests yet. Add one, then fill in the inputs and what the outputs should be.'));
     }
 
     /* ----- what happened ----- */
@@ -315,8 +312,8 @@ export class TestsView {
       const failed = this.results.total - this.results.passed;
       this.summary.appendChild(h('div', { style: { color: failed ? 'var(--danger)' : 'var(--ok)' } },
         failed
-          ? `${this.results.passed} of ${this.results.total} vectors pass. Hover a red cell to see what it produced.`
-          : this.results.total === 1 ? 'The vector passes.' : `All ${this.results.total} vectors pass.`));
+          ? `${this.results.passed} of ${this.results.total} tests pass. Hover a red cell to see what it produced.`
+          : this.results.total === 1 ? 'The test passes.' : `All ${this.results.total} tests pass.`));
     } else if (this.results?.errors.length) {
       this.summary.appendChild(h('div', { style: { color: 'var(--danger)' } },
         this.results.errors[0].message));
@@ -324,7 +321,7 @@ export class TestsView {
     this.summary.appendChild(h('div', { class: 'hint' },
       'Arrow keys move between cells, Enter steps down a row. '
       + 'Leave ticks at 0 for combinational logic; the runner settles until nothing is left to '
-      + 'propagate. Set it for sequential circuits so each vector advances the clock by a fixed amount.'));
+      + 'propagate. Set it for sequential circuits so each test advances the clock by a fixed amount.'));
   }
 
   private columnName(pin: Pin): string {

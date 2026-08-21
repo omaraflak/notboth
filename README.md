@@ -55,7 +55,7 @@ the real machine.
 
 ## Two editors, one component
 
-Next to the component's name is a **Schematic / Code / Tests** switch. The
+Above the canvas is a **Schematic / Code / Tests** switch. The
 first two edit the same thing — the schematic is canonical and the code is a
 second way in, not a second source of truth. The third is the component's
 truth table, which is a view rather than a dialog because it is not a detour
@@ -192,9 +192,9 @@ run time.
 
 ## Tests
 
-Every component can carry a table of input vectors and expected outputs, on
-the **Tests** tab beside the schematic and the code. It saves as you type, the
-same as they do.
+Every component can carry a table of inputs and the outputs they should
+produce, on the **Tests** tab beside the schematic and the code. It saves as
+you type, the same as they do.
 
 Numbers are written in a base you choose once for the whole table — **Bin**,
 **Dec** or **Hex** — because `10` in a four-bit column is two, ten or sixteen
@@ -203,7 +203,7 @@ depending on who is reading it, and there is no way to tell from the digits. A
 base rewrites the table rather than reinterpreting it: the values do not
 change, only how they are spelled.
 
-Vectors reference pins by id, so renaming a port never breaks them; if a column
+Tests reference pins by id, so renaming a port never breaks them; if a column
 ever fails to match a pin, the runner says which one rather than quietly
 failing. Arrow keys move between cells and Enter steps down a row, so a truth
 table can be typed without reaching for the mouse.
@@ -260,7 +260,7 @@ arguably the better half of the fun.
 | Place a component | click it in the library, then click the grid |
 | Edit a component | double-click it in the library, or its box on the canvas |
 | Make a component | select parts, then right-click — or `Cmd/Ctrl G` |
-| Switch view | Schematic / Code / Tests, next to the component name |
+| Switch view | Schematic / Code / Tests, in the top bar |
 | Add a cursor at the next occurrence | `Cmd/Ctrl D`, then type to change them all |
 | Add a cursor above / below | `Cmd/Ctrl Alt` `↑` / `↓` |
 | Add a cursor anywhere | `Alt`-click; `Alt`-drag for a column |

@@ -2,7 +2,6 @@ import { formatValue } from '../core/layout';
 import { MAX_WIDTH } from '../core/types';
 import { clampWidth, isPrim, primKind, primName } from '../core/primitives';
 import { defSignature, movePort, signatureOf, usageCount } from '../core/project';
-import { runTests } from '../core/testbench';
 import type { Instance, NumberFormat, Wire } from '../core/types';
 import type { App } from './app';
 import { button, clear, h, icon } from './dom';
@@ -109,26 +108,10 @@ export class Inspector {
         'No ports yet. Place In and Out markers to give this component pins; each one carries as many bits as its Width says.'));
     }
 
-    const count = def.tests?.vectors.length ?? 0;
-    const testRow = h('div', { class: 'field', style: { marginTop: '10px', gap: '6px', flexWrap: 'wrap' } },
-      button(count ? `Run ${count} tests` : 'Write tests', {
-        icon: 'beaker', className: 'bordered',
-        onClick: () => {
-          if (!count) return app.setMode('tests');
-          const run = runTests(app.project, def.id);
-          if (!run.ran) app.toast(run.errors[0]?.message ?? 'Nothing to run', 'err');
-          else if (run.passed === run.total) app.toast(`All ${run.total} vectors pass`);
-          else app.toast(`${run.total - run.passed} of ${run.total} vectors fail`, 'err');
-        },
-      }),
-      count ? button('Edit tests', { className: 'bordered', onClick: () => app.setMode('tests') }) : null,
-    );
-
     this.section(def.name, [
       h('div', { class: 'hint', style: { marginTop: '-4px' } },
         uses ? `Used ${uses} time${uses === 1 ? '' : 's'} in this project.` : 'Not used anywhere yet.'),
       pins,
-      testRow,
     ]);
   }
 

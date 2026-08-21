@@ -211,6 +211,21 @@ button { cursor: pointer; background: none; border: none; }
 .topbar > * { min-width: 0; }
 .topbar .btn { flex: none; }
 
+/* The bar is divided the way the window below it is: the project sits over the
+   component library, and the view switch starts exactly where the canvas does,
+   so it reads as belonging to the pane it switches. */
+.bar-left {
+  flex: none;
+  /* The bar's own padding plus one flex gap, so the switch starts exactly
+     where the canvas does. */
+  width: calc(var(--sidebar-w) - 16px);
+  display: flex; align-items: center; gap: 4px;
+}
+.bar-left .btn { max-width: 100%; }
+.bar-tabs { flex: none; display: flex; align-items: center; }
+.bar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.bar-right { flex: none; display: flex; align-items: center; gap: 4px; }
+
 .sidebar {
   grid-area: side;
   background: var(--bg-panel);
@@ -288,13 +303,6 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
 .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
 
-.title-input {
-  background: transparent; border: 1px solid transparent; border-radius: var(--radius);
-  padding: 3px 6px; font-weight: 600; font-size: 12.5px; min-width: 60px; max-width: 220px;
-}
-.title-input:hover { background: var(--bg-hover); }
-.title-input:focus { outline: none; background: var(--bg-elev); border-color: var(--accent-line); }
-
 input[type="text"], input[type="number"], select, textarea {
   background: var(--bg-elev);
   border: 1px solid var(--line-strong);
@@ -315,7 +323,6 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 
 .seg {
   display: inline-flex;
-  margin-left: 8px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   overflow: hidden;
@@ -402,7 +409,7 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 .tests-head .field { margin: 0; gap: 6px; width: auto; }
 .tests-head .field label { width: auto; white-space: nowrap; }
 .tests-head .spacer { flex: 1; }
-.tests-table { max-width: 900px; }
+.tests-table { width: 100%; overflow-x: auto; }
 .tests-summary { margin-top: 12px; max-width: 900px; display: flex; flex-direction: column; gap: 6px; }
 .tests-empty { padding: 40px 0; color: var(--text-dim); text-align: center; }
 

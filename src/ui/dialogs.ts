@@ -473,7 +473,7 @@ export function shortcutsDialog() {
     ['Fit to circuit', 'Shift F'],
     ['Draw a wire', 'Drag from an output pin to an input pin'],
     ['Detach a wire', 'Drag away from the input pin it feeds'],
-    ['Switch view', 'Schematic / Code / Tests, next to the component name'],
+    ['Switch view', 'Schematic / Code / Tests, in the top bar'],
     ['Select next occurrence', 'Cmd/Ctrl D in the text editor, then type to change them all'],
     ['Place a component', 'Click it in the library, then click the grid'],
     ['Edit a component', 'Double-click it in the library, or its box on the canvas'],

@@ -1,13 +1,13 @@
 import { SPEEDS, type App, type EditorMode } from './app';
-import { button, clear, h, icon } from './dom';
+import { button, clear, h } from './dom';
 import { projectsDialog, promptText, shortcutsDialog } from './dialogs';
 import { currentTheme, toggleTheme } from './theme';
-import { uniqueName } from '../core/project';
 
 export class Chrome {
-  private left = h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } });
-  private center = h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px', flex: '1', justifyContent: 'center' } });
-  private right = h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } });
+  private left = h('div', { class: 'bar-left' });
+  private tabs = h('div', { class: 'bar-tabs' });
+  private center = h('div', { class: 'bar-center' });
+  private right = h('div', { class: 'bar-right' });
 
   constructor(
     private app: App,
@@ -16,6 +16,7 @@ export class Chrome {
     private actions: { fit: () => void; setMode: (mode: EditorMode) => void },
   ) {
     topbar.appendChild(this.left);
+    topbar.appendChild(this.tabs);
     topbar.appendChild(this.center);
     topbar.appendChild(this.right);
 
@@ -35,6 +36,7 @@ export class Chrome {
   private renderTop() {
     const app = this.app;
     clear(this.left);
+    clear(this.tabs);
     clear(this.center);
     clear(this.right);
 
@@ -45,20 +47,8 @@ export class Chrome {
       onClick: () => projectsDialog(app),
     }));
 
-    const title = h('input', { class: 'title-input', type: 'text', value: app.openDef.name });
-    const commit = () => {
-      const v = title.value.trim();
-      if (v && v !== app.openDef.name) {
-        app.mutate(() => { app.openDef.name = uniqueName(app.project, v, app.openDef.id); });
-      } else {
-        title.value = app.openDef.name;
-      }
-    };
-    title.addEventListener('change', commit);
-    title.addEventListener('keydown', (e) => { if (e.key === 'Enter') title.blur(); });
-    title.style.width = `${Math.max(60, app.openDef.name.length * 7.4 + 16)}px`;
-    this.left.appendChild(icon('chevron', 11));
-    this.left.appendChild(title);
+    // The open component is named in the library, where it is highlighted, and
+    // again at the top of the inspector -- so the bar does not repeat it.
 
     const seg = h('div', { class: 'seg' });
     const tab = (label: string, mode: EditorMode, hint: string) => h('button', {
@@ -69,7 +59,9 @@ export class Chrome {
     seg.appendChild(tab('Schematic', 'schematic', 'Draw this component'));
     seg.appendChild(tab('Code', 'code', 'Write this component out as text'));
     seg.appendChild(tab('Tests', 'tests', 'Truth table for this component'));
-    this.left.appendChild(seg);
+    // Sat against the left panel's edge, so the switch lines up with the pane
+    // it switches rather than floating next to the project name.
+    this.tabs.appendChild(seg);
 
     /* ----- centre: the power switch and what it drives ----- */
 
