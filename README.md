@@ -37,12 +37,12 @@ silicon.
 
 | | |
 |---|---|
-| `NAND` | the one true gate — 1 bit, no settings, one tick of delay |
-| `CLOCK` | square wave, period measured in ticks |
-| `TOGGLE` | a switch you flip by clicking it |
-| `CONST` | a fixed 0 or 1, for tying an input high or low |
-| `IN` / `OUT` | port markers that give the enclosing component its pins |
-| `PROBE` | a readout, in hex / binary / decimal / signed |
+| `Nand` | the one true gate — 1 bit, no settings, one tick of delay |
+| `Clock` | square wave, period measured in ticks |
+| `Toggle` | a switch you flip by clicking it |
+| `Const` | a fixed 0 or 1, for tying an input high or low |
+| `In` / `Out` | port markers that give the enclosing component its pins |
+| `Probe` | a readout, in hex / binary / decimal / signed |
 | `ROM` / `RAM` | backed by a real array, not by gates |
 
 Nine primitives, and only one of them computes anything.
@@ -65,14 +65,14 @@ second source of truth.
 in  a
 out y
 
-g1 : NAND(a = a, b = a)
+g1 : Nand(a = a, b = a)
 
 y = g1.y
 ```
 
 - `in name[width]` / `out name[width]` declare the component's pins.
 - `label : Type(pin = source, ...)` places a part. Settings for the
-  parameterised built-ins go in the same brackets — `c : CLOCK(period = 24)` —
+  parameterised built-ins go in the same brackets — `c : Clock(period = 24)` —
   which is unambiguous because no primitive has a setting and a pin sharing a
   name.
 - `target = source` connects things, where either side may be sliced:
@@ -87,15 +87,34 @@ the canvas right-click menu) that tidies everything into columns by depth
 without altering a single character of the text. Reorder pins from the
 schematic side with the arrows in a port marker's inspector.
 
-Two more properties make the switch safe to use casually. **Labels are identity**:
-a part whose label you did not change keeps its id, its position on the canvas
-and any properties the text does not mention, so a one-line edit never
-rearranges a schematic you laid out by hand. And **nothing is committed until
-it parses** — errors are listed with line numbers and the component is left
-exactly as it was.
+The text saves itself, exactly as the schematic does — there is no Apply
+button. Half a second after you stop typing, what you wrote becomes the
+component.
+
+Two properties make that safe. **Labels are identity**: a part whose label you
+did not change keeps its id, its position on the canvas and any properties the
+text does not mention, so a one-line edit never rearranges a schematic you laid
+out by hand. And **nothing is committed until it parses** — a half-written line
+is simply not saved, the last good version stands, and the problems are listed
+with line numbers underneath until you finish it. The footer says which of the
+two you are looking at.
+
+Edits that change the text without changing the circuit — a comment, a blank
+line, a column of spaces lined up — are recognised as such and cost neither an
+undo step nor a recompile.
 
 Newly typed parts are placed automatically, in columns by depth, so a component
 written from scratch reads left to right when you switch back.
+
+The text side is CodeMirror, for one feature above all: **several cursors at
+once**. Renaming a signal that appears in eight lines is the commonest edit
+there is here, and `Cmd/Ctrl D` puts a cursor on each occurrence so one keystroke
+changes them all — and one undo puts them all back. `Alt`-click adds a cursor
+anywhere, `Alt`-drag selects a column.
+
+It is the only real dependency in the project and it is three times the size of
+everything else, so it is fetched in its own chunk when the app goes idle rather
+than before the first paint. The schematic never waits for it.
 
 Two things text does not carry: memory contents, because a ROM's program is
 data rather than structure (it survives by identity, and you edit it from the
@@ -183,8 +202,13 @@ arguably the better half of the fun.
 | Edit a component | double-click it in the library, or its box on the canvas |
 | Make a component | select parts, then right-click — or `Cmd/Ctrl G` |
 | Switch editor | Schematic / Text, next to the component name |
-| Apply text | `Cmd/Ctrl Enter` while writing |
-| Select next occurrence | `Cmd/Ctrl D` in the text editor, then type to change them all |
+| Add a cursor at the next occurrence | `Cmd/Ctrl D`, then type to change them all |
+| Add a cursor above / below | `Cmd/Ctrl Alt` `↑` / `↓` |
+| Add a cursor anywhere | `Alt`-click; `Alt`-drag for a column |
+| Select every occurrence at once | `Cmd/Ctrl Shift L` |
+| Find | `Cmd/Ctrl F` |
+| Comment out | `Cmd/Ctrl /` |
+| Move / copy a line | `Alt` `↑``↓` / `Shift Alt` `↑``↓` |
 | Select all / copy / paste / duplicate | `Cmd/Ctrl` + `A` / `C` / `V` / `D` |
 | Undo / redo | `Cmd/Ctrl Z` / `Shift Cmd/Ctrl Z` |
 | Power on/off | `Cmd/Ctrl Enter` |
@@ -233,6 +257,8 @@ src/core/     no DOM anywhere in here, and fully unit-tested
   storage.ts    IndexedDB, import/export
 
 src/ui/       canvas renderer and panels; no framework
+  editor.ts     CodeMirror, behind a facade so it can load on demand
+  hdl-lang.ts   syntax highlighting for the text form
 src/style.css every colour in the app, light and dark, in two blocks
 ```
 
@@ -240,7 +266,7 @@ To reskin the app, edit the two palette blocks at the top of `style.css`. The
 canvas reads the same custom properties, so nothing else needs to change.
 
 ```bash
-npm test          # 90 correctness tests, under a second
+npm test          # 92 correctness tests, under a second
 npm run test:perf # 15 stress tests, about ten seconds
 npm run test:all
 npm run build

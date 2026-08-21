@@ -95,12 +95,35 @@ function pin(id: string, name: string, width: number) {
   return { id, name, width };
 }
 
+/**
+ * What a primitive is called on screen and in the text form.
+ *
+ * The internal kind stays upper case because it is baked into stored ids and
+ * into every saved project, so this table is the one place the two spellings
+ * meet. ROM and RAM keep their capitals: they are initialisms, not words.
+ */
+const NAMES: Record<PrimitiveKind, string> = {
+  NAND: 'Nand',
+  CLOCK: 'Clock',
+  TOGGLE: 'Toggle',
+  CONST: 'Const',
+  IN: 'In',
+  OUT: 'Out',
+  PROBE: 'Probe',
+  ROM: 'ROM',
+  RAM: 'RAM',
+};
+
+export function primName(kind: PrimitiveKind): string {
+  return NAMES[kind];
+}
+
 /** Display label for a placed instance. */
 export function primLabel(inst: Instance): string {
   const kind = primKind(inst.def);
   switch (kind) {
-    case 'NAND':   return 'NAND';
-    case 'CLOCK':  return `CLK/${inst.props.period ?? 16}`;
+    case 'NAND':   return 'Nand';
+    case 'CLOCK':  return `Clk/${inst.props.period ?? 16}`;
     case 'TOGGLE': return inst.props.name || 'sw';
     case 'CONST':  return `${inst.props.value ?? 0}`;
     case 'IN':     return inst.props.name || 'in';

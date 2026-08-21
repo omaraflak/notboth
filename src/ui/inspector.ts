@@ -1,6 +1,6 @@
 import { formatValue } from '../core/layout';
 import { MAX_WIDTH } from '../core/types';
-import { clampWidth, isPrim, primKind } from '../core/primitives';
+import { clampWidth, isPrim, primKind, primName } from '../core/primitives';
 import { defSignature, movePort, signatureOf, usageCount } from '../core/project';
 import { runTests } from '../core/testbench';
 import type { Instance, NumberFormat, Wire } from '../core/types';
@@ -147,7 +147,7 @@ export class Inspector {
     switch (kind) {
       case 'NAND':
         fields.push(h('div', { class: 'hint', style: { marginTop: '-4px' } },
-          'NAND has no settings. Every gate takes exactly one tick to propagate, which is what makes feedback loops latch predictably.'));
+          'Nand has no settings. Every gate takes exactly one tick to propagate, which is what makes feedback loops latch predictably.'));
         break;
 
       case 'IN':
@@ -233,7 +233,7 @@ export class Inspector {
       }
     }
 
-    this.section(kind, fields);
+    this.section(primName(kind), fields);
   }
 
   private multiSection(count: number) {

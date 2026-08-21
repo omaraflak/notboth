@@ -60,6 +60,19 @@
   --wire-hot:      #ff9d2e;
   --wire-selected: #3d5afe;
 
+  /* Text editor */
+  --select-bg:     #aecbff;
+  --select-off:    #ccd6e8;
+  --select-match:  #f0e6a8;
+  --syn-comment:   #8d97a5;
+  --syn-keyword:   #9b2f9b;
+  --syn-type:      #1b6fb5;
+  --syn-label:     #b4560f;
+  --syn-pin:       #12805c;
+  --syn-number:    #1a56c4;
+  --syn-name:      #1a1d21;
+  --syn-punct:     #9aa2ad;
+
   --shadow-1: 0 1px 2px rgba(20, 26, 40, 0.06), 0 1px 1px rgba(20, 26, 40, 0.04);
   --shadow-2: 0 6px 24px rgba(20, 26, 40, 0.12), 0 1px 3px rgba(20, 26, 40, 0.08);
 
@@ -124,6 +137,19 @@
   --wire:          #4a515c;
   --wire-hot:      #ffb454;
   --wire-selected: #6b83ff;
+
+  /* Text editor */
+  --select-bg:     #33517f;
+  --select-off:    #39445e;
+  --select-match:  #4d4526;
+  --syn-comment:   #6b7480;
+  --syn-keyword:   #d78ad7;
+  --syn-type:      #6fb6ee;
+  --syn-label:     #ffb454;
+  --syn-pin:       #34d3a0;
+  --syn-number:    #8fa9ff;
+  --syn-name:      #e6e9ee;
+  --syn-punct:     #6b7480;
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 8px 30px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -307,57 +333,19 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
   background: var(--bg-panel);
   min-height: 0;
 }
-.editor-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+.editor-body { flex: 1; min-height: 0; overflow: hidden; }
 
-.editor-gutter {
-  flex: none;
-  width: 46px;
-  padding: 12px 8px 12px 0;
-  overflow: hidden;
-  text-align: right;
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.65;
-  color: var(--text-faint);
-  background: var(--bg-sunken);
-  border-right: 1px solid var(--line);
-  user-select: none;
-}
-
-.editor-area { position: relative; flex: 1; min-width: 0; }
-
-/* Extra selections from Cmd/Ctrl D. The browser paints the active one; these
-   are the others, positioned arithmetically because the text is monospaced
-   and never wraps. */
-.editor-highlights { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.editor-sel {
-  position: absolute;
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-line);
-  border-radius: 2px;
-}
-.editor-sel.caret { background: var(--accent); box-shadow: none; border-radius: 1px; }
-
-.editor-text {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 12px 14px;
-  border: none;
-  border-radius: 0;
-  background: var(--bg-panel);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.65;
-  resize: none;
-  white-space: pre;
-  overflow: auto;
-  tab-size: 2;
-  background-color: transparent;
-}
-.editor-text:focus { outline: none; box-shadow: none; border: none; }
+/* CodeMirror's own chrome is themed in textview.ts, so that it can use the
+   same tokens as everything else. What is left here is the syntax palette,
+   which is applied by class for exactly that reason. */
+.tok-comment { color: var(--syn-comment); font-style: italic; }
+.tok-keyword { color: var(--syn-keyword); font-weight: 600; }
+.tok-type    { color: var(--syn-type); }
+.tok-label   { color: var(--syn-label); }
+.tok-pin     { color: var(--syn-pin); }
+.tok-number  { color: var(--syn-number); }
+.tok-name    { color: var(--syn-name); }
+.tok-punct   { color: var(--syn-punct); }
 
 .editor-problems { max-height: 168px; overflow-y: auto; border-top: 1px solid var(--line); }
 .editor-problems:empty { display: none; }
@@ -375,13 +363,14 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 .editor-problem .ln { font-family: var(--mono); font-size: 10.5px; opacity: .75; flex: none; }
 .editor-problem .msg { flex: 1; }
 
+/* Nothing to press: the editor saves itself, and this only reports whether
+   what is on screen made it into the component. */
 .editor-foot {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px;
+  display: flex; align-items: center;
+  padding: 6px 14px;
   border-top: 1px solid var(--line);
   background: var(--bg-panel);
 }
-.editor-foot .spacer { flex: 1; }
 
 /* ---------------- Sidebar ---------------- */
 

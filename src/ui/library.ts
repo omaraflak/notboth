@@ -1,5 +1,5 @@
 import { extractSelection } from '../core/extract';
-import { PALETTE_PRIMITIVES, primDefId } from '../core/primitives';
+import { PALETTE_PRIMITIVES, primDefId, primName } from '../core/primitives';
 import {
   createFolder, deleteDef, deleteFolder, emptyDef, folderPath,
   signatureOf, uniqueName, usageCount,
@@ -88,10 +88,10 @@ export class Library {
     const armed = this.app.armed === defId;
     const row = h('div', {
       class: `row ${armed ? 'armed' : ''}`,
-      title: `${kind}\n${signatureSummary(this.app.project, defId)}`,
+      title: `${primName(kind as never)}\n${signatureSummary(this.app.project, defId)}`,
     });
     row.appendChild(h('div', { class: 'row-glyph' }, icon(glyphFor(kind), 12)));
-    row.appendChild(h('div', { class: 'row-name' }, kind));
+    row.appendChild(h('div', { class: 'row-name' }, primName(kind as never)));
     row.addEventListener('click', () => this.arm(defId));
     return row;
   }

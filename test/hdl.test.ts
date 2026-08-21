@@ -56,8 +56,29 @@ describe('writing a component out as text', () => {
     const text = toText(p, d);
     expect(text).toContain('in  in');
     expect(text).toContain('out out');
-    expect(text).toMatch(/nand1 : NAND\(a = in, b = in\)/);
+    expect(text).toMatch(/nand1 : Nand\(a = in, b = in\)/);
     expect(text).toContain('out = nand1.y');
+  });
+
+  it('spells ROM and RAM in capitals, and everything else as a word', () => {
+    const p = project();
+    const d = def(p, 'Store');
+    addPrimitive(d, 'ROM', 0, 0, { addrWidth: 4, dataWidth: 8, contents: [] });
+    addPrimitive(d, 'RAM', 0, 4, { addrWidth: 4, dataWidth: 8, contents: [] });
+    addPrimitive(d, 'CLOCK', 0, 8, { period: 12 });
+    const text = toText(p, d);
+    expect(text).toMatch(/rom1 : ROM\(/);
+    expect(text).toMatch(/ram1 : RAM\(/);
+    expect(text).toMatch(/clock1 : Clock\(period = 12\)/);
+  });
+
+  it('still reads a type name written the old way, in capitals', () => {
+    const p = project();
+    const d = def(p, 'Not');
+    // Anything saved or written before the built-ins were renamed says NAND.
+    const parsed = fromText(p, 'in a\nout y\n\ng : NAND(a = a, b = a)\n\ny = g.y', d);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.instances).toHaveLength(3);
   });
 
   it('shows a bit range only where one is actually taken', () => {

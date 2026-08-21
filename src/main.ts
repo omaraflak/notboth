@@ -39,8 +39,8 @@ async function boot() {
     // Leaving the text editor commits what is written, or refuses and says
     // why -- switching away must never quietly discard an edit.
     setMode: (mode) => {
-      if (mode === 'schematic' && app.mode === 'text' && text.hasUnappliedEdits && !text.apply()) {
-        app.toast('Fix the problems below, or press Revert to go back to the schematic', 'err');
+      if (mode === 'schematic' && app.mode === 'text' && !text.commit()) {
+        app.toast('Fix the problems below before going back to the schematic', 'err');
         return;
       }
       app.setMode(mode);
@@ -60,8 +60,17 @@ async function boot() {
   // how much room it actually has.
   requestAnimationFrame(() => canvas.fit());
 
-  // A half-finished edit should not be lost to a closed tab.
-  window.addEventListener('beforeunload', () => app.persist(true));
+  // Fetch the code editor once the first paint is out of the way, so that
+  // switching to text is instant without the schematic having waited for it.
+  const idle = window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 1200));
+  idle(() => void text.preload());
+
+  // A half-finished edit should not be lost to a closed tab -- including one
+  // typed in the last half second, before the editor committed it.
+  window.addEventListener('beforeunload', () => {
+    text.commit();
+    app.persist(true);
+  });
 }
 
 /** Shown only while the open component is empty. */

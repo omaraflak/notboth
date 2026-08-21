@@ -17,7 +17,7 @@
  */
 import { arrange } from './autolayout';
 import { newId } from './ids';
-import { clampWidth, isPrim, primDefId, primKind } from './primitives';
+import { clampWidth, isPrim, primDefId, primKind, primName } from './primitives';
 import { defSignature, signatureOf } from './project';
 import type {
   ComponentDef, Id, Instance, Pin, PrimitiveKind, Project, Signature, Wire,
@@ -166,7 +166,7 @@ export function toText(project: Project, def: ComponentDef): string {
   for (const inst of parts) {
     const label = labels.get(inst.id)!;
     const type = isPrim(inst.def)
-      ? primKind(inst.def)
+      ? primName(primKind(inst.def))
       : project.defs.find((d) => d.id === inst.def)?.name ?? '?';
     const s = sigOf(inst);
     const args: string[] = [];
