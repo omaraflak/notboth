@@ -17,7 +17,7 @@ export interface Selection {
 export interface View { tx: number; ty: number; zoom: number }
 
 /** Which editor is showing. Both edit the same component. */
-export type EditorMode = 'schematic' | 'text';
+export type EditorMode = 'schematic' | 'code' | 'tests';
 
 /** Ticks per second. The last entry runs as fast as one frame allows. */
 export const SPEEDS = [1, 2, 5, 10, 25, 60, 150, 400, 1_000, 4_000, 20_000, Infinity];

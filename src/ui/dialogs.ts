@@ -1,9 +1,8 @@
 import { formatValue } from '../core/layout';
 import { clampWidth } from '../core/primitives';
-import { createProject, defSignature, previewReplace, replaceAllUses, signatureOf, usageCount } from '../core/project';
+import { createProject, defSignature, previewReplace, replaceAllUses, usageCount } from '../core/project';
 import { downloadFile, exportProject, importProject, listProjects, pickFile, saveProject, deleteProject } from '../core/storage';
-import { normalizeVectors, runTests } from '../core/testbench';
-import type { ComponentDef, Id, Instance, Project, TestVector } from '../core/types';
+import type { Id, Instance, Project } from '../core/types';
 import type { App } from './app';
 import { append, button, clear, h, icon } from './dom';
 
@@ -35,12 +34,11 @@ export function openModal(spec: ModalSpec): Promise<unknown> {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); close(undefined); return; }
-      // Enter confirms -- except in a textarea, where it is a newline, and
-      // inside a data grid, where it steps to the next row. This listener runs
-      // in the capture phase, so it has to stand aside explicitly.
+      // Enter confirms -- except in a textarea, where it is a newline. This
+      // listener runs in the capture phase, so it has to stand aside
+      // explicitly rather than relying on the target handling it first.
       const target = e.target as HTMLElement | null;
-      const inGrid = !!target?.closest?.('table.grid-table');
-      if (e.key === 'Enter' && !e.shiftKey && target?.tagName !== 'TEXTAREA' && !inGrid) {
+      if (e.key === 'Enter' && !e.shiftKey && target?.tagName !== 'TEXTAREA') {
         const primary = foot.querySelector('.btn.primary') as HTMLButtonElement | null;
         if (primary) { e.preventDefault(); e.stopPropagation(); primary.click(); }
       }
@@ -280,193 +278,6 @@ export function memoryViewer(app: App, inst: Instance) {
  * Test benches
  * ------------------------------------------------------------------ */
 
-export function testBenchDialog(app: App, def: ComponentDef) {
-  const sig = signatureOf(def);
-  if (!sig.inputs.length && !sig.outputs.length) {
-    app.toast('Add In and Out port markers before writing tests', 'err');
-    return;
-  }
-  // Migrate any name-keyed vectors to pin ids as soon as they are opened, so a
-  // later rename cannot orphan them.
-  const migrated = normalizeVectors(sig, structuredClone(def.tests?.vectors ?? []));
-  const vectors: TestVector[] = migrated.vectors;
-  const orphaned = migrated.unknown;
-  let settleTicks = def.tests?.settleTicks ?? 0;
-  let resetEach = def.tests?.resetEachVector ?? false;
-
-  openModal({
-    title: `Tests for ${def.name}`,
-    wide: true,
-    build: (body, close) => {
-      const tableWrap = h('div', { style: { maxHeight: '340px', overflow: 'auto' } });
-      const summary = h('div', { class: 'hint' });
-
-      const focusCell = (row: number, col: number): boolean => {
-        const el = tableWrap.querySelector<HTMLInputElement>(
-          `input[data-row="${row}"][data-col="${col}"]`,
-        );
-        if (!el) return false;
-        el.focus();
-        el.select();
-        return true;
-      };
-
-      // Arrow keys walk the grid. Left and right only leave the cell when the
-      // caret is already at that edge, so they still move the caret while you
-      // are part-way through typing a value.
-      tableWrap.addEventListener('keydown', (e) => {
-        const input = e.target as HTMLInputElement;
-        if (!(input instanceof HTMLInputElement) || input.dataset.row === undefined) return;
-        const row = Number(input.dataset.row);
-        const col = Number(input.dataset.col);
-        const len = input.value.length;
-        const from = input.selectionStart ?? 0;
-        const to = input.selectionEnd ?? 0;
-        const wholeValueSelected = len > 0 && from === 0 && to === len;
-        const atStart = len === 0 || wholeValueSelected || (from === 0 && to === 0);
-        const atEnd = len === 0 || wholeValueSelected || (from === len && to === len);
-
-        let target: [number, number] | null = null;
-        switch (e.key) {
-          case 'ArrowUp': target = [row - 1, col]; break;
-          case 'ArrowDown': target = [row + 1, col]; break;
-          case 'ArrowLeft': if (atStart) target = [row, col - 1]; break;
-          case 'ArrowRight': if (atEnd) target = [row, col + 1]; break;
-          case 'Enter': target = [row + (e.shiftKey ? -1 : 1), col]; break;
-          default: return;
-        }
-        if (!target) return;
-        e.preventDefault();
-        e.stopPropagation();
-        focusCell(target[0], target[1]);
-      });
-
-      const render = (results?: ReturnType<typeof runTests>) => {
-        clear(tableWrap);
-        const table = h('table', { class: 'grid-table' });
-        const head = h('tr');
-        head.appendChild(h('th', null, ''));
-        for (const p of sig.inputs) head.appendChild(h('th', null, `${p.name}${p.width > 1 ? `[${p.width}]` : ''}`));
-        for (const p of sig.outputs) head.appendChild(h('th', null, `= ${p.name}`));
-        head.appendChild(h('th', null, ''));
-        table.appendChild(h('thead', null, head));
-
-        const tbody = h('tbody');
-        vectors.forEach((vec, i) => {
-          const result = results?.results[i];
-          const tr = h('tr', { class: result ? (result.pass ? 'pass' : 'fail') : '' });
-          tr.appendChild(h('td', { class: 'res', style: { color: 'var(--text-faint)' } }, String(i)));
-          let col = 0;
-          for (const p of sig.inputs) {
-            const cell = numberCell(vec.in[p.id] ?? 0, (v) => { vec.in[p.id] = v; });
-            cell.dataset.row = String(i);
-            cell.dataset.col = String(col++);
-            tr.appendChild(h('td', null, cell));
-          }
-          for (const p of sig.outputs) {
-            const cell = numberCell(vec.out[p.id] ?? 0, (v) => { vec.out[p.id] = v; });
-            cell.dataset.row = String(i);
-            cell.dataset.col = String(col++);
-            const td = h('td', null, cell);
-            if (result && !result.pass) {
-              td.title = `got ${formatValue(result.actual[p.name] ?? 0, p.width, 'hex')}`;
-            }
-            tr.appendChild(td);
-          }
-          const del = button(null, {
-            icon: 'x', title: 'Remove row',
-            onClick: () => { vectors.splice(i, 1); render(); },
-          });
-          tr.appendChild(h('td', { class: 'res' }, del));
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        tableWrap.appendChild(table);
-
-        clear(summary);
-        const unmatched = [...new Set([...orphaned, ...(results?.unknownPins ?? [])])];
-        if (unmatched.length) {
-          const names = sig.inputs.concat(sig.outputs).map((p) => p.name).join(', ');
-          summary.appendChild(h('div', { style: { color: 'var(--warn)' } },
-            `Dropped ${unmatched.length} column${unmatched.length === 1 ? '' : 's'} `
-            + `(${unmatched.join(', ')}) - no pin by that name any more. This component's pins are: ${names}.`));
-        }
-        if (results?.ran) {
-          const failed = results.total - results.passed;
-          summary.appendChild(h('div', {
-            style: { color: failed ? 'var(--danger)' : 'var(--ok)' },
-          }, failed
-            ? `${results.passed} of ${results.total} vectors pass. Hover a red cell to see what it produced.`
-            : results.total === 1 ? 'The vector passes.' : `All ${results.total} vectors pass.`));
-        } else if (results && results.errors.length) {
-          summary.appendChild(h('div', { style: { color: 'var(--danger)' } }, results.errors[0].message));
-        }
-      };
-
-      const addRow = button('Add vector', {
-        icon: 'plus', className: 'bordered',
-        onClick: () => {
-          const blank: TestVector = { in: {}, out: {} };
-          for (const p of sig.inputs) blank.in[p.id] = 0;
-          for (const p of sig.outputs) blank.out[p.id] = 0;
-          vectors.push(blank);
-          render();
-          focusCell(vectors.length - 1, 0);
-        },
-      });
-
-      const ticksInput = h('input', {
-        type: 'number', min: '0', value: String(settleTicks), style: { width: '70px' },
-        oninput: (e: Event) => { settleTicks = Number((e.target as HTMLInputElement).value) || 0; },
-      });
-      const resetInput = h('input', {
-        type: 'checkbox', checked: resetEach, style: { width: 'auto' },
-        onchange: (e: Event) => { resetEach = (e.target as HTMLInputElement).checked; },
-      });
-
-      body.appendChild(tableWrap);
-      body.appendChild(h('div', { class: 'field', style: { marginTop: '10px' } }, addRow));
-      body.appendChild(h('div', { class: 'field' },
-        h('label', null, 'Ticks'), h('div', { class: 'control' }, ticksInput)));
-      body.appendChild(h('div', { class: 'field' },
-        h('label', null, 'Reset'), h('div', { class: 'control' }, resetInput)));
-      body.appendChild(h('div', { class: 'hint' },
-        'Arrow keys move between cells, Enter steps down a row. '
-        + 'Leave ticks at 0 for combinational logic; the runner settles until nothing is left to propagate. '
-        + 'Set it for sequential circuits so each vector advances the clock by a fixed amount.'));
-      body.appendChild(summary);
-      render();
-
-      (body as HTMLElement & { save?: () => void; run?: () => void }).run = () => {
-        render(runTests(app.project, def.id, { vectors, settleTicks, resetEachVector: resetEach }));
-      };
-      (body as HTMLElement & { save?: () => void }).save = () => {
-        app.mutate(() => {
-          def.tests = vectors.length ? { vectors, settleTicks, resetEachVector: resetEach } : undefined;
-        });
-        close(true);
-      };
-    },
-    foot: (foot, close) => {
-      const body = () => foot.parentElement!.querySelector('.body') as HTMLElement & { save?: () => void; run?: () => void };
-      foot.appendChild(button('Cancel', { className: 'bordered', onClick: () => close(false) }));
-      foot.appendChild(h('div', { class: 'spacer' }));
-      foot.appendChild(button('Run', { icon: 'beaker', className: 'bordered', onClick: () => body().run?.() }));
-      foot.appendChild(button('Save', { className: 'primary', onClick: () => body().save?.() }));
-    },
-  });
-}
-
-function numberCell(value: number, onChange: (v: number) => void): HTMLInputElement {
-  const input = h('input', { type: 'text', value: String(value) });
-  input.addEventListener('input', () => {
-    const n = parseNumber(input.value);
-    input.style.color = n === null ? 'var(--danger)' : '';
-    if (n !== null) onChange(n);
-  });
-  return input;
-}
-
 /* ------------------------------------------------------------------ *
  * Replace and delete
  * ------------------------------------------------------------------ */
@@ -662,8 +473,7 @@ export function shortcutsDialog() {
     ['Fit to circuit', 'Shift F'],
     ['Draw a wire', 'Drag from an output pin to an input pin'],
     ['Detach a wire', 'Drag away from the input pin it feeds'],
-    ['Switch editor', 'Schematic / Text, next to the component name'],
-    ['Apply text', 'Cmd/Ctrl Enter while writing'],
+    ['Switch view', 'Schematic / Code / Tests, next to the component name'],
     ['Select next occurrence', 'Cmd/Ctrl D in the text editor, then type to change them all'],
     ['Place a component', 'Click it in the library, then click the grid'],
     ['Edit a component', 'Double-click it in the library, or its box on the canvas'],

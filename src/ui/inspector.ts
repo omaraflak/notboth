@@ -6,20 +6,27 @@ import { runTests } from '../core/testbench';
 import type { Instance, NumberFormat, Wire } from '../core/types';
 import type { App } from './app';
 import { button, clear, h, icon } from './dom';
-import { memoryEditor, memoryViewer, parseNumber, testBenchDialog } from './dialogs';
+import { memoryEditor, memoryViewer, parseNumber } from './dialogs';
 
 const WIRE_COLORS = ['', '#e0483a', '#e08b1f', '#2f9e57', '#2f7fe0', '#8b4fd8', '#c73f8f'];
 
 export class Inspector {
   private editing = false;
   private tickUpdaters: (() => void)[] = [];
+  /** Everything that scrolls. The footer below it does not. */
+  private body: HTMLElement;
+  private foot: HTMLElement;
 
   constructor(
     private app: App,
-    private host: HTMLElement,
+    host: HTMLElement,
     private onExtract: () => void,
     private onArrange: () => void = () => {},
   ) {
+    this.body = h('div', { class: 'insp-body' });
+    this.foot = h('div', { class: 'insp-foot' });
+    host.appendChild(this.body);
+    host.appendChild(this.foot);
     host.addEventListener('focusin', () => { this.editing = true; });
     host.addEventListener('focusout', () => {
       this.editing = false;
@@ -37,26 +44,42 @@ export class Inspector {
     // Re-rendering while a field has focus would steal the caret.
     if (this.editing && !force) return;
     const app = this.app;
-    clear(this.host);
+    clear(this.body);
+    clear(this.foot);
     this.tickUpdaters = [];
 
     const instances = app.selectedInstances;
     const wires = app.selectedWires;
+
+    // The component itself is always the first thing here. What is selected is
+    // a detail *about* this component, so it belongs underneath rather than in
+    // place of it: selecting a gate should never hide what you are working on.
+    this.componentSection();
 
     if (instances.length === 1 && !wires.length) this.instanceSection(instances[0]);
     else if (instances.length > 1) this.multiSection(instances.length);
     if (wires.length === 1) this.wireSection(wires[0]);
     else if (wires.length > 1) this.section('Wires', [h('div', { class: 'hint' }, `${wires.length} wires selected.`)]);
 
-    if (!instances.length && !wires.length) this.componentSection();
     this.errorSection();
     this.signalsSection();
+    this.renderFoot();
+  }
+
+  /** Pinned to the bottom, so it is in the same place whatever is selected. */
+  private renderFoot() {
+    const def = this.app.openDef;
+    this.foot.appendChild(button('Arrange schematic', {
+      icon: 'layers', className: 'bordered',
+      disabled: !def.instances.length || this.app.mode !== 'schematic',
+      onClick: () => this.onArrange(),
+    }));
   }
 
   private section(title: string, children: (Node | null)[]): HTMLElement {
     const el = h('div', { class: 'insp-section' }, h('h3', null, title));
     for (const c of children) if (c) el.appendChild(c);
-    this.host.appendChild(el);
+    this.body.appendChild(el);
     return el;
   }
 
@@ -86,39 +109,25 @@ export class Inspector {
         'No ports yet. Place In and Out markers to give this component pins; each one carries as many bits as its Width says.'));
     }
 
-    const arrangeRow = h('div', { class: 'field', style: { marginTop: '10px' } },
-      button('Arrange schematic', {
-        icon: 'layers', className: 'bordered',
-        disabled: !def.instances.length,
-        onClick: () => this.onArrange(),
-      }));
-
-    const tests = def.tests?.vectors.length ?? 0;
-    const testRow = h('div', {
-      class: 'field',
-      style: { marginTop: '10px', gap: '6px', flexWrap: 'wrap' },
-    },
-      button(tests ? `Run ${tests} tests` : 'Add tests', {
+    const count = def.tests?.vectors.length ?? 0;
+    const testRow = h('div', { class: 'field', style: { marginTop: '10px', gap: '6px', flexWrap: 'wrap' } },
+      button(count ? `Run ${count} tests` : 'Write tests', {
         icon: 'beaker', className: 'bordered',
         onClick: () => {
-          if (!tests) return testBenchDialog(app, def);
+          if (!count) return app.setMode('tests');
           const run = runTests(app.project, def.id);
           if (!run.ran) app.toast(run.errors[0]?.message ?? 'Nothing to run', 'err');
           else if (run.passed === run.total) app.toast(`All ${run.total} vectors pass`);
           else app.toast(`${run.total - run.passed} of ${run.total} vectors fail`, 'err');
         },
       }),
-      // Labelled, not a bare glyph: an icon-only button here was unfindable.
-      tests ? button('Edit tests', {
-        className: 'bordered', onClick: () => testBenchDialog(app, def),
-      }) : null,
+      count ? button('Edit tests', { className: 'bordered', onClick: () => app.setMode('tests') }) : null,
     );
 
     this.section(def.name, [
       h('div', { class: 'hint', style: { marginTop: '-4px' } },
         uses ? `Used ${uses} time${uses === 1 ? '' : 's'} in this project.` : 'Not used anywhere yet.'),
       pins,
-      arrangeRow,
       testRow,
     ]);
   }

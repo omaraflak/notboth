@@ -67,7 +67,8 @@ export class Chrome {
       onclick: () => this.actions.setMode(mode),
     }, label);
     seg.appendChild(tab('Schematic', 'schematic', 'Draw this component'));
-    seg.appendChild(tab('Text', 'text', 'Write this component out as text'));
+    seg.appendChild(tab('Code', 'code', 'Write this component out as text'));
+    seg.appendChild(tab('Tests', 'tests', 'Truth table for this component'));
     this.left.appendChild(seg);
 
     /* ----- centre: the power switch and what it drives ----- */

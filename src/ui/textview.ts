@@ -57,7 +57,7 @@ export class TextView {
     // the buffer from what was just parsed would reformat the text and drop
     // the comments out from under whoever is typing.
     app.on('project', () => {
-      if (app.mode !== 'text' || !this.editor || this.committing) return;
+      if (app.mode !== 'code' || !this.editor || this.committing) return;
       this.load();
     });
     void this.sync();
@@ -91,7 +91,7 @@ export class TextView {
   /* ---------------- showing ---------------- */
 
   private async sync() {
-    const showing = this.app.mode === 'text';
+    const showing = this.app.mode === 'code';
     this.root.style.display = showing ? '' : 'none';
     if (!showing) return;
     await this.mount();
@@ -100,7 +100,7 @@ export class TextView {
     // one thing that outranks it is text typed and not yet committed.
     if (this.loadedFrom !== this.app.openDef.id || !this.dirty) this.load();
     // The mode may have been switched back while the chunk was in flight.
-    if (this.app.mode === 'text') this.editor?.focus();
+    if (this.app.mode === 'code') this.editor?.focus();
   }
 
   private load() {

@@ -10,7 +10,7 @@ import type { App } from './app';
 import { button, clear, h, icon } from './dom';
 import {
   confirmDialog, contextMenu, deleteComponentDialog, promptText, replaceDialog,
-  signatureSummary, testBenchDialog,
+  signatureSummary,
 } from './dialogs';
 
 export class Library {
@@ -206,8 +206,9 @@ export class Library {
       },
       'divider',
       {
-        label: def.tests?.vectors.length ? 'Edit tests...' : 'Add tests...',
-        icon: 'beaker', onClick: () => testBenchDialog(app, def),
+        label: def.tests?.vectors.length ? 'Edit tests' : 'Write tests',
+        icon: 'beaker',
+        onClick: () => { app.openComponent(def.id); app.setMode('tests'); },
       },
       {
         label: def.tests?.vectors.length ? `Run ${def.tests.vectors.length} tests` : 'Run tests',

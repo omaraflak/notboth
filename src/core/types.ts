@@ -120,6 +120,12 @@ export interface TestBench {
   /** Reset the simulator between vectors. Off by default so sequential
    *  circuits can be driven as a sequence of steps. */
   resetEachVector?: boolean;
+  /**
+   * How the numbers in the table are written. A multi-bit value is ambiguous
+   * without it -- `10` is two, ten or sixteen -- so it is stored with the
+   * vectors rather than guessed at each time they are opened.
+   */
+  base?: NumberFormat;
 }
 
 export interface ComponentDef {

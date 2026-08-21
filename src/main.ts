@@ -4,6 +4,7 @@ import { CanvasView, isTyping } from './ui/canvas';
 import { Chrome } from './ui/chrome';
 import { Inspector } from './ui/inspector';
 import { Library } from './ui/library';
+import { TestsView } from './ui/testsview';
 import { TextView } from './ui/textview';
 import { h } from './ui/dom';
 import { initTheme } from './ui/theme';
@@ -33,14 +34,15 @@ async function boot() {
   const extract = () => library.extractSelection();
   const canvas = new CanvasView(app, canvasWrap, { extract });
   const text = new TextView(app, canvasWrap);
+  new TestsView(app, canvasWrap);
   new Inspector(app, inspectorEl, extract, () => canvas.arrange());
   new Chrome(app, topbar, statusbar, {
     fit: () => canvas.fit(),
     // Leaving the text editor commits what is written, or refuses and says
     // why -- switching away must never quietly discard an edit.
     setMode: (mode) => {
-      if (mode === 'schematic' && app.mode === 'text' && !text.commit()) {
-        app.toast('Fix the problems below before going back to the schematic', 'err');
+      if (mode !== 'code' && app.mode === 'code' && !text.commit()) {
+        app.toast('Fix the problems below before leaving the code view', 'err');
         return;
       }
       app.setMode(mode);
@@ -85,7 +87,7 @@ function mountHint(app: App, host: HTMLElement) {
     'Select what you built, then right-click to make it a component.'));
   host.appendChild(hint);
   const sync = () => {
-    hint.style.display = app.openDef.instances.length || app.mode === 'text' ? 'none' : '';
+    hint.style.display = app.openDef.instances.length || app.mode !== 'schematic' ? 'none' : '';
   };
   app.on('project', sync);
   app.on('view', sync);
@@ -107,7 +109,7 @@ function bindKeys(app: App, canvas: CanvasView, extract: () => void) {
   window.addEventListener('keydown', (e) => {
     if (isTyping(e.target)) return;
     // Canvas shortcuts have no meaning while the text editor is showing.
-    if (app.mode === 'text') return;
+    if (app.mode !== 'schematic') return;
     if (document.querySelector('.scrim')) return;
     const mod = e.metaKey || e.ctrlKey;
 
