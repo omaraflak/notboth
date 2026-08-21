@@ -413,6 +413,33 @@ article.stage:last-of-type { border-bottom: 0; }
   padding: 0.05em 0.32em;
 }
 
+/* Truth tables. Values in mono so the columns line up and read as data;
+   the gloss beside them in the body serif so it reads as prose. */
+.tt-wrap { max-width: var(--measure); margin: 1.3rem 0; overflow-x: auto; }
+.tt { border-collapse: collapse; font-size: 0.9rem; }
+.tt th {
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: left;
+  padding: 0 1.4rem 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.tt td {
+  padding: 0.34rem 1.4rem 0.34rem 0;
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink-2);
+  vertical-align: baseline;
+}
+.tt tr:last-child td { border-bottom: 0; }
+.tt .v { font-family: var(--mono); font-size: 0.86em; white-space: nowrap; }
+.tt .q { font-family: var(--mono); font-size: 0.86em; color: var(--spot); white-space: nowrap; }
+.tt .why { font-family: var(--serif); padding-right: 0; }
+
 /* ---------------- closing ---------------- */
 
 .envoi {
@@ -571,7 +598,7 @@ article.stage:last-of-type { border-bottom: 0; }
       <a href="#s105"><i>1.05</i>Mux</a>
       <a href="#s106"><i>1.06</i>DMux</a>
       <a href="#s107"><i>1.07</i>Widen to sixteen</a>
-      <a href="#s108"><i>1.08</i>Or8Way</a>
+      <a href="#s108"><i>1.08</i>Or16Way</a>
       <a href="#s109"><i>1.09</i>Mux4Way16, Mux8Way16</a>
       <a href="#s110"><i>1.10</i>DMux4Way, DMux8Way</a>
     </div>
@@ -787,18 +814,21 @@ article.stage:last-of-type { border-bottom: 0; }
 <article class="stage" id="s108">
   <div class="rail"><span class="num">1.08</span><span class="deps"><b>Needs</b>1.03</span></div>
   <div>
-    <h3>Or8Way</h3>
-    <div class="sig">Or8Way(in[8]) &rarr; out</div>
+    <h3>Or16Way</h3>
+    <div class="sig">Or16Way(in[16]) &rarr; out</div>
     <p>
       &ldquo;Is anything at all switched on in here?&rdquo; A single bit summarising a whole
       bus.
     </p>
     <p>
-      It looks like a throwaway utility. It is not: this is how your machine will
-      eventually answer &ldquo;is this number zero?&rdquo;, and that question is the entire
-      basis of conditional branching. Every <code>if</code> and every <code>while</code>
-      in every program you ever write on this machine will come down to a chip
-      like this one looking at a bus and shrugging.
+      It looks like a throwaway utility. It is not: this is how your machine
+      answers &ldquo;is this number zero?&rdquo;, and that question is the entire
+      basis of conditional branching. Sixteen wide because a number is sixteen
+      wide &mdash; invert this chip&rsquo;s output and you have the ALU&rsquo;s
+      <code>zr</code> exactly, with nothing left over to build. Every
+      <code>if</code> and every <code>while</code> in every program you ever
+      write on this machine will come down to a chip like this one looking at a
+      bus and shrugging.
     </p>
     <div class="done"><b>Done when</b>All-zeros gives 0, and each single bit set on its own gives 1.</div>
   </div>
@@ -1024,7 +1054,8 @@ article.stage:last-of-type { border-bottom: 0; }
       things your machine will ever know about a computation, and every
       conditional in every program will be decided by them. Notice that
       <code>ng</code> is free &mdash; under two&rsquo;s complement the sign is just the top
-      bit &mdash; and that <code>zr</code> is what stage 1.08 was for.
+      bit &mdash; and that <code>zr</code> is the Or16Way from 1.08 with a Not on
+      the end, which is why you built it.
     </p>
     <div class="watch"><b>Watch out</b>This is the largest chip so far and the most punishing to debug later. Test <em>every</em> control combination you intend to use, with at least one negative operand. An hour of test vectors here saves a week in Part IV.</div>
   </div>
@@ -1079,19 +1110,65 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>The latch</h3>
     <div class="sig">SRLatch(set, reset) &rarr; q</div>
     <p>
-      Two gates, each feeding the other&rsquo;s input. Pulse one and the pair locks
-      into one state; pulse the other and it locks into the opposite. Release
-      both and it stays where it was. This is the first circuit you will build
-      that remembers, and it is only two gates wide.
+      Pulse one input and the pair locks into one state; pulse the other and it
+      locks into the opposite. Release both and it stays where it was. This is
+      the first circuit you will build that remembers, and it is only two gates
+      wide.
     </p>
     <p>
-      It also has two flaws, and you should meet both now rather than later.
-      Asserting both inputs at once is meaningless &mdash; you are demanding it be one
-      and zero simultaneously. And on power-up, with both inputs idle, the two
-      gates are perfectly symmetric and the latch has no way to choose; in this
-      simulator that shows up honestly as an oscillation rather than as a
-      convenient zero. Real hardware breaks the tie with manufacturing
-      imperfection. You will break it with a reset.
+      Build it from two <strong>NANDs</strong>, cross-coupled: each gate&rsquo;s
+      output goes into one input of the other. That spends one input on each
+      gate and leaves one free, and those two free inputs are
+      <code>set</code> and <code>reset</code>. Take <code>q</code> from either
+      gate&rsquo;s output; the other gate carries its opposite.
+    </p>
+    <p>
+      NAND is not an arbitrary pick, and it is worth seeing what the job
+      demands. The gate has to <em>invert</em>, so that the loop&rsquo;s two
+      nodes hold opposite values &mdash; that pair of opposites is what gives the
+      circuit two states to sit in rather than one, and it is exactly what the
+      And in 3.01 could not provide. And it has to have a <em>spare input</em>,
+      because that is the only way to reach in and command it; a Not inverts
+      perfectly well but leaves you nowhere to put the instruction. Inverts, and
+      has an input going spare: that is NAND. It is also Nor &mdash; an Or with a
+      Not on the end &mdash; which gives you the same latch with every level
+      turned upside down. Either is a real answer. Nothing else you have built
+      is.
+    </p>
+    <p>
+      One consequence to have straight before you switch on: with NANDs the
+      inputs are <strong>active low</strong>. Idle is 1, and you assert an input
+      by pulling it to <strong>0</strong>. That follows from the same property
+      the latch is built on &mdash; a NAND with any input at 0 goes high whatever
+      else is happening, so a 0 is the only thing that can overrule the loop,
+      and a 1 leaves the gate listening to its partner. Which is precisely what
+      idle ought to mean.
+    </p>
+    <div class="tt-wrap">
+      <table class="tt">
+        <thead>
+          <tr><th>set</th><th>reset</th><th>q</th><th>&nbsp;</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="v">1</td><td class="v">1</td><td class="q">holds</td>
+              <td class="why">Both idle. It remembers whatever it was last told &mdash; this is the row that makes it memory.</td></tr>
+          <tr><td class="v">0</td><td class="v">1</td><td class="q">1</td>
+              <td class="why">Set asserted. Forces q high, and it stays high after you release.</td></tr>
+          <tr><td class="v">1</td><td class="v">0</td><td class="q">0</td>
+              <td class="why">Reset asserted. Forces q low, and it stays low after you release.</td></tr>
+          <tr><td class="v">0</td><td class="v">0</td><td class="q">1</td>
+              <td class="why">Both asserted. Both gates go high at once, so q and its opposite are both 1 &mdash; which is not a state, it is a contradiction.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      The last row is the first of the latch&rsquo;s two flaws: asserting both
+      inputs is meaningless, because you are demanding it be one and zero at the
+      same time. The second flaw is what happens when you leave that row &mdash;
+      release both inputs together and the two gates are perfectly symmetric,
+      with no way to choose. In this simulator that shows up honestly as an
+      oscillation rather than as a convenient zero. Real hardware breaks the tie
+      with manufacturing imperfection. You will break it with a reset.
     </p>
     <p>
       Both flaws are why the next two stages exist.
