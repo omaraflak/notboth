@@ -303,6 +303,34 @@ describe('memory emerges from NAND feedback', () => {
     expect(sim.readNets(Q)).toBe(0);
   });
 
+  it('lets a gate feed itself', () => {
+    // One NAND with its output on its own input. Held low it is stable and
+    // high; held high it is an oscillator, one gate delay per half cycle.
+    // Both are what the hardware does, and the schematic must be able to draw
+    // it -- the text form has always been able to write it.
+    const b = new Builder();
+    const a = b.prim('IN', { name: 'a' }, 0);
+    const g = b.prim('NAND', {}, 1);
+    const out = b.prim('OUT', { name: 'y' }, 2);
+    b.wire([a, 'out'], [g, 'a']);
+    b.wire([g, 'y'], [g, 'b']);
+    b.wire([g, 'y'], [out, 'in']);
+
+    const { sim, nl } = b.sim();
+    const A = nl.rootInputs.get(a)!;
+    const Y = nl.rootOutputs.get(out)!;
+
+    sim.writeNets(A, 0);
+    expect(sim.settle()).toBe(true);
+    expect(sim.readNets(Y)).toBe(1);
+
+    sim.writeNets(A, 1);
+    expect(sim.settle(500)).toBe(false);
+    const seen: number[] = [];
+    for (let i = 0; i < 4; i++) { sim.step(); seen.push(sim.readNets(Y)); }
+    expect(seen).toEqual([seen[0], 1 - seen[0], seen[0], 1 - seen[0]]);
+  });
+
   it('reports a perfectly symmetric latch as unstable rather than hanging', () => {
     // Both inputs released from an all-zero start: the real circuit resolves
     // this by manufacturing asymmetry, which a perfect simulator lacks.

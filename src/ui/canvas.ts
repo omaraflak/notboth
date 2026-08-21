@@ -558,10 +558,15 @@ export class CanvasView {
     app.emit('selection');
   }
 
+  /**
+   * A drag always starts on an output and ends on an input, so any pair of
+   * ends is a wire -- including the two ends of the same part. A gate feeding
+   * itself is a real circuit, it is what the text form has always been able to
+   * write, and refusing to draw it was the only place the two views disagreed.
+   */
   private finishWire(from: PinHit, to: PinHit) {
     const app = this.app;
     const def = app.openDef;
-    if (from.inst.id === to.inst.id) return;
     const fw = from.pin.pin.width;
     const tw = to.pin.pin.width;
     const width = Math.min(fw, tw);
