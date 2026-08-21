@@ -48,6 +48,13 @@ interface Node {
   /** Where this sat before, used to seed the order and to break ties. */
   hint: number;
   index: number;
+  /**
+   * Position in the component's pin list, on a port marker only. Ports are
+   * held in that order however the rest of the column is shuffled: reading the
+   * left-hand column downwards is how you see a component's interface, and it
+   * has to agree with the inspector and with the text.
+   */
+  port?: number;
 }
 
 /** Lay parts out in columns. Returns how many actually moved. */
@@ -139,8 +146,9 @@ function buildGraph(
     (predecessors.get(to) ?? predecessors.set(to, []).get(to)!).push(from);
   };
 
-  for (const inst of instances) {
+  instances.forEach((inst, rank) => {
     const box = layoutBox(defSignature(project, inst.def, inst.props), labelOf(project, inst), measure);
+    const kind = isPrim(inst.def) ? primKind(inst.def) : null;
     put({
       key: inst.id,
       layer: layerOf.get(inst.id) ?? 0,
@@ -148,8 +156,11 @@ function buildGraph(
       height: box.h,
       hint: inst.y,
       index: 0,
+      // Their order in the instance list is the pin order, which is the one
+      // thing about a schematic that is not free to be rearranged.
+      port: kind === 'IN' || kind === 'OUT' ? rank : undefined,
     });
-  }
+  });
 
   // A wire that skips columns gets a reserved slot in each one it crosses, so
   // nothing is standing in its way when the router comes to draw it. The cap
@@ -187,6 +198,7 @@ function buildGraph(
   for (const column of layers) {
     if (!column) continue;
     column.sort((p, q) => p.hint - q.hint || (p.inst?.x ?? 0) - (q.inst?.x ?? 0));
+    holdPortOrder(column);
     column.forEach((n, i) => { n.index = i; });
   }
   return { layers, predecessors, successors };
@@ -229,12 +241,29 @@ function order(
     const next = scored.map((s) => s.node);
     column.length = 0;
     column.push(...next);
+    holdPortOrder(column);
     reindex(column);
   };
 
   for (let pass = 0; pass < SWEEPS; pass++) {
     for (let l = 1; l < layers.length; l++) if (layers[l]) sweep(layers[l], predecessors);
     for (let l = layers.length - 2; l >= 0; l--) if (layers[l]) sweep(layers[l], successors);
+  }
+}
+
+/**
+ * Put the port markers back into pin order, keeping whichever slots the
+ * heuristic chose for them. So the arrangement still decides *where* the ports
+ * sit relative to everything else, and the component decides which port is
+ * which -- rearranging a schematic must never look like the interface changed.
+ */
+function holdPortOrder(column: Node[]) {
+  const ports = column.filter((n) => n.port !== undefined);
+  if (ports.length < 2) return;
+  ports.sort((p, q) => p.port! - q.port!);
+  let next = 0;
+  for (let i = 0; i < column.length; i++) {
+    if (column[i].port !== undefined) column[i] = ports[next++];
   }
 }
 

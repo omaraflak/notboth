@@ -192,6 +192,53 @@ describe('an arranged schematic', () => {
     expect(y(a1) < y(a2)).toBe(y(g1) < y(g2));
   });
 
+  it('never reorders the port markers, whatever it does to the gates', () => {
+    // `sel` is used deepest, so minimising crossings wants it out of place.
+    const b = new Builder();
+    const a = b.prim('IN', { name: 'a' }, 0);
+    const bb = b.prim('IN', { name: 'b' }, 2);
+    const sel = b.prim('IN', { name: 'sel' }, 4);
+    const g1 = b.prim('NAND', {}, 0);
+    const g2 = b.prim('NAND', {}, 2);
+    const g3 = b.prim('NAND', {}, 4);
+    const out = b.prim('OUT', { name: 'y' }, 6);
+    b.wire([sel, 'out'], [g1, 'a']); b.wire([sel, 'out'], [g1, 'b']);
+    b.wire([a, 'out'], [g2, 'a']); b.wire([g1, 'y'], [g2, 'b']);
+    b.wire([bb, 'out'], [g3, 'a']); b.wire([g2, 'y'], [g3, 'b']);
+    b.wire([g3, 'y'], [out, 'in']);
+
+    const declared = signatureOf(b.def).inputs.map((p) => p.name);
+    arrangeDef(b.project, b.def);
+
+    // The interface is untouched...
+    expect(signatureOf(b.def).inputs.map((p) => p.name)).toEqual(declared);
+    // ...and so is the order you read it in off the canvas.
+    const down = b.def.instances
+      .filter((i) => isPrim(i.def) && primKind(i.def) === 'IN')
+      .slice()
+      .sort((p, q) => p.y - q.y)
+      .map((i) => i.props.name);
+    expect(down).toEqual(declared);
+  });
+
+  it('keeps outputs in pin order too', () => {
+    const b = new Builder();
+    const src = b.prim('IN', { name: 'a' }, 0);
+    const g = b.prim('NAND', {}, 0);
+    const p = b.prim('OUT', { name: 'p' }, 2);
+    const q = b.prim('OUT', { name: 'q' }, 4);
+    const r = b.prim('OUT', { name: 'r' }, 6);
+    b.wire([src, 'out'], [g, 'a']); b.wire([src, 'out'], [g, 'b']);
+    b.wire([g, 'y'], [r, 'in']); b.wire([g, 'y'], [q, 'in']); b.wire([g, 'y'], [p, 'in']);
+    arrangeDef(b.project, b.def);
+    const down = b.def.instances
+      .filter((i) => isPrim(i.def) && primKind(i.def) === 'OUT')
+      .slice()
+      .sort((x, y) => x.y - y.y)
+      .map((i) => i.props.name);
+    expect(down).toEqual(['p', 'q', 'r']);
+  });
+
   it('leaves a component with no wires alone rather than failing', () => {
     const b = new Builder();
     b.prim('NAND');

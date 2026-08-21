@@ -141,6 +141,11 @@ graph drawing, which is also just how a schematic is read:
   it ended up, swept forwards and backwards until it settles. This is the
   barycentre heuristic, and it is the difference between rows that line up with
   what drives them and a random stack.
+- **Except the ports, which never move out of pin order.** Reading the left
+  column downwards is how you see a component's interface, so it has to agree
+  with the inspector and with the text. The arrangement still chooses *where*
+  the ports sit relative to everything else; it does not get to choose which
+  one is which. This costs a few crossings and is worth it.
 - **Long wires get a lane.** A wire that skips a column would otherwise be
   drawn straight through whatever is standing there, so a slot is reserved for
   it in each column it crosses. The parts move apart to make room.
