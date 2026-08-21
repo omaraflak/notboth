@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Builder, defineAnd, defineNot, pinId } from './helpers';
+import { applyText } from '../src/core/hdl';
 import { Simulator } from '../src/core/sim';
 import { compile } from '../src/core/compile';
-import { runTests } from '../src/core/testbench';
+import { normalizeVectors, runTests } from '../src/core/testbench';
 import {
   createProject, previewReplace, replaceAllUses, usageCount, wouldRecurse,
   emptyDef, addPrimitive, connect, signatureOf, deleteDef, uniqueName, movePort,
@@ -859,5 +860,64 @@ describe('a 4-bit ripple-carry adder built only from NAND', () => {
         expect(sim.readNets(Cout)).toBe(total >> 4);
       }
     }
+  });
+});
+
+describe('test columns whose pin has gone', () => {
+  const build = () => {
+    const b = new Builder();
+    b.def.name = 'Thing';
+    applyText(b.project, b.def, 'in  a\nin  b\nout y\n\ng : Nand(a = a, b = b)\n\ny = g.y');
+    const sig = signatureOf(b.def);
+    const id = (n: string) => [...sig.inputs, ...sig.outputs].find((p) => p.name === n)!.id;
+    return { b, id };
+  };
+
+  it('sets a column aside rather than deleting it', () => {
+    const { b, id } = build();
+    const vectors = [{ in: { [id('a')]: 1, [id('b')]: 1 }, out: { [id('y')]: 0 } }];
+    // Drop the `b` port, as deleting its marker would.
+    applyText(b.project, b.def, 'in  a\nout y\n\ng : Nand(a = a, b = a)\n\ny = g.y');
+    const r = normalizeVectors(signatureOf(b.def), vectors);
+    expect(r.unknown).toHaveLength(1);
+    expect(Object.keys(r.vectors[0].in)).toHaveLength(1);
+    // The value is still there, just not in play.
+    expect(Object.values(r.vectors[0].orphans!.in)).toEqual([1]);
+  });
+
+  it('gives the column back when the pin returns', () => {
+    const { b, id } = build();
+    const bId = id('b');
+    const parked = [{
+      in: { [id('a')]: 1 },
+      out: { [id('y')]: 0 },
+      orphans: { in: { [bId]: 1 }, out: {} },
+    }];
+    // The port is still there, so the parked column resolves again.
+    const r = normalizeVectors(signatureOf(b.def), parked);
+    expect(r.unknown).toHaveLength(0);
+    expect(r.vectors[0].in[bId]).toBe(1);
+    expect(r.vectors[0].orphans).toBeUndefined();
+  });
+
+  it('survives being saved and reloaded while the pin is missing', () => {
+    const { b, id } = build();
+    const vectors = [{ in: { [id('a')]: 1, [id('b')]: 1 }, out: { [id('y')]: 0 } }];
+    applyText(b.project, b.def, 'in  a\nout y\n\ng : Nand(a = a, b = a)\n\ny = g.y');
+    // Two round trips, as opening the table and editing it would do.
+    let round = normalizeVectors(signatureOf(b.def), vectors).vectors;
+    round = normalizeVectors(signatureOf(b.def), round).vectors;
+    expect(Object.values(round[0].orphans!.in)).toEqual([1]);
+  });
+
+  it('does not let a parked column fail the run', () => {
+    const { b, id } = build();
+    b.def.tests = { vectors: [{
+      in: { [id('a')]: 0, [id('b')]: 0 },
+      out: { [id('y')]: 1, ['i_gone']: 1 },
+    }] };
+    const run = runTests(b.project, b.def.id);
+    expect(run.unknownPins).toEqual(['i_gone']);
+    expect(run.passed).toBe(1);
   });
 });

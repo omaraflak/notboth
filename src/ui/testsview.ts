@@ -366,10 +366,17 @@ export class TestsView {
 
     const unmatched = [...new Set([...this.orphaned, ...(this.results?.unknownPins ?? [])])];
     if (unmatched.length) {
-      const names = sig.inputs.concat(sig.outputs).map((p) => p.name).join(', ');
+      const n = unmatched.length;
+      // Most orphans are keyed by pin id, which means nothing to read; only
+      // the ones written under a name are worth naming back.
+      const named = unmatched.filter((k) => !/^i_/.test(k));
+      const which = named.length ? ` (${named.join(', ')})` : '';
+      const pins = sig.inputs.concat(sig.outputs).map((p) => p.name).join(', ');
       this.summary.appendChild(h('div', { style: { color: 'var(--warn)' } },
-        `Dropped ${unmatched.length} column${unmatched.length === 1 ? '' : 's'} `
-        + `(${unmatched.join(', ')}) - no pin by that name any more. This component's pins are: ${names}.`));
+        `${n} saved column${n === 1 ? '' : 's'}${which} `
+        + `${n === 1 ? 'belongs' : 'belong'} to a pin this component no longer has, so `
+        + `${n === 1 ? 'it is' : 'they are'} not shown. Nothing has been deleted: if the pin `
+        + `comes back, so does the column. This component's pins are ${pins}.`));
     }
     if (this.results?.ran) {
       const failed = this.results.total - this.results.passed;

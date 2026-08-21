@@ -108,6 +108,14 @@ export interface TestVector {
   in: Record<string, number>;
   /** Keyed by output pin id, same reasoning. */
   out: Record<string, number>;
+  /**
+   * Columns whose pin is not there any more -- a port deleted and drawn again
+   * gets a new id, and takes its column with it. They are set aside here
+   * rather than discarded, because a column is a thing someone typed: the
+   * table stops showing it, nothing overwrites it, and if the pin comes back
+   * (an undo, or the marker redrawn) the column comes back with it.
+   */
+  orphans?: { in: Record<string, number>; out: Record<string, number> };
 }
 
 export interface TestBench {

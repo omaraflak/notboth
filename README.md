@@ -215,9 +215,12 @@ Rows can be dragged by their number to reorder them, which matters for a
 sequential circuit where the tests are a sequence rather than a set. A verdict
 travels with the test that earned it, not with the position it was in.
 
-Tests reference pins by id, so renaming a port never breaks them; if a column
-ever fails to match a pin, the runner says which one rather than quietly
-failing. Arrow keys move between cells and Enter steps down a row, so a truth
+Tests reference pins by id, so renaming a port never breaks them. Deleting one
+and drawing it again does give it a new id, and its column then belongs to a
+pin that is not there any more — so the column is *set aside* rather than
+thrown away. The table says so, stops showing it, and never overwrites it; put
+the pin back, by undo or by redrawing the marker, and the column comes back
+with it. Arrow keys move between cells and Enter steps down a row, so a truth
 table can be typed without reaching for the mouse.
 
 This is not optional equipment. By the time the library has thirty components, a

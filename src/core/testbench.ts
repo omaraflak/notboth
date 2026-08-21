@@ -31,24 +31,43 @@ export function resolveVectorPin(sig: Signature, side: 'in' | 'out', key: string
   return pins.find((p) => p.id === key) ?? pins.find((p) => p.name === key);
 }
 
-/** Rewrite name-keyed columns to id-keyed ones, dropping nothing silently. */
+/**
+ * Rewrite name-keyed columns to id-keyed ones, and set aside any column whose
+ * pin is not there any more instead of throwing it away.
+ *
+ * Both directions matter. A column whose pin has gone is parked, so that
+ * saving the table afterwards cannot quietly delete work; a parked column
+ * whose pin has come back is picked up again, so an undo or a redrawn marker
+ * restores it. What the caller gets is only the columns that resolve, which
+ * is what both the runner and the table want to see.
+ */
 export function normalizeVectors(
   sig: Signature, vectors: TestVector[],
 ): { vectors: TestVector[]; unknown: string[] } {
   const unknown = new Set<string>();
-  const side = (which: 'in' | 'out', row: Record<string, number>) => {
-    const out: Record<string, number> = {};
-    for (const [key, value] of Object.entries(row)) {
+  const side = (which: 'in' | 'out', row: Record<string, number>, parked: Record<string, number>) => {
+    const live: Record<string, number> = {};
+    const held: Record<string, number> = {};
+    // Parked first, so a column that has come back is overwritten by the
+    // current one rather than the other way round.
+    for (const [key, value] of Object.entries({ ...parked, ...row })) {
       const pin = resolveVectorPin(sig, which, key);
-      if (!pin) { unknown.add(key); continue; }
-      out[pin.id] = value;
+      if (pin) live[pin.id] = value;
+      else { held[key] = value; unknown.add(key); }
     }
-    return out;
+    return { live, held };
   };
-  return {
-    vectors: vectors.map((v) => ({ in: side('in', v.in), out: side('out', v.out) })),
-    unknown: [...unknown],
-  };
+
+  const out = vectors.map((v) => {
+    const ins = side('in', v.in, v.orphans?.in ?? {});
+    const outs = side('out', v.out, v.orphans?.out ?? {});
+    const vector: TestVector = { in: ins.live, out: outs.live };
+    if (Object.keys(ins.held).length || Object.keys(outs.held).length) {
+      vector.orphans = { in: ins.held, out: outs.held };
+    }
+    return vector;
+  });
+  return { vectors: out, unknown: [...unknown] };
 }
 
 /**
