@@ -309,7 +309,7 @@ export class Library {
     }
     const made = created as NonNullable<ReturnType<typeof extractSelection>>;
     app.selection.instances = new Set([made.instance.id]);
-    app.selection.wires.clear();
+    app.wiresFollowParts();
     app.emit('selection');
     app.toast(`Created ${made.def.name} with ${made.inputs} in and ${made.outputs} out`);
   }

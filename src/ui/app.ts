@@ -186,7 +186,26 @@ export class App {
     if (!additive) { this.selection.instances.clear(); this.selection.wires.clear(); }
     if (additive && this.selection.instances.has(id)) this.selection.instances.delete(id);
     else this.selection.instances.add(id);
+    this.wiresFollowParts();
     this.emit('selection');
+  }
+
+  /**
+   * Whatever is wired to a selected part is selected with it.
+   *
+   * Picking a gate is really picking a gate *and how it is connected* -- that
+   * is what you are looking at when you click one -- so the wires light up
+   * with it rather than staying grey. While parts are selected the wire set is
+   * entirely theirs; a wire clicked on its own is only kept when nothing else
+   * is selected, which is the only time it was picked deliberately.
+   */
+  wiresFollowParts() {
+    const parts = this.selection.instances;
+    if (!parts.size) { this.selection.wires.clear(); return; }
+    this.selection.wires.clear();
+    for (const w of this.openDef.wires) {
+      if (parts.has(w.from.inst) || parts.has(w.to.inst)) this.selection.wires.add(w.id);
+    }
   }
 
   selectWire(id: Id, additive = false) {
@@ -245,7 +264,7 @@ export class App {
       def.wires.push(...wires);
     });
     this.selection.instances = new Set(fresh.map((i) => i.id));
-    this.selection.wires.clear();
+    this.wiresFollowParts();
     this.emit('selection');
   }
 
@@ -274,14 +293,14 @@ export class App {
     nameNewInstances(def, fresh);
     this.mutate(() => { def.instances.push(...fresh); def.wires.push(...wires); });
     this.selection.instances = new Set(fresh.map((i) => i.id));
-    this.selection.wires.clear();
+    this.wiresFollowParts();
     this.emit('selection');
   }
 
   selectAll() {
     const def = this.openDef;
     this.selection.instances = new Set(def.instances.map((i) => i.id));
-    this.selection.wires.clear();
+    this.wiresFollowParts();
     this.emit('selection');
   }
 

@@ -174,6 +174,61 @@ export class TestsView {
     return Number.isFinite(n) ? n >>> 0 : null;
   }
 
+  /* ---------------- reordering ---------------- */
+
+  /**
+   * Drag a row by its number to move it. The grip is deliberately not the
+   * whole row: a row is mostly text fields, and making those draggable would
+   * cost the ability to select what is in them.
+   *
+   * Nothing is re-rendered until the drag ends, because rebuilding the table
+   * mid-drag would throw away the element holding the pointer capture. A line
+   * shows where the row would land instead.
+   */
+  private startDrag(e: PointerEvent, from: number, grip: HTMLElement) {
+    const tbody = this.tableWrap.querySelector('tbody');
+    if (!tbody || this.vectors.length < 2) return;
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+
+    const rows = [...tbody.rows];
+    const bounds = rows.map((r) => r.getBoundingClientRect());
+    const frame = this.tableWrap.getBoundingClientRect();
+    const line = h('div', { class: 'drop-line' });
+    this.tableWrap.appendChild(line);
+    rows[from].classList.add('lifting');
+
+    let to = from;
+    const place = (y: number) => {
+      to = bounds.filter((b) => y > b.top + b.height / 2).length;
+      const edge = to < bounds.length ? bounds[to].top : bounds[bounds.length - 1].bottom;
+      line.style.top = `${edge - frame.top}px`;
+    };
+    place(e.clientY);
+
+    const move = (ev: PointerEvent) => place(ev.clientY);
+    const done = () => {
+      grip.removeEventListener('pointermove', move);
+      grip.removeEventListener('pointerup', done);
+      grip.removeEventListener('pointercancel', done);
+      line.remove();
+      rows[from].classList.remove('lifting');
+      if (to !== from && to !== from + 1) {
+        const landing = to > from ? to - 1 : to;
+        this.vectors.splice(landing, 0, ...this.vectors.splice(from, 1));
+        // A verdict belongs to the test that earned it, so it travels with it
+        // rather than staying with the row number.
+        const verdicts = this.results?.results;
+        if (verdicts) verdicts.splice(landing, 0, ...verdicts.splice(from, 1));
+        this.save();
+      }
+      this.render();
+    };
+    grip.addEventListener('pointermove', move);
+    grip.addEventListener('pointerup', done);
+    grip.addEventListener('pointercancel', done);
+  }
+
   /* ---------------- painting ---------------- */
 
   private render() {
@@ -267,23 +322,31 @@ export class TestsView {
     this.vectors.forEach((vec, i) => {
       const result = this.results?.results[i];
       const tr = h('tr', { class: result ? (result.pass ? 'pass' : 'fail') : '' });
-      tr.appendChild(h('td', { class: 'res', style: { color: 'var(--text-faint)' } }, String(i)));
+      const grip = h('div', { class: 'grip', title: 'Drag to reorder' }, String(i));
+      grip.addEventListener('pointerdown', (e) => this.startDrag(e, i, grip));
+      tr.appendChild(h('td', { class: 'res' }, grip));
       let col = 0;
       for (const p of sig.inputs) {
         const cell = this.cell(p, vec.in[p.id] ?? 0, (v) => { vec.in[p.id] = v; });
         cell.dataset.row = String(i);
         cell.dataset.col = String(col++);
-        tr.appendChild(h('td', null, cell));
+        tr.appendChild(h('td', null, h('div', { class: 'cell' }, cell)));
       }
       for (const p of sig.outputs) {
         const cell = this.cell(p, vec.out[p.id] ?? 0, (v) => { vec.out[p.id] = v; });
         cell.dataset.row = String(i);
         cell.dataset.col = String(col++);
-        const td = h('td', null, cell);
-        if (result && !result.pass) {
-          td.title = `got ${this.show(result.actual[p.name] ?? 0, p)}`;
+        const wrap = h('div', { class: 'cell' }, cell);
+        // What you asked for stays where you typed it, and what the circuit
+        // actually did is put beside it. Reading the difference is the whole
+        // job of a failing test, and it should not need a hover to do it.
+        const got = result?.actual[p.name];
+        if (got !== undefined && got !== ((result?.expected[p.name] ?? 0) >>> 0)) {
+          wrap.appendChild(h('span', {
+            class: 'got', title: `${p.name} came out as this`,
+          }, this.show(got, p)));
         }
-        tr.appendChild(td);
+        tr.appendChild(h('td', null, wrap));
       }
       tr.appendChild(h('td', { class: 'res' }, button(null, {
         icon: 'x', title: 'Remove row',
@@ -312,7 +375,7 @@ export class TestsView {
       const failed = this.results.total - this.results.passed;
       this.summary.appendChild(h('div', { style: { color: failed ? 'var(--danger)' : 'var(--ok)' } },
         failed
-          ? `${this.results.passed} of ${this.results.total} tests pass. Hover a red cell to see what it produced.`
+          ? `${this.results.passed} of ${this.results.total} tests pass.`
           : this.results.total === 1 ? 'The test passes.' : `All ${this.results.total} tests pass.`));
     } else if (this.results?.errors.length) {
       this.summary.appendChild(h('div', { style: { color: 'var(--danger)' } },

@@ -55,9 +55,11 @@ export class Inspector {
     // place of it: selecting a gate should never hide what you are working on.
     this.componentSection();
 
-    if (instances.length === 1 && !wires.length) this.instanceSection(instances[0]);
+    if (instances.length === 1) this.instanceSection(instances[0]);
     else if (instances.length > 1) this.multiSection(instances.length);
-    if (wires.length === 1) this.wireSection(wires[0]);
+    // Wires attached to a selected part came along with it rather than being
+    // picked, so they get a panel only when they are what was picked.
+    else if (wires.length === 1) this.wireSection(wires[0]);
     else if (wires.length > 1) this.section('Wires', [h('div', { class: 'hint' }, `${wires.length} wires selected.`)]);
 
     this.errorSection();

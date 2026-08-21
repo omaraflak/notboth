@@ -526,6 +526,7 @@ export class CanvasView {
         this.app.selection.instances.add(p.inst.id);
       }
     }
+    this.app.wiresFollowParts();
     this.app.emit('selection');
   }
 
@@ -553,7 +554,7 @@ export class CanvasView {
     nameNewInstances(open, [inst]);
     app.mutate(() => { open.instances.push(inst); });
     app.selection.instances = new Set([inst.id]);
-    app.selection.wires.clear();
+    app.wiresFollowParts();
     app.emit('selection');
   }
 

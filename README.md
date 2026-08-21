@@ -183,6 +183,9 @@ run time.
   or use the *Make component* button in the inspector, or press `Cmd/Ctrl G`. Wires that crossed the selection
   boundary become the new component's pins, and an instance drops back into the
   hole it left. The circuit behaves identically afterwards.
+- **Selecting a part selects what it is wired to.** Picking a gate is really
+  picking a gate and how it is connected, so its wires light up with it. A wire
+  clicked on its own is still just that wire.
 - **Instances are references.** Fix a bug in `ALU` and every circuit using it is
   fixed. There is no id to manage and nothing to re-link.
 - **Replace all uses** swaps every instance of one component for another, matching
@@ -202,6 +205,15 @@ depending on who is reading it, and there is no way to tell from the digits. A
 `0x` or `0b` prefix is still honoured whichever base is selected, and switching
 base rewrites the table rather than reinterpreting it: the values do not
 change, only how they are spelled.
+
+A failing row shows both numbers: the one you asked for stays where you typed
+it, still editable, and the one the circuit actually produced sits beside it in
+red. Reading the difference is the whole job of a failing test, and it should
+not take a hover to do it.
+
+Rows can be dragged by their number to reorder them, which matters for a
+sequential circuit where the tests are a sequence rather than a set. A verdict
+travels with the test that earned it, not with the position it was in.
 
 Tests reference pins by id, so renaming a port never breaks them; if a column
 ever fails to match a pin, the runner says which one rather than quietly
@@ -269,6 +281,7 @@ arguably the better half of the fun.
 | Comment out | `Cmd/Ctrl /` |
 | Move / copy a line | `Alt` `↑``↓` / `Shift Alt` `↑``↓` |
 | Select all / copy / paste / duplicate | `Cmd/Ctrl` + `A` / `C` / `V` / `D` |
+| Add to the selection | `Shift`-click, or drag a band |
 | Undo / redo | `Cmd/Ctrl Z` / `Shift Cmd/Ctrl Z` |
 | Power on/off | `Cmd/Ctrl Enter` |
 | Nudge selection | arrow keys |
