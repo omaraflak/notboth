@@ -3,7 +3,7 @@ import { Builder } from './helpers';
 import { extractSelection } from '../src/core/extract';
 import { compile } from '../src/core/compile';
 import { Simulator } from '../src/core/sim';
-import { createProject, makeInstance, nameNewInstances, signatureOf } from '../src/core/project';
+import { createProject, makeInstance, nameNewInstances, nextFreeBits, signatureOf } from '../src/core/project';
 import { primDefId } from '../src/core/primitives';
 import type { ComponentDef } from '../src/core/types';
 
@@ -176,5 +176,71 @@ describe('naming newly placed markers', () => {
     nameNewInstances(def, [nand, konst]);
     expect(nand.props.name).toBeUndefined();
     expect(konst.props.name).toBeUndefined();
+  });
+});
+
+describe('choosing bits for a new wire', () => {
+  /** A 16-bit source and a supply of one-bit gates to wire it into. */
+  const bus = () => {
+    const b = new Builder();
+    const src = b.prim('IN', { name: 'a', width: 16 });
+    return { b, src };
+  };
+
+  it('walks up a bus as gates are wired to it', () => {
+    const { b, src } = bus();
+    const picked: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const g = b.prim('NAND');
+      const r = nextFreeBits(b.def, src, 'out', 1, 16);
+      b.wire([src, 'out', r.lo, r.hi], [g, 'a']);
+      picked.push(r.lo);
+    }
+    expect(picked).toEqual([0, 1, 2, 3]);
+  });
+
+  it('fills a wide input from several narrow sources', () => {
+    const b = new Builder();
+    const out = b.prim('OUT', { name: 'y', width: 8 });
+    const picked: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const g = b.prim('NAND');
+      const r = nextFreeBits(b.def, out, 'in', 1, 8);
+      b.wire([g, 'y'], [out, 'in', r.lo, r.hi]);
+      picked.push(r.lo);
+    }
+    expect(picked).toEqual([0, 1, 2]);
+  });
+
+  it('takes whole stretches when the far end is itself a bus', () => {
+    const { b, src } = bus();
+    const first = nextFreeBits(b.def, src, 'out', 4, 16);
+    b.wire([src, 'out', first.lo, first.hi], [b.prim('OUT', { name: 'lo', width: 4 }), 'in']);
+    const second = nextFreeBits(b.def, src, 'out', 4, 16);
+    expect([first, second]).toEqual([{ lo: 0, hi: 3 }, { lo: 4, hi: 7 }]);
+  });
+
+  it('starts over at the bottom once the pin is full', () => {
+    const b = new Builder();
+    const src = b.prim('IN', { name: 'a', width: 2 });
+    for (const lo of [0, 1]) {
+      b.wire([src, 'out', lo, lo], [b.prim('NAND'), 'a']);
+    }
+    expect(nextFreeBits(b.def, src, 'out', 1, 2)).toEqual({ lo: 0, hi: 0 });
+  });
+
+  it('leaves one-bit fan-out alone, which shares by design', () => {
+    const b = new Builder();
+    const src = b.prim('IN', { name: 'clk', width: 1 });
+    b.wire([src, 'out'], [b.prim('NAND'), 'a']);
+    expect(nextFreeBits(b.def, src, 'out', 1, 1)).toEqual({ lo: 0, hi: 0 });
+  });
+
+  it('fills a gap left by a deleted wire before moving on', () => {
+    const { b, src } = bus();
+    const gates = [0, 1, 2].map(() => b.prim('NAND'));
+    gates.forEach((g, i) => b.wire([src, 'out', i, i], [g, 'a']));
+    b.def.wires = b.def.wires.filter((w) => w.from.lo !== 1);
+    expect(nextFreeBits(b.def, src, 'out', 1, 16)).toEqual({ lo: 1, hi: 1 });
   });
 });

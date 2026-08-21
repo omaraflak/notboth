@@ -137,6 +137,32 @@ export function addPrimitive(
   return inst;
 }
 
+/**
+ * Which bits of `pin` a new connection should take.
+ *
+ * Wiring a sixteen-bit bus to sixteen one-bit gates is the commonest thing
+ * there is to do here, and taking bit zero every time would mean editing the
+ * range by hand fifteen times. So a fresh connection claims the lowest stretch
+ * of the pin that nothing has taken yet, which walks a bus outwards one drag
+ * at a time. When the pin is full it starts over at the bottom rather than
+ * refusing, because a second wire from the same bits is sometimes exactly what
+ * is wanted -- fan-out from a one-bit pin is nothing else.
+ */
+export function nextFreeBits(
+  def: ComponentDef, instId: Id, pinId: Id, width: number, pinWidth: number,
+): { lo: number; hi: number } {
+  const taken: Array<[number, number]> = [];
+  for (const w of def.wires) {
+    if (w.from.inst === instId && w.from.pin === pinId) taken.push([w.from.lo, w.from.hi]);
+    if (w.to.inst === instId && w.to.pin === pinId) taken.push([w.to.lo, w.to.hi]);
+  }
+  for (let lo = 0; lo + width <= pinWidth; lo++) {
+    const hi = lo + width - 1;
+    if (!taken.some(([a, b]) => Math.max(lo, a) <= Math.min(hi, b))) return { lo, hi };
+  }
+  return { lo: 0, hi: width - 1 };
+}
+
 /** Connect two endpoints, defaulting to the full width of both pins. */
 export function connect(
   p: Project, def: ComponentDef,

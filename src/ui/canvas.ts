@@ -5,7 +5,10 @@ import {
 } from '../core/layout';
 import { arrangeDef } from '../core/autolayout';
 import { clampWidth, isPrim, primKind, primLabel } from '../core/primitives';
-import { connect, defSignature, makeInstance, nameNewInstances, removeInstances, removeWires, wouldRecurse } from '../core/project';
+import {
+  connect, defSignature, makeInstance, nameNewInstances, nextFreeBits, removeInstances, removeWires,
+  wouldRecurse,
+} from '../core/project';
 import type { Id, Instance, Point, Signature, Wire } from '../core/types';
 import type { App } from './app';
 import { contextMenu, memoryEditor, type MenuItem } from './dialogs';
@@ -560,18 +563,25 @@ export class CanvasView {
     if (from.inst.id === to.inst.id) return;
     const fw = from.pin.pin.width;
     const tw = to.pin.pin.width;
+    const width = Math.min(fw, tw);
+    // Each end takes the next stretch of itself that is still free, so
+    // fanning a bus out to one-bit gates walks up the bus drag by drag.
+    const fromBits = nextFreeBits(def, from.inst.id, from.pin.pin.id, width, fw);
+    const toBits = nextFreeBits(def, to.inst.id, to.pin.pin.id, width, tw);
     if (fw !== tw) {
+      const wide = fw > tw ? from.pin.pin : to.pin.pin;
+      const range = fw > tw ? fromBits : toBits;
       app.toast(
         `${from.pin.pin.name} is ${bits(fw)} and ${to.pin.pin.name} is ${bits(tw)}`
-        + ` - connected the low ${bits(Math.min(fw, tw))}, adjust the range in the inspector`,
+        + ` - connected ${wide.name}${rangeLabel(range.lo, range.hi)},`
+        + ' adjust the range in the inspector',
       );
     }
-    const width = Math.min(fw, tw);
     app.mutate(() => {
       connect(
         app.project, def,
-        { inst: from.inst.id, pin: from.pin.pin.id, lo: 0, hi: width - 1 },
-        { inst: to.inst.id, pin: to.pin.pin.id, lo: 0, hi: width - 1 },
+        { inst: from.inst.id, pin: from.pin.pin.id, lo: fromBits.lo, hi: fromBits.hi },
+        { inst: to.inst.id, pin: to.pin.pin.id, lo: toBits.lo, hi: toBits.hi },
       );
     });
   }
@@ -929,6 +939,10 @@ export class CanvasView {
 
 function bits(n: number): string {
   return `${n} bit${n === 1 ? '' : 's'}`;
+}
+
+function rangeLabel(lo: number, hi: number): string {
+  return lo === hi ? `[${lo}]` : `[${hi}..${lo}]`;
 }
 
 function nameOfDef(app: App, defId: Id): string | undefined {

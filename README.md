@@ -150,6 +150,13 @@ all of them. Select a wire and edit its bit range to slice a bus apart
 sources to merge signals back together — there is no separate splitter
 component because wire endpoints already do the job.
 
+Dragging from a bus claims the lowest bits nothing has taken yet, so wiring
+sixteen gates to a sixteen-bit input walks up the bus one drag at a time
+instead of landing on bit zero every time. The same goes the other way: wiring
+gate outputs into a wide `Out` fills it bit by bit. A gap left by a deleted
+wire is taken back before the count moves on, and once a pin is full it starts
+over at the bottom — which is what fan-out from a one-bit pin needs.
+
 Buses exist only in the editor. At compile time the whole hierarchy is flattened
 to single-bit nets and bare NAND gates, so nothing about them costs anything at
 run time.
