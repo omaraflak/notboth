@@ -128,6 +128,32 @@ body {
 
 p { margin: 0 0 1em; max-width: var(--measure); }
 p:last-child { margin-bottom: 0; }
+/* Truth tables. Values in mono so the columns line up and read as data
+   rather than as prose, and the answer column in the spot colour, because on
+   a truth table the answer is the whole point. */
+.tt-wrap { max-width: var(--measure); margin: 1.2rem 0; overflow-x: auto; }
+.tt { border-collapse: collapse; font-family: var(--mono); font-size: 0.86rem; }
+.tt th {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: left;
+  padding: 0 1.6rem 0.35rem 0;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.tt td {
+  padding: 0.22rem 1.6rem 0.22rem 0;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.tt tr:first-child td { padding-top: 0.45rem; }
+.tt td.o { color: var(--spot); }
+.tt td.l { font-family: var(--serif); font-size: 1rem; color: var(--ink-2); }
+
 /* Lists, for the stages whose subject really is a set of cases. Same measure
    and rhythm as the body text, with the marker in the spot colour so a list of
    behaviours reads as part of the specification rather than as decoration. */
@@ -687,14 +713,20 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Not</h3>
     <div class="sig">Not(in) &rarr; out</div>
     <p>
-      Negation. Start here because everything else leans on it, and because it is
-      the smallest possible proof that one gate is enough: you have a part with
-      two inputs and you need a part with one, so the first thing you must work
-      out is what to do with the spare.
+      Negation, and the smallest possible proof that one gate is enough. You have
+      a part with two inputs and you need one with a single input, so the whole
+      puzzle is what to do with the spare.
     </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>in</th><th>out</th></tr>
+          <tr><td>0</td><td class="o">1</td></tr>
+          <tr><td>1</td><td class="o">0</td></tr>
+        </table>
+      </div>
     <p>
-      Once this exists you can stop thinking of NAND as &ldquo;not-and&rdquo; and start
-      thinking of it as raw material.
+      Once this exists you can stop thinking of NAND as &ldquo;not-and&rdquo; and
+      start thinking of it as raw material.
     </p>
     <div class="done"><b>Done when</b>Two vectors pass: 0 gives 1, 1 gives 0.</div>
   </div>
@@ -706,13 +738,22 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>And</h3>
     <div class="sig">And(a, b) &rarr; out</div>
     <p>
-      &ldquo;Both.&rdquo; The most direct question you can ask about two signals, and the
-      one the ALU will lean on hardest. This one is nearly free &mdash; you have a gate
-      that computes the opposite of it and a part that reverses things.
+      &ldquo;Both.&rdquo; The most direct question you can ask about two signals,
+      and nearly free: you own a gate that computes its opposite, and a part
+      that reverses things.
     </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>a</th><th>b</th><th>out</th></tr>
+          <tr><td>0</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>1</td><td class="o">0</td></tr>
+          <tr><td>1</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>1</td><td>1</td><td class="o">1</td></tr>
+        </table>
+      </div>
     <p>
-      The lesson here is not the circuit, it is the reflex: when a part looks
-      like something you already have with a twist, it usually is.
+      The lesson is the reflex rather than the circuit: when a part looks like
+      something you already have with a twist, it usually is.
     </p>
     <div class="done"><b>Done when</b>All four input combinations pass.</div>
   </div>
@@ -724,16 +765,24 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Or</h3>
     <div class="sig">Or(a, b) &rarr; out</div>
     <p>
-      &ldquo;Either.&rdquo; Harder than it looks, because NAND is fundamentally an
-      <em>and</em>-shaped gate and you are asking it for an <em>or</em>. The way through
-      is De Morgan&rsquo;s observation: saying &ldquo;a or b&rdquo; is the same as saying &ldquo;not
-      both of them are off.&rdquo; Read that sentence again with your parts list in
-      hand and the circuit falls out of it.
+      &ldquo;Either.&rdquo; Harder than it looks, because NAND is an
+      <em>and</em>-shaped gate and you are asking it for an <em>or</em>.
     </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>a</th><th>b</th><th>out</th></tr>
+          <tr><td>0</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>1</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>0</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>1</td><td class="o">1</td></tr>
+        </table>
+      </div>
     <p>
-      This is the first time the manual asks you to change the shape of a
-      question rather than build a bigger circuit. You will do it constantly
-      from here.
+      The way through is De Morgan&rsquo;s observation: &ldquo;a or b&rdquo; is the
+      same as &ldquo;not both of them are off&rdquo;. Read that with your parts
+      list in hand and the circuit falls out of it. It is the first time the
+      manual asks you to change the shape of a question rather than build a
+      bigger circuit, and you will do it constantly from here.
     </p>
     <div class="done"><b>Done when</b>All four combinations pass, and you can say out loud why it works.</div>
   </div>
@@ -745,14 +794,23 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Xor</h3>
     <div class="sig">Xor(a, b) &rarr; out</div>
     <p>
-      &ldquo;Different.&rdquo; This one earns its keep twice over. In Part II it turns out
-      to <em>be</em> binary addition &mdash; 1 plus 1 is 0, carry the 1, which is exactly
-      what Xor says about two bits. And inverted, it is equality, which is how
-      your machine will eventually compare two numbers.
+      &ldquo;Different.&rdquo;
     </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>a</th><th>b</th><th>out</th></tr>
+          <tr><td>0</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>1</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>0</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>1</td><td class="o">0</td></tr>
+        </table>
+      </div>
     <p>
-      Xor is the first part with real internal structure. If it comes out at
-      four or five NANDs you are in good company.
+      It earns its keep twice over. In Part II that table turns out to
+      <em>be</em> binary addition &mdash; 1 plus 1 is 0, carry the 1. And inverted
+      it is equality, which is how your machine will compare two numbers. It is
+      also the first part with real internal structure; four or five NANDs is a
+      normal result.
     </p>
     <div class="done"><b>Done when</b>All four combinations pass. Keep this one close; you will use it constantly.</div>
   </div>
@@ -764,17 +822,34 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Mux</h3>
     <div class="sig">Mux(a, b, sel) &rarr; out</div>
     <p>
-      A multiplexer: two data inputs, one selector, and the output is whichever
-      input the selector points at. Read that again as a sentence about software
-      and it says <code>out = sel ? b : a</code>. This is an <em>if</em>, in copper.
+      Two data inputs, one selector, and the output is whichever input the
+      selector points at &mdash; <code>out = sel ? b : a</code>. An <em>if</em>,
+      in copper.
+    </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>sel</th><th>a</th><th>b</th><th>out</th></tr>
+          <tr><td>0</td><td>0</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>0</td><td>1</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>1</td><td>0</td><td class="o">1</td></tr>
+          <tr><td>0</td><td>1</td><td>1</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>0</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>1</td><td>0</td><td>1</td><td class="o">1</td></tr>
+          <tr><td>1</td><td>1</td><td>0</td><td class="o">0</td></tr>
+          <tr><td>1</td><td>1</td><td>1</td><td class="o">1</td></tr>
+        </table>
+      </div>
+    <p>
+      Read the table as two halves: while <code>sel</code> is 0 the output
+      copies <code>a</code> and ignores <code>b</code>; while it is 1 they swap
+      roles.
     </p>
     <p>
-      If you build only one part from this Part with real care, make it this
-      one. A computer is very largely muxes. Choosing which number the ALU
-      operates on is a mux. Deciding whether a register keeps its value or takes
-      a new one is a mux. Choosing whether the program counter steps forward or
-      jumps is a mux. Almost every decision your machine ever makes is this
-      chip, wearing a different label.
+      If you build one part from this Part with real care, make it this one. A
+      computer is very largely muxes: which number the ALU operates on, whether
+      a register keeps its value or takes a new one, whether the program counter
+      steps forward or jumps. Almost every decision your machine ever makes is
+      this chip wearing a different label.
     </p>
     <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code> &mdash; eight vectors, not four. A mux that only works when the data happens to agree is a classic silent failure.</div>
   </div>
@@ -787,13 +862,22 @@ article.stage:last-of-type { border-bottom: 0; }
     <div class="sig">DMux(in, sel) &rarr; a, b</div>
     <p>
       The mirror image: one input, two outputs, and the selector decides which
-      one receives it. The other output goes quiet.
+      one receives it. The other goes quiet.
     </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>sel</th><th>in</th><th>a</th><th>b</th></tr>
+          <tr><td>0</td><td>0</td><td class="o">0</td><td class="o">0</td></tr>
+          <tr><td>0</td><td>1</td><td class="o">1</td><td class="o">0</td></tr>
+          <tr><td>1</td><td>0</td><td class="o">0</td><td class="o">0</td></tr>
+          <tr><td>1</td><td>1</td><td class="o">0</td><td class="o">1</td></tr>
+        </table>
+      </div>
     <p>
-      Where a mux <em>gathers</em>, a demux <em>routes</em>. You will need this the
-      moment you build memory, because storing a value at an address means
-      delivering a write signal to exactly one storage cell out of many and to
-      none of the others. Addressing is demultiplexing.
+      Where a mux <em>gathers</em>, a demux <em>routes</em>. You will need it the
+      moment you build memory: storing a value at an address means delivering a
+      write signal to exactly one cell out of many and to none of the others.
+      Addressing is demultiplexing.
     </p>
     <div class="done"><b>Done when</b>Both selector settings route correctly and the unselected output is reliably 0.</div>
   </div>
@@ -1013,10 +1097,23 @@ article.stage:last-of-type { border-bottom: 0; }
       subtraction followed by a glance at the result.
     </p>
     <p>
-      Convince yourself it works before moving on. Take a small number, invert
-      it, add one, then add the original back and check that you land on zero.
-      Do it with pencil and paper &mdash; this is the one stage where the understanding
-      matters more than the circuit.
+      Here is <code>5</code> being negated, and then added back to itself:
+    </p>
+      <div class="tt-wrap">
+        <table class="tt">
+          <tr><th>step</th><th>bits</th><th>value</th></tr>
+          <tr><td class="l">start with 5</td><td>0000000000000101</td><td>5</td></tr>
+          <tr><td class="l">invert every bit</td><td>1111111111111010</td><td>&minus;6</td></tr>
+          <tr><td class="l">add one</td><td>1111111111111011</td><td class="o">&minus;5</td></tr>
+          <tr><td class="l">add the 5 back</td><td>0000000000000000</td><td class="o">0</td></tr>
+        </table>
+      </div>
+    <p>
+      The last row carries a 1 off the top end, and dropping it is not a mistake
+      &mdash; there are only sixteen bits, so the seventeenth has nowhere to go,
+      and discarding it is exactly what makes the arithmetic wrap round and come
+      out right. Do a couple more with pencil and paper before moving on; this is
+      the one stage where the understanding matters more than the circuit.
     </p>
     <div class="done"><b>Done when</b>You can negate a number using only parts you already own, and <code>x + (-x)</code> comes out zero.</div>
   </div>
@@ -1041,13 +1138,17 @@ article.stage:last-of-type { border-bottom: 0; }
       order the numbers move through the chip.
     </p>
     <p>
-      <strong>zx</strong> &mdash; replace <code>x</code> with zero.
-      <strong>nx</strong> &mdash; invert <code>x</code>, after any zeroing.
-      <strong>zy</strong> and <strong>ny</strong> &mdash; the same two choices for
-      <code>y</code>. <strong>f</strong> &mdash; the operation itself: 1 adds the
-      two conditioned inputs, 0 ands them.
-      <strong>no</strong> &mdash; invert the answer on the way out.
+      Six single-bit controls, acting in the order the numbers move through the
+      chip:
     </p>
+    <ul>
+      <li><strong>zx</strong> &mdash; replace <code>x</code> with zero.</li>
+      <li><strong>nx</strong> &mdash; invert <code>x</code>, after any zeroing.</li>
+      <li><strong>zy</strong> &mdash; replace <code>y</code> with zero.</li>
+      <li><strong>ny</strong> &mdash; invert <code>y</code>, after any zeroing.</li>
+      <li><strong>f</strong> &mdash; the operation: 1 adds the two conditioned inputs, 0 ands them.</li>
+      <li><strong>no</strong> &mdash; invert the answer on the way out.</li>
+    </ul>
     <p>
       Every one of those six is a choice between two values, which is the chip
       you built in 1.05. So the ALU is layers of muxes with one adder and one
@@ -1095,23 +1196,21 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>The leap into time</h3>
     <div class="sig">no new chip &mdash; an idea</div>
     <p>
-      Up to now every circuit has been a pure function of its inputs. Nothing you
-      have built can answer &ldquo;what was it a moment ago?&rdquo; But a computer is
-      nothing but a device for remembering things, so something has to change.
+      Every circuit so far is a pure function of its inputs. None of them can
+      answer &ldquo;what was it a moment ago?&rdquo;, and a computer is nothing but
+      a device for remembering things.
     </p>
     <p>
-      Here is the change: <strong>connect a gate&rsquo;s output back to its own
-      input.</strong> That is not a mistake and it is not a trick. Because a real
-      gate takes time to respond, the value arriving back at the input is the
-      value from <em>before</em>, and a circuit that can see its own past can hold a
-      state. Memory is not a new kind of component. It is ordinary gates plus
-      delay.
+      The change is one wire: <strong>connect a gate&rsquo;s output back to its own
+      input.</strong> A real gate takes time to respond, so the value arriving
+      back is the value from <em>before</em> &mdash; and a circuit that can see its
+      own past can hold a state. Memory is not a new kind of component. It is
+      ordinary gates plus delay.
     </p>
     <p>
-      Try it on the bench before you build anything: wire one gate&rsquo;s output back
-      into its own input, switch the power on, and watch what happens. Then slow
-      the clock right down and watch it again. The rest of this Part comes much
-      easier once you have watched it happen.
+      Do it on the bench before building anything: wire one gate&rsquo;s output to
+      its own input, switch on, and watch. Then slow the clock right down and
+      watch again.
     </p>
     <div class="done"><b>Done when</b>You can explain why feedback plus delay produces memory, without using the word &ldquo;somehow&rdquo;.</div>
   </div>
@@ -1123,39 +1222,40 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>The latch</h3>
     <div class="sig">SRLatch(set, reset) &rarr; q</div>
     <p>
-      Pulse one input and the pair locks into one state; pulse the other and it
-      locks into the opposite. Release both and it stays where it was. This is
-      the first circuit you will build that remembers, and it is only two gates
-      wide.
+      The first circuit that remembers, and it is two gates wide. Pulse one input
+      and it locks into one state; pulse the other and it locks into the
+      opposite; release both and it stays where it was.
     </p>
+    <ul>
+      <li>
+        <strong>set</strong>, <strong>reset</strong> &mdash; the two commands.
+        <strong>Active low</strong>: idle is 1, and you assert one by pulling it
+        to 0.
+      </li>
+      <li>
+        <strong>q</strong> &mdash; the stored bit. The other gate carries its
+        opposite, at no extra cost.
+      </li>
+    </ul>
     <p>
       Build it from two <strong>NANDs</strong>, cross-coupled: each gate&rsquo;s
-      output goes into one input of the other. That spends one input on each
-      gate and leaves one free, and those two free inputs are
-      <code>set</code> and <code>reset</code>. Take <code>q</code> from either
-      gate&rsquo;s output; the other gate carries its opposite.
+      output into one input of the other. That leaves one input free on each, and
+      those two are <code>set</code> and <code>reset</code>.
     </p>
     <p>
-      NAND is not an arbitrary pick, and it is worth seeing what the job
-      demands. The gate has to <em>invert</em>, so that the loop&rsquo;s two
-      nodes hold opposite values &mdash; that pair of opposites is what gives the
-      circuit two states to sit in rather than one, and it is exactly what the
-      And in 3.01 could not provide. And it has to have a <em>spare input</em>,
-      because that is the only way to reach in and command it; a Not inverts
-      perfectly well but leaves you nowhere to put the instruction. Inverts, and
-      has an input going spare: that is NAND. It is also Nor &mdash; an Or with a
-      Not on the end &mdash; which gives you the same latch with every level
-      turned upside down. Either is a real answer. Nothing else you have built
-      is.
+      NAND because the job needs two properties at once. The gate must
+      <em>invert</em>, so the loop&rsquo;s two nodes hold opposite values &mdash;
+      that pair of opposites is what gives the circuit two states to sit in
+      rather than one, and it is what the And in 3.01 could not provide. And it
+      must have a <em>spare input</em>, which is the only way to reach in and
+      command it; a Not inverts but leaves nowhere to put the instruction. Nor
+      has both properties too, and gives the same latch with every level
+      inverted. Nothing else you have built does.
     </p>
     <p>
-      One consequence to have straight before you switch on: with NANDs the
-      inputs are <strong>active low</strong>. Idle is 1, and you assert an input
-      by pulling it to <strong>0</strong>. That follows from the same property
-      the latch is built on &mdash; a NAND with any input at 0 goes high whatever
-      else is happening, so a 0 is the only thing that can overrule the loop,
-      and a 1 leaves the gate listening to its partner. Which is precisely what
-      idle ought to mean.
+      Active low follows from the same property: a NAND with any input at 0 goes
+      high whatever else is happening, so 0 is the only thing that can overrule
+      the loop, and 1 leaves the gate listening to its partner.
     </p>
     <figure class="wave" role="img" aria-label="Timing diagram for the SR latch">
       <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
@@ -1180,18 +1280,14 @@ article.stage:last-of-type { border-bottom: 0; }
       </svg>
     </figure>
     <p>
-      The right-hand end of that picture is the first of the latch&rsquo;s two
-      flaws: assert both inputs and it stops being a latch at all. q and its
-      opposite go high together, which is not a stored bit, it is a
-      contradiction &mdash; you have demanded it be one and zero at the same
-      time. The second flaw is what happens when you leave that state &mdash;
-      release both inputs together and the two gates are perfectly symmetric,
-      with no way to choose. In this simulator that shows up honestly as an
-      oscillation rather than as a convenient zero. Real hardware breaks the tie
-      with manufacturing imperfection. You will break it with a reset.
-    </p>
-    <p>
-      Both flaws are why the next two stages exist.
+      The right-hand end of the picture is the first of two flaws: assert both
+      inputs and <code>q</code> and its opposite go high together, which is a
+      contradiction rather than a stored bit. The second is what happens on the
+      way out of that state &mdash; release both at once and the two gates are
+      perfectly symmetric with no way to choose, which shows up here as an
+      oscillation. Real hardware breaks the tie with manufacturing imperfection;
+      you will break it with a reset. Both flaws are why the next two stages
+      exist.
     </p>
     <div class="watch"><b>Watch out</b>If the status bar says the circuit is oscillating, that may well be correct behaviour rather than a bug. Set one input before you switch on.</div>
   </div>
@@ -1203,11 +1299,18 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>The gated latch</h3>
     <div class="sig">DLatch(d, enable) &rarr; q</div>
     <p>
-      One data input instead of two, plus an enable. While enable is high the
-      output follows <code>d</code>; when enable drops, whatever was there is held.
-      Now you have something you can actually store a bit in, and the
-      contradictory-input problem is gone by construction.
+      One data input instead of two, plus an enable. The contradictory-input
+      problem of 3.02 is gone by construction: there is no longer any way to ask
+      for one and zero at the same time.
     </p>
+    <ul>
+      <li><strong>d</strong> &mdash; the value to store.</li>
+      <li>
+        <strong>enable</strong> &mdash; while it is high the output follows
+        <code>d</code>; when it drops, whatever was there is held.
+      </li>
+      <li><strong>q</strong> &mdash; the stored bit.</li>
+    </ul>
     <figure class="wave" role="img" aria-label="Timing diagram for the gated latch">
       <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">d</text>
@@ -1227,11 +1330,11 @@ article.stage:last-of-type { border-bottom: 0; }
       </svg>
     </figure>
     <p>
-      One problem remains, and it is fatal for a computer: while enable is high
-      this thing is <em>transparent</em>. Changes flow straight through it. If you
-      chain two of them and enable both at once, a value races down the whole
-      chain in one go instead of moving one step. A machine built from these
-      would have no notion of &ldquo;one step at a time&rdquo;.
+      One problem remains, and it is fatal: while enable is high this thing is
+      <em>transparent</em>, and changes flow straight through. Chain two, enable
+      both, and a value races down the whole chain in one go instead of moving
+      one step. A machine built from these has no notion of &ldquo;one step at a
+      time&rdquo;.
     </p>
     <div class="done"><b>Done when</b>The output tracks <code>d</code> while enabled and freezes when not.</div>
   </div>
@@ -1244,9 +1347,23 @@ article.stage:last-of-type { border-bottom: 0; }
     <div class="sig">DFF(d, clk) &rarr; q</div>
     <p>
       The most important idea in the sequential half of this build. A flip-flop
-      samples its input at one <em>instant</em> &mdash; the moment the clock changes &mdash;
-      and holds it steady for the rest of the cycle. Never transparent, ever.
+      samples its input at one <em>instant</em> and holds it steady for the rest
+      of the cycle. Never transparent.
     </p>
+    <ul>
+      <li>
+        <strong>d</strong> &mdash; read only at the edge. What it does between
+        edges is ignored, and that is not a side effect but the entire
+        specification.
+      </li>
+      <li>
+        <strong>clk</strong> &mdash; the clock. This one acts on the
+        <strong>rising</strong> edge.
+      </li>
+      <li>
+        <strong>q</strong> &mdash; whatever <code>d</code> was at the last edge.
+      </li>
+    </ul>
     <figure class="wave" role="img" aria-label="Timing diagram for the flip-flop">
       <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
@@ -1264,30 +1381,27 @@ article.stage:last-of-type { border-bottom: 0; }
       </svg>
     </figure>
     <p>
-      Read the picture at the dashed lines and nowhere else. <code>d</code>
-      moves seven times; <code>q</code> moves three, always at an edge, always
-      to whatever <code>d</code> happened to be at that instant. What
-      <code>d</code> does in between is not ignored by accident &mdash; it is
-      the entire specification. This one samples on the clock&rsquo;s
-      <strong>rising</strong> edge, and so should yours. Either edge works in
-      principle, so long as every clocked part of the machine agrees on which
-      &mdash; and the built-in RAM writes on the rising one, so that is the
-      agreement already on the table. Mixing the two is a bug that looks like a
-      timing problem and is very hard to see.
+      Read the picture at the dashed lines and nowhere else: <code>d</code> moves
+      seven times, <code>q</code> moves three, always at an edge and always to
+      whatever <code>d</code> was at that instant.
     </p>
     <p>
-      The standard construction is two gated latches back to back, enabled on
-      opposite halves of the clock, so that whichever one is listening, the
-      other is holding. Take the first while the clock is <em>low</em> and the
-      second while it is high, and the value steps out on the rise. The value can only ever advance one stage per clock tick. That
-      restriction is what makes the rest of the build tractable: it means the whole machine changes state together, in
-      lockstep, and that every part of it can rely on the others staying still
-      while it thinks.
+      Use the rising edge. Either works in principle so long as every clocked
+      part of the machine agrees on one, and the built-in RAM writes on the rise
+      &mdash; so that is the agreement already on the table. Mixing the two gives
+      a bug that presents as a timing problem and is very hard to find.
     </p>
     <p>
-      When this works, connect a handful in a chain, feed the clock, and watch a
-      single 1 march through them one stage per tick. That picture is worth
-      keeping.
+      Build it from two gated latches back to back: the first enabled while the
+      clock is <em>low</em>, the second while it is high. Whichever is listening,
+      the other is holding, so a value can only advance one stage per tick. That
+      restriction is what makes the rest of the build tractable &mdash; the whole
+      machine changes state together, and every part can rely on the others
+      staying still while it thinks.
+    </p>
+    <p>
+      When it works, chain a handful, feed the clock, and watch a single 1 march
+      through them one stage per tick.
     </p>
     <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge. Too fast a clock does not run your machine faster; it runs it wrongly.</div>
   </div>
@@ -1299,16 +1413,23 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Bit</h3>
     <div class="sig">Bit(in, load, clk) &rarr; out</div>
     <p>
-      A flip-flop stores whatever arrives every single tick. What you actually
-      want is storage that <em>keeps</em> its value until told otherwise. So: on
-      each tick, store either the new input or the value already held &mdash; and
-      choose between those two with a <code>load</code> signal.
+      A flip-flop takes whatever arrives, every single tick. What you want is
+      storage that <em>keeps</em> its value until told otherwise.
     </p>
+    <ul>
+      <li><strong>in</strong> &mdash; the value to store.</li>
+      <li>
+        <strong>load</strong> &mdash; 1 takes <code>in</code> at the next edge,
+        0 keeps what is already there.
+      </li>
+      <li><strong>clk</strong> and <strong>out</strong> &mdash; as in 3.04.</li>
+    </ul>
     <p>
-      Read that sentence once more. Choosing between two values with a control
-      bit is a multiplexer, and the second value comes from the flip-flop&rsquo;s own
-      output. A one-bit register is a flip-flop with a mux in its feedback path,
-      and that is the moment stage 1.05 pays for itself.
+      So on each edge, store either the new input or the value already held.
+      Choosing between two values with a control bit is a multiplexer, and the
+      second value comes from the flip-flop&rsquo;s own output: a one-bit register
+      is a flip-flop with a mux in its feedback path. That is where stage 1.05
+      pays for itself.
     </p>
     <figure class="wave" role="img" aria-label="Timing diagram for a one-bit register">
       <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
@@ -1329,12 +1450,11 @@ article.stage:last-of-type { border-bottom: 0; }
       </svg>
     </figure>
     <p>
-      The middle edge is the one to look at. <code>in</code> has gone low and
-      the clock has ticked, both of which would have moved a bare flip-flop;
-      <code>out</code> does not move, because <code>load</code> was low and the
-      mux was feeding the flip-flop its own output instead. Storage is not the
-      flip-flop, which forgets what it holds every single tick. Storage is the
-      flip-flop plus somewhere for the old value to go round again.
+      The middle edge is the one to look at. <code>in</code> has gone low and the
+      clock has ticked, either of which would have moved a bare flip-flop, and
+      <code>out</code> does not move &mdash; because <code>load</code> was low and
+      the mux was feeding the flip-flop its own output. Storage is the flip-flop
+      plus somewhere for the old value to go round again.
     </p>
     <div class="done"><b>Done when</b>Loading a value sticks, and many ticks with <code>load</code> low leave it untouched.</div>
   </div>
@@ -1346,13 +1466,15 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Register</h3>
     <div class="sig">Register(in[16], load, clk) &rarr; out[16]</div>
     <p>
-      Sixteen Bits side by side, sharing one load signal and one clock. A whole
-      number, remembered.
+      Sixteen Bits side by side, sharing one <code>load</code> and one clock.
+      Every pin is the one from 3.05 made sixteen bits wide, and it behaves
+      identically: <code>load</code> high takes <code>in</code> at the next edge,
+      low keeps what is there.
     </p>
     <p>
-      Mechanical, quick, and worth pausing over: this is the first component that
-      would be recognisable to someone who has only ever seen a computer from the
-      software side. It is a variable.
+      Mechanical and quick, and the first component that would be recognisable to
+      someone who has only seen a computer from the software side. It is a
+      variable.
     </p>
     <div class="done"><b>Done when</b>A sixteen-bit value survives a dozen ticks with <code>load</code> low, and changes on the tick you ask it to.</div>
   </div>
@@ -1364,15 +1486,29 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>RAM8</h3>
     <div class="sig">RAM8(in[16], load, address[3], clk) &rarr; out[16]</div>
     <p>
-      Eight registers, an address that selects one of them, and two jobs: route
-      the write signal to exactly one register (that is your demux), and select
-      one register&rsquo;s output to present (that is your wide mux). Reading needs no
-      clock; writing happens on the tick.
+      Eight registers and an address that picks one of them.
+    </p>
+    <ul>
+      <li><strong>address[3]</strong> &mdash; which of the eight.</li>
+      <li>
+        <strong>in[16]</strong>, <strong>load</strong>, <strong>clk</strong>
+        &mdash; write <code>in</code> into that register on the next edge, if
+        <code>load</code> is high.
+      </li>
+      <li>
+        <strong>out[16]</strong> &mdash; that register&rsquo;s contents, always.
+        Reading needs no clock; only writing waits for the edge.
+      </li>
+    </ul>
+    <p>
+      Two jobs, and both parts are already on your shelf: route the write signal
+      to exactly one register (a demux) and select one register&rsquo;s output to
+      present (a wide mux).
     </p>
     <p>
-      Build this one, and see the recursion: RAM64 is eight RAM8s addressed by
-      three more bits. RAM512 is eight RAM64s. The structure never changes, only
-      the depth of the address.
+      Build it and the recursion is visible: RAM64 is eight RAM8s addressed by
+      three more bits, RAM512 is eight RAM64s. Only the depth of the address
+      changes.
     </p>
     <p>
       Then stop. Having proved you can, use the built-in RAM part for the real
@@ -1483,8 +1619,8 @@ article.stage:last-of-type { border-bottom: 0; }
       instruction types, distinguished by a single bit. One loads a constant into
       a register. The other says &ldquo;compute something, put the answer somewhere,
       and maybe jump&rdquo; &mdash; with separate little fields for <em>what to compute</em>,
-      <em>where to put it</em>, and <em>when to jump</em>. Two formats is enough to be
-      a real computer. It is a small hinge for a large door.
+      <em>where to put it</em>, and <em>when to jump</em>. Two formats is enough for a
+      real computer, and every format you add is more decoding logic in 4.04.
     </p>
     <div class="done"><b>Done when</b>You have a written table: every bit of an instruction, what it means, and an example encoded by hand.</div>
   </div>
@@ -1613,9 +1749,9 @@ article.stage:last-of-type { border-bottom: 0; }
       increment.
     </p>
     <p>
-      That handful of gates is where every <code>if</code>, every <code>while</code>,
-      every function call and every loop in every program that will ever run on
-      this machine comes from. It is worth a moment of respect.
+      That handful of gates is where every <code>if</code>, every
+      <code>while</code>, every function call and every loop in every program
+      that will ever run on this machine comes from.
     </p>
     <div class="done"><b>Done when</b>Each jump condition fires exactly when it should, tested with a positive, a negative and a zero result.</div>
   </div>
@@ -1634,8 +1770,7 @@ article.stage:last-of-type { border-bottom: 0; }
     <p>
       Notice that the CPU needs no changes whatsoever. It has no idea a screen
       exists. It stores a number at an address, exactly as it always does, and
-      something else is watching. Getting output out of a machine you built from
-      one gate is a good day.
+      something else is watching.
     </p>
     <div class="done"><b>Done when</b>Storing to a display address changes something you can see.</div>
   </div>
