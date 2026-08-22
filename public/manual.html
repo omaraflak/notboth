@@ -413,32 +413,29 @@ article.stage:last-of-type { border-bottom: 0; }
   padding: 0.05em 0.32em;
 }
 
-/* Truth tables. Values in mono so the columns line up and read as data;
-   the gloss beside them in the body serif so it reads as prose. */
-.tt-wrap { max-width: var(--measure); margin: 1.3rem 0; overflow-x: auto; }
-.tt { border-collapse: collapse; font-size: 0.9rem; }
-.tt th {
-  font-family: var(--sans);
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  text-align: left;
-  padding: 0 1.4rem 0.4rem 0;
-  border-bottom: 1px solid var(--rule);
-  white-space: nowrap;
+/* Timing diagrams. A latch is defined by what it does when nothing is
+   happening to it, which a truth table has no row for -- so the stages that
+   introduce memory get waveforms instead. Signal names in mono, to match the
+   way they are set in the prose; the output in the spot colour, because the
+   whole point of every one of these pictures is what the output does. */
+.wave { max-width: var(--measure); margin: 1.5rem 0; overflow-x: auto; }
+/* Below about 30rem the captions would scale down past reading size, so the
+   figure scrolls instead -- the same bargain .sig makes with a long line. */
+.wave svg { display: block; width: 100%; min-width: 30rem; height: auto; }
+.wv-lab { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); }
+.wv-line, .wv-out, .wv-unk {
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: square;
 }
-.tt td {
-  padding: 0.34rem 1.4rem 0.34rem 0;
-  border-bottom: 1px solid var(--rule-soft);
-  color: var(--ink-2);
-  vertical-align: baseline;
-}
-.tt tr:last-child td { border-bottom: 0; }
-.tt .v { font-family: var(--mono); font-size: 0.86em; white-space: nowrap; }
-.tt .q { font-family: var(--mono); font-size: 0.86em; color: var(--spot); white-space: nowrap; }
-.tt .why { font-family: var(--serif); padding-right: 0; }
+.wv-line { stroke: var(--ink-2); }
+.wv-out  { stroke: var(--spot); }
+.wv-unk  { stroke: var(--ink-3); stroke-dasharray: 2 4; }
+.wv-span { fill: none; stroke: var(--rule); stroke-width: 1; }
+.wv-mark { stroke: var(--spot); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.6; }
+.wv-note { font-family: var(--serif); font-size: 12px; font-style: italic; fill: var(--ink-3); }
+.wv-tick { font-family: var(--mono); font-size: 10px; fill: var(--spot); letter-spacing: 0.06em; }
 
 /* ---------------- closing ---------------- */
 
@@ -1144,27 +1141,34 @@ article.stage:last-of-type { border-bottom: 0; }
       and a 1 leaves the gate listening to its partner. Which is precisely what
       idle ought to mean.
     </p>
-    <div class="tt-wrap">
-      <table class="tt">
-        <thead>
-          <tr><th>set</th><th>reset</th><th>q</th><th>&nbsp;</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="v">1</td><td class="v">1</td><td class="q">holds</td>
-              <td class="why">Both idle. It remembers whatever it was last told &mdash; this is the row that makes it memory.</td></tr>
-          <tr><td class="v">0</td><td class="v">1</td><td class="q">1</td>
-              <td class="why">Set asserted. Forces q high, and it stays high after you release.</td></tr>
-          <tr><td class="v">1</td><td class="v">0</td><td class="q">0</td>
-              <td class="why">Reset asserted. Forces q low, and it stays low after you release.</td></tr>
-          <tr><td class="v">0</td><td class="v">0</td><td class="q">1</td>
-              <td class="why">Both asserted. Both gates go high at once, so q and its opposite are both 1 &mdash; which is not a state, it is a contradiction.</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <figure class="wave" role="img" aria-label="Timing diagram for the SR latch">
+      <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
+        <text class="wv-lab" x="66" y="24" text-anchor="end">set</text>
+        <path class="wv-line" d="M76,10 L106,10 L136,10 L166,10 L196,10 L226,10 L256,10 L286,10 L316,10 L316,30 L346,30 L376,30 L376,10 L406,10 L436,10 L466,10 L496,10 L496,30 L526,30 L556,30"/>
+        <text class="wv-lab" x="66" y="68" text-anchor="end">reset</text>
+        <path class="wv-line" d="M76,54 L106,54 L136,54 L136,74 L166,74 L196,74 L196,54 L226,54 L256,54 L286,54 L316,54 L346,54 L376,54 L406,54 L436,54 L466,54 L496,54 L496,74 L526,74 L556,74"/>
+        <text class="wv-lab" x="66" y="112" text-anchor="end">q</text>
+        <path class="wv-unk" d="M76,108 L106,108 L136,108"/>
+        <path class="wv-out" d="M136,118 L166,118 L196,118 L226,118 L256,118 L286,118 L316,118 L316,98 L346,98 L376,98 L406,98 L436,98 L466,98 L496,98 L526,98 L556,98"/>
+        <text class="wv-lab" x="66" y="156" text-anchor="end">other</text>
+        <path class="wv-unk" d="M76,152 L106,152 L136,152"/>
+        <path class="wv-out" d="M136,142 L166,142 L196,142 L226,142 L256,142 L286,142 L316,142 L316,162 L346,162 L376,162 L406,162 L436,162 L466,162 L496,162 L496,142 L526,142 L556,142"/>
+        <path class="wv-span" d="M76,164 L76,168 L136,168 L136,164"/>
+        <text class="wv-note" x="76" y="181" text-anchor="start">unknown at power-on</text>
+        <path class="wv-span" d="M196,164 L196,168 L316,168 L316,164"/>
+        <text class="wv-note" x="256" y="181" text-anchor="middle">holds</text>
+        <path class="wv-span" d="M376,164 L376,168 L496,168 L496,164"/>
+        <text class="wv-note" x="436" y="181" text-anchor="middle">holds</text>
+        <path class="wv-span" d="M496,164 L496,168 L556,168 L556,164"/>
+        <text class="wv-note" x="556" y="181" text-anchor="end">contradiction</text>
+      </svg>
+    </figure>
     <p>
-      The last row is the first of the latch&rsquo;s two flaws: asserting both
-      inputs is meaningless, because you are demanding it be one and zero at the
-      same time. The second flaw is what happens when you leave that row &mdash;
+      The right-hand end of that picture is the first of the latch&rsquo;s two
+      flaws: assert both inputs and it stops being a latch at all. q and its
+      opposite go high together, which is not a stored bit, it is a
+      contradiction &mdash; you have demanded it be one and zero at the same
+      time. The second flaw is what happens when you leave that state &mdash;
       release both inputs together and the two gates are perfectly symmetric,
       with no way to choose. In this simulator that shows up honestly as an
       oscillation rather than as a convenient zero. Real hardware breaks the tie
@@ -1188,6 +1192,24 @@ article.stage:last-of-type { border-bottom: 0; }
       Now you have something you can actually store a bit in, and the
       contradictory-input problem is gone by construction.
     </p>
+    <figure class="wave" role="img" aria-label="Timing diagram for the gated latch">
+      <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
+        <text class="wv-lab" x="66" y="24" text-anchor="end">d</text>
+        <path class="wv-line" d="M76,30 L106,30 L136,30 L136,10 L166,10 L196,10 L196,30 L226,30 L226,10 L256,10 L286,10 L286,30 L316,30 L346,30 L346,10 L376,10 L406,10 L436,10 L436,30 L466,30 L496,30 L496,10 L526,10 L556,10"/>
+        <text class="wv-lab" x="66" y="68" text-anchor="end">enable</text>
+        <path class="wv-line" d="M76,74 L106,74 L136,74 L136,54 L166,54 L196,54 L226,54 L256,54 L256,74 L286,74 L316,74 L346,74 L376,74 L406,74 L406,54 L436,54 L466,54 L466,74 L496,74 L526,74 L556,74"/>
+        <text class="wv-lab" x="66" y="112" text-anchor="end">q</text>
+        <path class="wv-out" d="M76,118 L106,118 L136,118 L136,98 L166,98 L196,98 L196,118 L226,118 L226,98 L256,98 L286,98 L316,98 L346,98 L376,98 L406,98 L436,98 L436,118 L466,118 L496,118 L526,118 L556,118"/>
+        <path class="wv-span" d="M136,120 L136,124 L256,124 L256,120"/>
+        <text class="wv-note" x="196" y="137" text-anchor="middle">transparent &mdash; q copies d</text>
+        <path class="wv-span" d="M256,120 L256,124 L406,124 L406,120"/>
+        <text class="wv-note" x="331" y="137" text-anchor="middle">holds</text>
+        <path class="wv-span" d="M406,120 L406,124 L466,124 L466,120"/>
+        <text class="wv-note" x="436" y="137" text-anchor="middle">transparent</text>
+        <path class="wv-span" d="M466,120 L466,124 L556,124 L556,120"/>
+        <text class="wv-note" x="556" y="137" text-anchor="end">holds</text>
+      </svg>
+    </figure>
     <p>
       One problem remains, and it is fatal for a computer: while enable is high
       this thing is <em>transparent</em>. Changes flow straight through it. If you
@@ -1208,6 +1230,31 @@ article.stage:last-of-type { border-bottom: 0; }
       The most important idea in the sequential half of this build. A flip-flop
       samples its input at one <em>instant</em> &mdash; the moment the clock changes &mdash;
       and holds it steady for the rest of the cycle. Never transparent, ever.
+    </p>
+    <figure class="wave" role="img" aria-label="Timing diagram for the flip-flop">
+      <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
+        <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
+        <path class="wv-line" d="M76,30 L106,30 L136,30 L136,10 L166,10 L196,10 L196,30 L226,30 L256,30 L256,10 L286,10 L316,10 L316,30 L346,30 L376,30 L376,10 L406,10 L436,10 L436,30 L466,30 L496,30 L496,10 L526,10 L556,10"/>
+        <text class="wv-lab" x="66" y="68" text-anchor="end">d</text>
+        <path class="wv-line" d="M76,54 L106,54 L106,74 L136,74 L166,74 L166,54 L196,54 L226,54 L256,54 L256,74 L286,74 L316,74 L346,74 L346,54 L376,54 L406,54 L436,54 L436,74 L466,74 L466,54 L496,54 L496,74 L526,74 L556,74"/>
+        <text class="wv-lab" x="66" y="112" text-anchor="end">q</text>
+        <path class="wv-out" d="M76,118 L106,118 L136,118 L166,118 L196,118 L196,98 L226,98 L256,98 L286,98 L316,98 L316,118 L346,118 L376,118 L406,118 L436,118 L436,98 L466,98 L496,98 L526,98 L556,98"/>
+        <line class="wv-mark" x1="196" y1="6" x2="196" y2="118"/>
+        <text class="wv-tick" x="196" y="130" text-anchor="middle">read</text>
+        <line class="wv-mark" x1="316" y1="6" x2="316" y2="118"/>
+        <text class="wv-tick" x="316" y="130" text-anchor="middle">read</text>
+        <line class="wv-mark" x1="436" y1="6" x2="436" y2="118"/>
+        <text class="wv-tick" x="436" y="130" text-anchor="middle">read</text>
+      </svg>
+    </figure>
+    <p>
+      Read the picture at the dashed lines and nowhere else. <code>d</code>
+      moves seven times; <code>q</code> moves three, always at an edge, always
+      to whatever <code>d</code> happened to be at that instant. What
+      <code>d</code> does in between is not ignored by accident &mdash; it is
+      the entire specification. This one samples on the clock&rsquo;s falling
+      edge; a rising-edge flip-flop is the same picture mirrored, and either is
+      fine so long as the whole machine agrees on which.
     </p>
     <p>
       The standard construction is two gated latches back to back, enabled on
