@@ -661,3 +661,53 @@ table.grid-table td.res { text-align: center; width: 26px; }
   display: flex; align-items: center; gap: 6px;
   pointer-events: none;
 }
+
+/* ---------------- Test waveforms ---------------- */
+/* The same vectors as the grid, laid along time. A one-bit signal is drawn
+   because a latch is defined by what it does while its inputs hold still, and
+   a column of noughts and ones is exactly where that becomes invisible. */
+.wave-grid { font-family: var(--mono); font-size: 11px; overflow-x: auto; padding-bottom: 4px; }
+.wave-axis, .wave-row { display: flex; align-items: center; }
+.wave-gutter {
+  flex: none; width: 92px; padding-right: 10px;
+  text-align: right; color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wave-axis { color: var(--text-faint); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.wave-strip { display: flex; align-items: center; }
+.wave-tick {
+  flex: none; text-align: center; line-height: 18px; cursor: pointer;
+  border-radius: 3px; user-select: none;
+}
+.wave-tick:hover { background: var(--danger-soft); color: var(--danger); }
+/* The number is a label until you point at it, at which point it says what
+   clicking will do. A step is work someone drew; it should not vanish on a
+   click that looked like it was going to select something. */
+.wave-tick .x { display: none; }
+.wave-tick:hover .n { display: none; }
+.wave-tick:hover .x { display: inline; }
+.wave-tick.pass { color: var(--ok); }
+.wave-tick.fail { color: var(--danger); background: var(--danger-soft); }
+.wave-row { height: 30px; }
+.wave-row + .wave-row { border-top: 1px solid var(--line); }
+.wave-row.out.first { border-top-color: var(--line-strong); }
+.wave-track { flex: none; display: flex; align-items: center; }
+.wave-svg { display: block; overflow: visible; }
+.wave-svg path { fill: none; stroke-width: 1.75; stroke-linejoin: round; }
+.wv-in  { stroke: var(--text-dim); }
+.wv-exp { stroke: var(--accent); }
+/* What the circuit did, under what you asked for, so the two shapes can be
+   compared without looking away. */
+.wv-got { stroke: var(--danger); stroke-dasharray: 3 3; }
+/* A wash rather than a block: the trace is drawn over this, and the column
+   under the pointer should be picked out without anything being hidden. */
+.wave-hit { fill: var(--text); fill-opacity: 0; cursor: pointer; }
+.wave-hit:hover { fill-opacity: .05; }
+.wave-svg path { pointer-events: none; }
+/* What a click would do, not what the value is: `i` to switch it on, `o` to
+   switch it off, the markings on every power switch ever made. */
+.wave-flip {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  fill: var(--danger); opacity: 0; pointer-events: none;
+}
+.wave-hit:hover + .wave-flip { opacity: 1; }
