@@ -1290,6 +1290,32 @@ article.stage:last-of-type { border-bottom: 0; }
       output. A one-bit register is a flip-flop with a mux in its feedback path,
       and that is the moment stage 1.05 pays for itself.
     </p>
+    <figure class="wave" role="img" aria-label="Timing diagram for a one-bit register">
+      <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
+        <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
+        <path class="wv-line" d="M76,30 L106,30 L136,30 L136,10 L166,10 L196,10 L196,30 L226,30 L256,30 L256,10 L286,10 L316,10 L316,30 L346,30 L376,30 L376,10 L406,10 L436,10 L436,30 L466,30 L496,30 L496,10 L526,10 L556,10"/>
+        <text class="wv-lab" x="66" y="68" text-anchor="end">in</text>
+        <path class="wv-line" d="M76,74 L106,74 L106,54 L136,54 L166,54 L196,54 L226,54 L226,74 L256,74 L286,74 L316,74 L346,74 L346,54 L376,54 L406,54 L406,74 L436,74 L466,74 L466,54 L496,54 L526,54 L556,54"/>
+        <text class="wv-lab" x="66" y="112" text-anchor="end">load</text>
+        <path class="wv-line" d="M76,118 L106,118 L136,118 L136,98 L166,98 L196,98 L196,118 L226,118 L256,118 L286,118 L316,118 L346,118 L346,98 L376,98 L406,98 L436,98 L466,98 L466,118 L496,118 L526,118 L556,118"/>
+        <text class="wv-lab" x="66" y="156" text-anchor="end">out</text>
+        <path class="wv-out" d="M76,162 L106,162 L136,162 L166,162 L196,162 L196,142 L226,142 L256,142 L286,142 L316,142 L346,142 L376,142 L406,142 L436,142 L436,162 L466,162 L496,162 L526,162 L556,162"/>
+        <line class="wv-mark" x1="196" y1="6" x2="196" y2="162"/>
+        <text class="wv-tick" x="196" y="174" text-anchor="middle">load</text>
+        <line class="wv-mark" x1="316" y1="6" x2="316" y2="162"/>
+        <text class="wv-tick" x="316" y="174" text-anchor="middle">hold</text>
+        <line class="wv-mark" x1="436" y1="6" x2="436" y2="162"/>
+        <text class="wv-tick" x="436" y="174" text-anchor="middle">load</text>
+      </svg>
+    </figure>
+    <p>
+      The middle edge is the one to look at. <code>in</code> has gone low and
+      the clock has ticked, both of which would have moved a bare flip-flop;
+      <code>out</code> does not move, because <code>load</code> was low and the
+      mux was feeding the flip-flop its own output instead. Storage is not the
+      flip-flop, which forgets what it holds every single tick. Storage is the
+      flip-flop plus somewhere for the old value to go round again.
+    </p>
     <div class="done"><b>Done when</b>Loading a value sticks, and many ticks with <code>load</code> low leave it untouched.</div>
   </div>
 </article>
