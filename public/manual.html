@@ -128,6 +128,22 @@ body {
 
 p { margin: 0 0 1em; max-width: var(--measure); }
 p:last-child { margin-bottom: 0; }
+/* Lists, for the stages whose subject really is a set of cases. Same measure
+   and rhythm as the body text, with the marker in the spot colour so a list of
+   behaviours reads as part of the specification rather than as decoration. */
+ul { max-width: var(--measure); margin: 0 0 1em; padding: 0; list-style: none; }
+li { position: relative; margin: 0 0 0.55em; padding-left: 1.15rem; }
+li:last-child { margin-bottom: 0; }
+li::before {
+  content: "";
+  position: absolute;
+  left: 0.25rem;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--spot);
+}
 em { font-style: italic; }
 strong { font-weight: 600; }
 
@@ -1377,24 +1393,56 @@ article.stage:last-of-type { border-bottom: 0; }
     <h3>Program counter</h3>
     <div class="sig">PC(in[16], load, inc, reset, clk) &rarr; out[16]</div>
     <p>
-      The register that says which instruction to run next, and the last piece of
-      Part III. It needs exactly three behaviours, and each one corresponds to
-      something a program does:
+      The register that says which instruction to run next, and the last piece
+      of Part III. Four things can happen to it on a clock edge, and naming all
+      four is most of the specification:
+    </p>
+    <ul>
+      <li>
+        <strong>reset</strong> &mdash; <code>out</code> becomes 0. What happens
+        when you switch the machine on.
+      </li>
+      <li>
+        <strong>load</strong> &mdash; <code>out</code> becomes <code>in</code>.
+        A jump, and therefore where every <code>if</code>, every
+        <code>while</code> and every function call eventually comes from.
+      </li>
+      <li>
+        <strong>inc</strong> &mdash; <code>out</code> becomes
+        <code>out&nbsp;+&nbsp;1</code>. The next instruction, which is what
+        happens on almost every tick a machine ever runs.
+      </li>
+      <li>
+        <strong>none of them asserted</strong> &mdash; <code>out</code> does not
+        change. This one is easy to leave out, because it is the case where
+        nothing is supposed to happen, and leaving it out is the usual way to
+        end up with a counter that will not sit still.
+      </li>
+    </ul>
+    <p>
+      When more than one is asserted, take them in the order above: reset beats
+      load, and load beats inc. Any consistent order can be made to work, but
+      that one agrees with what the words mean &mdash; a machine being switched
+      on should not also be jumping, and an instruction that says
+      &ldquo;jump&rdquo; should not also step past the place it jumped to.
+      Whichever you choose, write it down, because Part IV will depend on it.
     </p>
     <p>
-      <strong>Increment</strong> &mdash; run the next instruction. This is what happens
-      almost always. <strong>Load</strong> &mdash; jump to a given address, which is how
-      you get <code>if</code>, <code>while</code> and function calls.
-      <strong>Reset</strong> &mdash; go back to the beginning, which is what happens when
-      you switch the machine on.
+      One thing about the shape before you draw it: <strong>the incrementer
+      reads <code>out</code>, not <code>in</code>.</strong> A counter counts
+      <em>itself</em>. Feed the adder from <code>in</code> and you have built a
+      chip that computes one more than whatever is being loaded, which
+      accumulates nothing and sits at the same number for ever. It is the same
+      arrangement as 3.05 one size up: the register's own output goes back
+      round into the thing that decides its next input, and that loop is the
+      whole of what makes it a counter rather than a register.
     </p>
     <p>
-      Three behaviours, one output: that is a register with a stack of muxes in
-      front of it deciding what to store. You will have to settle which takes
-      priority when more than one is asserted. Choose deliberately, write it
-      down, and test it.
+      With that settled it is a register with a stack of muxes in front of it,
+      one per behaviour, and stage 1.05 paying for itself yet again.
     </p>
-    <div class="done"><b>Done when</b>It counts on its own, jumps when told, resets when told, and does the right thing when two controls are asserted at once.</div>
+    <div class="watch"><b>Watch out</b>All three controls have to make the register <em>store</em>, not just choose a value. Wire the register's load to the chip's <code>load</code> alone and <code>inc</code> and <code>reset</code> will compute exactly the right number and then throw it away, which looks like a broken incrementer and is not one. One way out: store on every edge, and let the muxes hand the register its own output when nothing is asserted &mdash; then &ldquo;do not change&rdquo; needs no gates of its own.</div>
+    <div class="done"><b>Done when</b>It counts on its own, jumps when told, resets when told, holds when nothing is asserted, and does the right thing when two controls are asserted at once.</div>
   </div>
 </article>
 
