@@ -483,13 +483,13 @@ export class TestsView {
         viewBox: `0 0 ${cols * colW} ${ROW_H}`,
       });
       const path = svgEl('path', { class: side === 'in' ? 'wv-in' : 'wv-exp' });
-      // Shown under the pointer: which way this column would go if it were
-      // clicked. `i` and `o` are the switch markings, so the hint reads as the
-      // state you would be putting it into rather than the one it is in.
+      // Shown under the pointer: the value this column would take if it were
+      // clicked, so the hint reads as where you are about to put it rather
+      // than where it already is.
       const flips: SVGElement[] = [];
       const redraw = () => {
         path.setAttribute('d', wavePath(cols, colW, get));
-        flips.forEach((t, c) => { t.textContent = get(c) ? 'o' : 'i'; });
+        flips.forEach((t, c) => { t.textContent = get(c) ? '0' : '1'; });
       };
 
       // What the circuit actually did, when it disagrees. Drawn over the

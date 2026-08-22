@@ -704,8 +704,8 @@ table.grid-table td.res { text-align: center; width: 26px; }
 .wave-hit { fill: var(--text); fill-opacity: 0; cursor: pointer; }
 .wave-hit:hover { fill-opacity: .05; }
 .wave-svg path { pointer-events: none; }
-/* What a click would do, not what the value is: `i` to switch it on, `o` to
-   switch it off, the markings on every power switch ever made. */
+/* What a click would do, not what the value is: the bit you would be putting
+   there, in the same alphabet the rest of the table is written in. */
 .wave-flip {
   font-family: var(--mono); font-size: 11px; font-weight: 700;
   fill: var(--danger); opacity: 0; pointer-events: none;
