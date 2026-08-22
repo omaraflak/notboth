@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a Computer from One Gate</title>
+<meta name="description" content="A build manual: what to make, in what order, and why each part exists.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('nand.manual.theme');
+      if (saved) document.documentElement.dataset.theme = saved;
+    } catch (e) { /* private browsing */ }
+  })();
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<style>
+/* ==================================================================
+   Two-colour service manual: graphite ink and one signal orange,
+   printed on cool technical paper.
+   ================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --paper:      #f4f5f7;
+  --surface:    #ffffff;
+  --ink:        #16181c;
+  --ink-2:      #4a4f57;
+  --ink-3:      #878d96;
+  --rule:       #d8dbe0;
+  --rule-soft:  #e6e8ec;
+  --spot:       #e2560f;
+  --spot-deep:  #b8430a;
+  --tint:       #fdefe6;
+
+  --measure: 34rem;
+  --rail: 7.5rem;
+
+  --sans: "IBM Plex Sans Condensed", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:     #101215;
+    --surface:   #171a1f;
+    --ink:       #e6e9ed;
+    --ink-2:     #a2a9b3;
+    --ink-3:     #6e757e;
+    --rule:      #262a31;
+    --rule-soft: #1e2127;
+    --spot:      #ff8a47;
+    --spot-deep: #ffa670;
+    --tint:      #2a1710;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:     #101215;
+  --surface:   #171a1f;
+  --ink:       #e6e9ed;
+  --ink-2:     #a2a9b3;
+  --ink-3:     #6e757e;
+  --rule:      #262a31;
+  --rule-soft: #1e2127;
+  --spot:      #ff8a47;
+  --spot-deep: #ffa670;
+  --tint:      #2a1710;
+}
+
+* { box-sizing: border-box; }
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  padding: 0 0.7rem;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.theme-toggle:hover { color: var(--spot); border-color: var(--spot); }
+.theme-toggle:focus-visible { outline: 2px solid var(--spot); outline-offset: 2px; }
+.theme-toggle svg { width: 13px; height: 13px; display: block; }
+.theme-toggle .sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .sun { display: block; }
+  :root:not([data-theme="light"]) .theme-toggle .moon { display: none; }
+}
+@media (max-width: 46rem) { .theme-toggle { top: 0.5rem; right: 0.5rem; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: calc(var(--rail) + var(--measure) + 6rem);
+  margin: 0 auto;
+  padding: 0 1.5rem 8rem;
+}
+
+p { margin: 0 0 1em; max-width: var(--measure); }
+p:last-child { margin-bottom: 0; }
+/* Truth tables. Values in mono so the columns line up and read as data
+   rather than as prose, and the answer column in the spot colour, because on
+   a truth table the answer is the whole point. */
+.tt-wrap { max-width: var(--measure); margin: 1.2rem 0; overflow-x: auto; }
+.tt { border-collapse: collapse; font-family: var(--mono); font-size: 0.86rem; }
+.tt th {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: left;
+  padding: 0 1.6rem 0.35rem 0;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.tt td {
+  padding: 0.22rem 1.6rem 0.22rem 0;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.tt tr:first-child td { padding-top: 0.45rem; }
+.tt td.o { color: var(--spot); }
+.tt td.l { font-family: var(--serif); font-size: 1rem; color: var(--ink-2); }
+
+/* Lists, for the stages whose subject really is a set of cases. Same measure
+   and rhythm as the body text, with the marker in the spot colour so a list of
+   behaviours reads as part of the specification rather than as decoration. */
+ul { max-width: var(--measure); margin: 0 0 1em; padding: 0; list-style: none; }
+li { position: relative; margin: 0 0 0.55em; padding-left: 1.15rem; }
+li:last-child { margin-bottom: 0; }
+li::before {
+  content: "";
+  position: absolute;
+  left: 0.25rem;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--spot);
+}
+em { font-style: italic; }
+strong { font-weight: 600; }
+
+a { color: var(--spot); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--spot); outline-offset: 3px; border-radius: 2px; }
+
+code, .sig, .num, .deps, .label {
+  font-family: var(--mono);
+  font-variant-ligatures: none;
+}
+
+/* ---------------- masthead ---------------- */
+
+.masthead {
+  padding: 5rem 0 2.5rem;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 0;
+}
+
+.stamp {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--spot);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.4rem;
+}
+.stamp::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--spot);
+  opacity: 0.4;
+}
+
+h1 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 6.5vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.1rem;
+  text-wrap: balance;
+  max-width: 20ch;
+}
+
+.standfirst {
+  font-size: 1.18rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 38rem;
+}
+
+.colophon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6rem 2.4rem;
+  margin-top: 2.4rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+.colophon div { display: flex; flex-direction: column; gap: 0.25rem; }
+.colophon b {
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.colophon span { color: var(--ink); font-size: 0.82rem; }
+
+/* ---------------- the stack diagram ---------------- */
+
+figure.stack {
+  margin: 3.5rem 0 0;
+  padding: 2.5rem 0 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+figure.stack svg { display: block; width: 100%; height: auto; max-width: 46rem; margin: 0 auto; }
+figcaption {
+  max-width: var(--measure);
+  margin: 1.6rem auto 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* ---------------- prose sections ---------------- */
+
+section.front { padding: 3rem 0; border-bottom: 1px solid var(--rule); }
+section.front h2 {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.4rem;
+}
+section.front .body { max-width: var(--measure); }
+section.front .body p { font-size: 1.05rem; }
+
+/* ---------------- contents ---------------- */
+
+nav.toc { padding: 3rem 0; border-bottom: 2px solid var(--ink); }
+nav.toc h2 {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.6rem;
+}
+.toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.8rem 2.5rem;
+}
+.toc-part b {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.toc-part b i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--spot);
+  margin-right: 0.5rem;
+}
+.toc-part a {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 0.16rem 0;
+}
+.toc-part a:hover { color: var(--spot); }
+.toc-part a i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  margin-right: 0.55rem;
+}
+
+/* ---------------- parts ---------------- */
+
+.part-head {
+  padding: 5.5rem 0 2.5rem;
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 2.5rem;
+  align-items: start;
+}
+.part-head .roman {
+  font-family: var(--mono);
+  font-size: 2.4rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--spot);
+  letter-spacing: -0.02em;
+}
+.part-head h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.6vw, 2.2rem);
+  line-height: 1.1;
+  margin: 0 0 0.9rem;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.part-head p {
+  color: var(--ink-2);
+  font-size: 1.05rem;
+  margin: 0;
+}
+.part-rule { height: 2px; background: var(--ink); }
+
+/* ---------------- stages ---------------- */
+
+article.stage {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 2.5rem;
+  padding: 2.4rem 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+article.stage:last-of-type { border-bottom: 0; }
+
+.rail { position: sticky; top: 1.5rem; align-self: start; }
+.num {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--spot);
+  letter-spacing: 0.01em;
+  display: block;
+}
+.deps {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 0.68rem;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.deps b {
+  display: block;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.1rem;
+}
+
+.stage h3 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin: -0.2rem 0 0.35rem;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.sig {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--spot);
+  border-radius: 2px;
+  padding: 0.35rem 0.6rem;
+  display: inline-block;
+  margin: 0 0 1.1rem;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.watch {
+  max-width: var(--measure);
+  margin: 1.3rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--spot);
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.watch b {
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.watch b { color: var(--spot); }
+
+.stage code {
+  font-size: 0.86em;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  padding: 0.05em 0.32em;
+}
+
+/* Timing diagrams. A latch is defined by what it does when nothing is
+   happening to it, which a truth table has no row for -- so the stages that
+   introduce memory get waveforms instead. Signal names in mono, to match the
+   way they are set in the prose; the output in the spot colour, because the
+   whole point of every one of these pictures is what the output does. */
+.wave { max-width: var(--measure); margin: 1.5rem 0; overflow-x: auto; }
+/* Below about 30rem the captions would scale down past reading size, so the
+   figure scrolls instead -- the same bargain .sig makes with a long line. */
+.wave svg { display: block; width: 100%; min-width: 30rem; height: auto; }
+.wv-lab { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); }
+.wv-line, .wv-out, .wv-unk {
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: square;
+}
+.wv-line { stroke: var(--ink-2); }
+.wv-out  { stroke: var(--spot); }
+.wv-unk  { stroke: var(--ink-3); stroke-dasharray: 2 4; }
+.wv-span { fill: none; stroke: var(--rule); stroke-width: 1; }
+.wv-mark { stroke: var(--spot); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.6; }
+.wv-note { font-family: var(--serif); font-size: 12px; font-style: italic; fill: var(--ink-3); }
+.wv-tick { font-family: var(--mono); font-size: 10px; fill: var(--spot); letter-spacing: 0.06em; }
+
+/* ---------------- closing ---------------- */
+
+.envoi {
+  margin-top: 5rem;
+  padding: 3rem 0 0;
+  border-top: 2px solid var(--ink);
+}
+.envoi .body { max-width: var(--measure); }
+.envoi h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+.envoi p { font-size: 1.05rem; }
+
+/* ---------------- narrow ---------------- */
+
+@media (max-width: 46rem) {
+  body { font-size: 16px; }
+  /* minmax(0,...), not a bare 1fr: a bare one is minmax(auto, 1fr), whose
+     floor is the widest thing inside. One long signature would then stretch
+     the column past the screen and set the whole page scrolling sideways,
+     instead of scrolling inside its own box the way .sig is set up to. */
+  article.stage, .part-head { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rail {
+    position: static;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.7rem;
+  }
+  .deps { margin-top: 0; }
+  .deps b { display: inline; margin-right: 0.35rem; }
+  .part-head .roman { margin-bottom: 0.6rem; }
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch between light and dark">
+  <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+  <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4V2M12 22v-2M4 12H2M22 12h-2M6 6L4.5 4.5M19.5 19.5L18 18M18 6l1.5-1.5M4.5 19.5L6 18M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+  <span id="theme-label">Light</span>
+</button>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="stamp">Build manual &middot; Revision 1</div>
+  <h1>Building a Computer from One Gate</h1>
+  <p class="standfirst">
+    What to make, in what order, and why each part earns its place. This manual
+    does not hand you circuits. It tells you which piece is next and what job it
+    has to do &mdash; the working out is the part worth having.
+  </p>
+  <div class="colophon">
+    <div><b>Parts</b><span>Five, plus an appendix</span></div>
+    <div><b>Stages</b><span>39</span></div>
+    <div><b>Given to you</b><span>NAND, a clock, a switch</span></div>
+    <div><b>Ends with</b><span>A program that finds primes</span></div>
+  </div>
+</header>
+
+<figure class="stack">
+  <svg viewBox="0 0 720 372" role="img" aria-label="A pyramid standing on its point: the NAND gate at the bottom, with each layer of the computer resting on the one below.">
+    <g font-family="IBM Plex Mono, monospace" font-size="13">
+      <!-- Part V -->
+      <rect x="30" y="8" width="660" height="42" rx="2" fill="none" stroke="var(--rule)" stroke-width="1"/>
+      <text x="360" y="34" text-anchor="middle" fill="var(--ink-2)">a program that finds primes</text>
+      <text x="702" y="34" text-anchor="end" fill="var(--ink-3)" font-size="11">V</text>
+
+      <rect x="75" y="58" width="570" height="42" rx="2" fill="none" stroke="var(--rule)" stroke-width="1"/>
+      <text x="360" y="84" text-anchor="middle" fill="var(--ink-2)">compiler &nbsp;&middot;&nbsp; runtime &nbsp;&middot;&nbsp; assembler</text>
+      <text x="702" y="84" text-anchor="end" fill="var(--ink-3)" font-size="11">V</text>
+
+      <!-- Part IV -->
+      <rect x="120" y="108" width="480" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="134" text-anchor="middle" fill="var(--ink)">ROM &nbsp;&middot;&nbsp; CPU &nbsp;&middot;&nbsp; RAM</text>
+      <text x="702" y="134" text-anchor="end" fill="var(--ink-3)" font-size="11">IV</text>
+
+      <!-- Part III -->
+      <rect x="165" y="158" width="390" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="184" text-anchor="middle" fill="var(--ink)">registers &nbsp;&middot;&nbsp; counter &nbsp;&middot;&nbsp; memory</text>
+      <text x="702" y="184" text-anchor="end" fill="var(--ink-3)" font-size="11">III</text>
+
+      <!-- Part II -->
+      <rect x="210" y="208" width="300" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="234" text-anchor="middle" fill="var(--ink)">adders &nbsp;&middot;&nbsp; the ALU</text>
+      <text x="702" y="234" text-anchor="end" fill="var(--ink-3)" font-size="11">II</text>
+
+      <!-- Part I -->
+      <rect x="255" y="258" width="210" height="42" rx="2" fill="none" stroke="var(--ink-3)" stroke-width="1"/>
+      <text x="360" y="284" text-anchor="middle" fill="var(--ink)">mux &nbsp;&middot;&nbsp; xor &nbsp;&middot;&nbsp; and &nbsp;&middot;&nbsp; or</text>
+      <text x="702" y="284" text-anchor="end" fill="var(--ink-3)" font-size="11">I</text>
+
+      <!-- The one gate -->
+      <rect x="300" y="308" width="120" height="44" rx="2" fill="var(--spot)" stroke="none"/>
+      <text x="360" y="335" text-anchor="middle" fill="var(--paper)" font-weight="600" letter-spacing="1">NAND</text>
+
+      <line x1="360" y1="352" x2="360" y2="366" stroke="var(--spot)" stroke-width="1.5"/>
+      <circle cx="360" cy="368" r="3" fill="var(--spot)"/>
+    </g>
+  </svg>
+  <figcaption>
+    Everything above balances on the block at the bottom. Nothing in this manual
+    is given to you except that one gate &mdash; and a switch to feed it, and a
+    clock to keep time.
+  </figcaption>
+</figure>
+
+<section class="front">
+  <h2>Before you switch anything on</h2>
+  <div class="body">
+    <p>
+      A NAND gate answers one question: <em>are both of my inputs on?</em> &mdash;
+      and then says the opposite. That is the whole of it. It has no memory, no
+      arithmetic, no notion of a number. From that, in thirty-nine moves, you
+      can build a machine that runs software you wrote in a language you
+      designed.
+    </p>
+    <p>
+      This works because NAND is <em>functionally complete</em>: every logical
+      function that can exist can be written as some arrangement of NANDs. You do
+      not have to take that on faith for long &mdash; the first three stages prove it
+      by construction.
+    </p>
+    <p>
+      Three habits are worth adopting from the start. <strong>Build small.</strong> A
+      component should do one nameable thing. If you cannot name it in one word,
+      it is two components. <strong>Test before you move on.</strong> Every chip
+      gets a truth table before it gets used, without exception; a wrong wire
+      inside a four-gate part is invisible from the outside and will resurface
+      three layers later as &ldquo;my CPU computes nonsense&rdquo;, at which point you will
+      have a hundred suspects instead of four. <strong>Never reopen a solved
+      problem.</strong> Once a chip passes its tests, it is furniture. Use it and
+      forget how it works.
+    </p>
+    <p>
+      Each stage below gives you the name of the part, its inputs and outputs,
+      why the machine needs it, and how you will know it works. The circuit
+      inside is yours to find. When you are stuck, the answer is almost always
+      a part you already built.
+    </p>
+  </div>
+</section>
+
+<!--TOC-->
+
+<!--BODY-->
+
+<section class="envoi">
+  <div class="body">
+    <h2>One last thing</h2>
+    <p>
+      This will probably take longer than you expect, and the stretch between
+      2.06 and 3.04 is the one to watch: it is where the ideas are densest. Past
+      it, the rest builds momentum.
+    </p>
+    <p>
+      Test everything. Name everything. Never build the same part twice.
+    </p>
+  </div>
+</section>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var button = document.getElementById('theme-toggle');
+    var label = document.getElementById('theme-label');
+
+    function current() {
+      if (root.dataset.theme) return root.dataset.theme;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function sync() {
+      // The label names where the button will take you, not where you are.
+      label.textContent = current() === 'dark' ? 'Light' : 'Dark';
+    }
+    button.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try { localStorage.setItem('nand.manual.theme', next); } catch (e) { /* ignore */ }
+      sync();
+    });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sync);
+    sync();
+  })();
+</script>
+</body>
+</html>
