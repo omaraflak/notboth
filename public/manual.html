@@ -1234,7 +1234,7 @@ article.stage:last-of-type { border-bottom: 0; }
     <figure class="wave" role="img" aria-label="Timing diagram for the flip-flop">
       <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
-        <path class="wv-line" d="M76,30 L106,30 L136,30 L136,10 L166,10 L196,10 L196,30 L226,30 L256,30 L256,10 L286,10 L316,10 L316,30 L346,30 L376,30 L376,10 L406,10 L436,10 L436,30 L466,30 L496,30 L496,10 L526,10 L556,10"/>
+        <path class="wv-line" d="M76,10 L106,10 L136,10 L136,30 L166,30 L196,30 L196,10 L226,10 L256,10 L256,30 L286,30 L316,30 L316,10 L346,10 L376,10 L376,30 L406,30 L436,30 L436,10 L466,10 L496,10 L496,30 L526,30 L556,30"/>
         <text class="wv-lab" x="66" y="68" text-anchor="end">d</text>
         <path class="wv-line" d="M76,54 L106,54 L106,74 L136,74 L166,74 L166,54 L196,54 L226,54 L256,54 L256,74 L286,74 L316,74 L346,74 L346,54 L376,54 L406,54 L436,54 L436,74 L466,74 L466,54 L496,54 L496,74 L526,74 L556,74"/>
         <text class="wv-lab" x="66" y="112" text-anchor="end">q</text>
@@ -1252,14 +1252,18 @@ article.stage:last-of-type { border-bottom: 0; }
       moves seven times; <code>q</code> moves three, always at an edge, always
       to whatever <code>d</code> happened to be at that instant. What
       <code>d</code> does in between is not ignored by accident &mdash; it is
-      the entire specification. This one samples on the clock&rsquo;s falling
-      edge; a rising-edge flip-flop is the same picture mirrored, and either is
-      fine so long as the whole machine agrees on which.
+      the entire specification. This one samples on the clock&rsquo;s
+      <strong>rising</strong> edge, and so should yours. Either edge works in
+      principle, so long as every clocked part of the machine agrees on which
+      &mdash; and the built-in RAM writes on the rising one, so that is the
+      agreement already on the table. Mixing the two is a bug that looks like a
+      timing problem and is very hard to see.
     </p>
     <p>
       The standard construction is two gated latches back to back, enabled on
-      opposite halves of the clock, so that whichever one is listening, the other
-      is holding. The value can only ever advance one stage per clock tick. That
+      opposite halves of the clock, so that whichever one is listening, the
+      other is holding. Take the first while the clock is <em>low</em> and the
+      second while it is high, and the value steps out on the rise. The value can only ever advance one stage per clock tick. That
       restriction is what makes the rest of the build tractable: it means the whole machine changes state together, in
       lockstep, and that every part of it can rely on the others staying still
       while it thinks.
@@ -1293,7 +1297,7 @@ article.stage:last-of-type { border-bottom: 0; }
     <figure class="wave" role="img" aria-label="Timing diagram for a one-bit register">
       <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
-        <path class="wv-line" d="M76,30 L106,30 L136,30 L136,10 L166,10 L196,10 L196,30 L226,30 L256,30 L256,10 L286,10 L316,10 L316,30 L346,30 L376,30 L376,10 L406,10 L436,10 L436,30 L466,30 L496,30 L496,10 L526,10 L556,10"/>
+        <path class="wv-line" d="M76,10 L106,10 L136,10 L136,30 L166,30 L196,30 L196,10 L226,10 L256,10 L256,30 L286,30 L316,30 L316,10 L346,10 L376,10 L376,30 L406,30 L436,30 L436,10 L466,10 L496,10 L496,30 L526,30 L556,30"/>
         <text class="wv-lab" x="66" y="68" text-anchor="end">in</text>
         <path class="wv-line" d="M76,74 L106,74 L106,54 L136,54 L166,54 L196,54 L226,54 L226,74 L256,74 L286,74 L316,74 L346,74 L346,54 L376,54 L406,54 L406,74 L436,74 L466,74 L466,54 L496,54 L526,54 L556,54"/>
         <text class="wv-lab" x="66" y="112" text-anchor="end">load</text>
