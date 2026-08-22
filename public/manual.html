@@ -1118,9 +1118,7 @@
   <div class="roman">II</div>
   <div>
     <h2>Arithmetic</h2>
-    <p>Six parts that turn logic into mathematics. This Part ends with the single
-    most important chip in the machine, and it is a good deal less frightening
-    than its reputation.</p>
+    <p>Six stages that turn logic into mathematics. This Part ends with the single most important chip in the machine, and it is actually less frightening than its reputation.</p>
   </div>
 </div>
 <div class="part-rule"></div>
@@ -1130,27 +1128,21 @@
   <div>
     <h3>HalfAdder</h3>
     <div class="sig">HalfAdder(a, b) → sum, carry</div>
-    <p>Add two bits. There are only four cases and you can write them on your hand:
-    0+0, 0+1, 1+0, and 1+1 — which is two, which does not fit in one bit, which is
-    why there is a second output.</p>
-    <p>Look at the two output columns separately and you will find you built both of
-    these chips in Part I. That is the whole stage: arithmetic is not a new kind
-    of thing, it is logic looked at from a different angle.</p>
+    <p>A gate that adds two bits. There are only four cases: 0+0, 0+1, 1+0, and 1+1. Remember those are binary addition, but it works exactly like decimal addition:</p>
+    <ul>
+    <li>In decimal, when you go above 9 you loop back to 0.</li>
+    <li>In binary, when you go above 1 you loop back to 0.</li>
+    </ul>
+    <p>Therefore, just like in decimal, for two individual digits you will have a resulting <code>sum</code> and a <code>carry</code>.</p>
   </div>
 </article>
 
 <article class="stage" id="s202">
-  <div class="rail"><span class="num">2.02</span><span class="deps"><b>Needs</b>2.01, 1.03</span></div>
+  <div class="rail"><span class="num">2.02</span><span class="deps"><b>Needs</b>1.03, 2.01</span></div>
   <div>
     <h3>FullAdder</h3>
     <div class="sig">FullAdder(a, b, c) → sum, carry</div>
-    <p>Add <em>three</em> bits. The third is the carry arriving from the column to the right
-    — the same thing you do by hand when you add 17 and 25 and put a little 1
-    above the tens column.</p>
-    <p>This is the unit cell of all your arithmetic, so build it out of half adders
-    rather than from scratch. Getting the carry-out right is the fiddly bit: think
-    about when a column produces a carry rather than trying to draw the circuit
-    first.</p>
+    <p>Gate that adds <em>three</em> bits. This will be useful when we extend the adder over the entire 16-bits space, as we will need to sum two digits + a carry from the previous <em>column</em> (still remember how to make an addition on paper?).</p>
   </div>
 </article>
 
@@ -1159,18 +1151,8 @@
   <div>
     <h3>Add16</h3>
     <div class="sig">Add16(a[16], b[16]) → out[16]</div>
-    <p>Sixteen full adders in a row, each one’s carry-out feeding the next one’s
-    carry-in. Now your machine can add two numbers, which — with the negation
-    trick two stages from here — means it can also subtract, compare, and count.</p>
-    <p>What happens to the carry off the far end is your decision to make. Most
-    designs simply drop it and let numbers wrap around; that is what “overflow”
-    means and it is a perfectly respectable choice.</p>
-    <p>This design is called <em>ripple carry</em> because the carry has to walk the whole
-    width before the answer is final. It is the slowest adder anyone builds and it
-    is the right one to build first. If you later want it faster, the search term
-    is <em>carry-lookahead</em>, and swapping it in is one command once your test vectors
-    exist.</p>
-    <div class="watch"><b>Watch out</b>Test the carry chain deliberately: something plus one that ripples the whole way, and the largest possible pair, which should wrap to a small number.</div>
+    <p>Sixteen full adders in a row. This will mimic the extact steps you take when adding two numbers on papers. Now your machine can add two 16-bit numbers, which — using two&#39;s complement in 2.05 — means it can also subtract, compare, and count.</p>
+    <div class="watch"><b>Watch out</b>Test the carry chain deliberately!</div>
   </div>
 </article>
 
@@ -1179,27 +1161,18 @@
   <div>
     <h3>Inc16</h3>
     <div class="sig">Inc16(in[16]) → out[16]</div>
-    <p>Add one. You could of course use the adder with a hard-wired 1, and you may —
-    but adding one is such a common operation that it is worth having its own name
-    in your library.</p>
-    <p>The reason is Part III. A program counter spends almost its entire life doing
-    exactly this, once per instruction, forever. Naming the operation now means
-    the counter reads as what it is instead of as a special case of addition.</p>
+    <p>A gate to increment a number by one.</p>
+    <p>The reason is Part III. A program counter spends almost its entire life doing exactly this, once per instruction, forever. Naming the operation now means the counter reads as what it is instead of as a special case of addition.</p>
   </div>
 </article>
 
 <article class="stage" id="s205">
   <div class="rail"><span class="num">2.05</span><span class="deps"><b>Needs</b>2.03, 2.04, 1.07</span></div>
   <div>
-    <h3>Negative numbers, and why subtraction is free</h3>
+    <h3>Negative numbers</h3>
     <div class="sig">no new chip — a decision</div>
-    <p>This stage builds nothing. It settles a question, and the answer shapes
-    everything after it.</p>
-    <p>You need negative numbers, and you emphatically do not want to build a second
-    machine for subtracting. The convention that saves you is <em>two’s complement</em>:
-    negate a number by inverting every bit and adding one. Under that convention
-    <code>a - b</code> is literally <code>a + (-b)</code>, the adder you already have does both jobs,
-    and comparison becomes subtraction followed by a glance at the result.</p>
+    <p>This stage builds nothing, it settles a question.</p>
+    <p>You need negative numbers, and you do not want to build a second machine for subtracting. The convention that saves you is <em>two&#39;s complement</em>: negate a number by inverting every bit and adding one. Under that convention <code>a - b</code> is literally <code>a + (-b)</code>, the adder you already have does both jobs, and comparison becomes subtraction followed by a glance at the result.</p>
     <p>Here is <code>5</code> being negated, and then added back to itself:</p>
           <div class="tt-wrap">
             <table class="tt">
@@ -1209,11 +1182,7 @@
               <tr><td class="l">add one</td><td>1111111111111011</td><td>−5</td></tr>
               <tr><td class="l">add the 5 back</td><td>0000000000000000</td><td>0</td></tr>
             </table>
-          </div><p>The last row carries a 1 off the top end, and dropping it is not a mistake —
-    there are only sixteen bits, so the seventeenth has nowhere to go, and
-    discarding it is exactly what makes the arithmetic wrap round and come out
-    right. Do a couple more with pencil and paper before moving on; this is the
-    one stage where the understanding matters more than the circuit.</p>
+          </div><p>The last row carries a 1 off the top end. Since there are only sixteen bits, the seventeenth has nowhere to go and discarding it is exactly what makes the arithmetic wrap round and come out right.</p>
   </div>
 </article>
 
@@ -1224,15 +1193,9 @@
     <div class="sig">ALU(x[16], y[16], zx, nx, zy, ny, f, no) → out[16], zr, ng</div>
     <p>The arithmetic and logic unit: one box that computes any of a couple of dozen
     useful functions of two numbers, with control bits selecting which. Add,
-    subtract, negate, increment, and, or, pass one input through, produce a
+    subtract, negate, increment, bitwise-and, bitwise-or, pass one input through, produce a
     constant — all from one chip.</p>
-    <p>Do not build a dozen circuits and mux between them. The whole menu comes from
-    three phases: <em>pre-condition</em> each input, perform <em>one</em> operation on the
-    results, then <em>post-condition</em> the answer. Six single-bit controls decide what
-    happens at each phase, and they act in the order the numbers move through the
-    chip.</p>
-    <p>Six single-bit controls, acting in the order the numbers move through the
-    chip:</p>
+    <p>Six single-bit controls, acting in this order:</p>
     <ul>
     <li><strong>zx</strong> — replace <code>x</code> with zero.</li>
     <li><strong>nx</strong> — invert <code>x</code>, after any zeroing.</li>
@@ -1242,20 +1205,11 @@
     <li><strong>no</strong> — invert the answer on the way out.</li>
     </ul>
     <p>Every one of those six is a choice between two values, which is the chip you
-    built in 1.05. So the ALU is layers of muxes with one adder and one and gate
-    in the middle of them, and nothing in it is new.</p>
-    <p>Try the bits on paper before wiring anything. Set <code>zx</code> and <code>zy</code> and leave the
-    rest at zero: both inputs become zero, and zero added to zero — or anded with
-    it — is zero, so the chip produces the constant 0 without a constant anywhere
-    in it. Then work out for yourself which settings give you <code>x - y</code>; it is a
-    satisfying thing to find, and stage 2.05 is the hint.</p>
+    built in 1.05. So the ALU is layers of muxes with one adder and one and-gate
+    in the middle of them.</p>
     <p>Two extra outputs matter as much as the number itself. <code>zr</code> says the result
-    was zero; <code>ng</code> says it was negative. These are the only things your machine
-    will ever know about a computation, and every conditional in every program
-    will be decided by them. Notice that <code>ng</code> is free — under two’s complement the
-    sign is just the top bit — and that <code>zr</code> is the Or16Way from 1.08 with a Not
-    on the end, which is why you built it.</p>
-    <div class="watch"><b>Watch out</b>This is the largest chip so far and the most punishing to debug later. Test <em>every</em> control combination you intend to use, with at least one negative operand. An hour of test vectors here saves a week in Part IV.</div>
+    was zero; <code>ng</code> says it was negative (c.f. two&#39;s complement).</p>
+    <div class="watch"><b>Watch out</b>This is the largest chip so far. Test <em>every</em> control combination you intend to use, with at least one negative operand.</div>
   </div>
 </article>
 
