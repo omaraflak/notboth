@@ -18,7 +18,8 @@
  * a waveform, `>` marks an output, `?` an unknown level, `@col` a labelled
  * instant and `~a-b` a labelled span.
  */
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { marked } from 'marked';
 
 const CONTENT = 'manual/content';
@@ -242,5 +243,8 @@ const html = readFileSync('manual/template.html', 'utf8')
   .replace('<!--BODY-->', body.join('\n\n'))
   .replace(/(<div><b>Stages<\/b><span>)\d+(<\/span>)/, `$1${stages}$2`);
 
+// Git does not track empty directories, so on a fresh clone public/ may not
+// exist at all -- and then the build fails on its very last line.
+mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, html);
 console.log(`manual: ${docs.length} sources, ${stages} stages -> ${OUT}`);
