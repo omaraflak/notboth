@@ -946,17 +946,14 @@
   <div>
     <h3>Not</h3>
     <div class="sig">Not(in) → out</div>
-    <p>Negation, and the smallest possible proof that one gate is enough. You have a
-    part with two inputs and you need one with a single input, so the whole puzzle
-    is what to do with the spare.</p>
+    <p>NOT gate flips the input signal. You have a gate with two inputs (NAND) and you need one with a single input (NOT), so the whole puzzle is what to do with the spare.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>in</th><th>out</th></tr>
               <tr><td>0</td><td class="o">1</td></tr>
               <tr><td>1</td><td class="o">0</td></tr>
             </table>
-          </div><p>Once this exists you can stop thinking of NAND as “not-and” and start thinking
-    of it as raw material.</p>
+          </div>
   </div>
 </article>
 
@@ -965,9 +962,7 @@
   <div>
     <h3>And</h3>
     <div class="sig">And(a, b) → out</div>
-    <p>“Both.” The most direct question you can ask about two signals, and nearly
-    free: you own a gate that computes its opposite, and a part that reverses
-    things.</p>
+    <p>AND gate tells you when two signals are up simultaneously. You already own a gate that computes its opposite, and a part that reverses things.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>a</th><th>b</th><th>out</th></tr>
@@ -976,18 +971,16 @@
               <tr><td>1</td><td>0</td><td class="o">0</td></tr>
               <tr><td>1</td><td>1</td><td class="o">1</td></tr>
             </table>
-          </div><p>The lesson is the reflex rather than the circuit: when a part looks like
-    something you already have with a twist, it usually is.</p>
+          </div>
   </div>
 </article>
 
 <article class="stage" id="s103">
-  <div class="rail"><span class="num">1.03</span><span class="deps"><b>Needs</b>1.01</span></div>
+  <div class="rail"><span class="num">1.03</span><span class="deps"><b>Needs</b>1.01, 1.02</span></div>
   <div>
     <h3>Or</h3>
     <div class="sig">Or(a, b) → out</div>
-    <p>“Either.” Harder than it looks, because NAND is an <em>and</em>-shaped gate and you
-    are asking it for an <em>or</em>.</p>
+    <p>OR gate tells you when <strong>at least one</strong> of the two input signals is up.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>a</th><th>b</th><th>out</th></tr>
@@ -996,20 +989,16 @@
               <tr><td>1</td><td>0</td><td class="o">1</td></tr>
               <tr><td>1</td><td>1</td><td class="o">1</td></tr>
             </table>
-          </div><p>The way through is De Morgan’s observation: “a or b” is the same as “not both
-    of them are off”. Read that with your parts list in hand and the circuit falls
-    out of it. It is the first time the manual asks you to change the shape of a
-    question rather than build a bigger circuit, and you will do it constantly
-    from here.</p>
+          </div><p>The way through is <a href="https://en.wikipedia.org/wiki/De_Morgan%27s_laws">De Morgan</a>&#39;s observation.</p>
   </div>
 </article>
 
 <article class="stage" id="s104">
-  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b>1.01–1.03</span></div>
+  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b>1.02, 1.03</span></div>
   <div>
     <h3>Xor</h3>
     <div class="sig">Xor(a, b) → out</div>
-    <p>“Different.”</p>
+    <p>XOR gate, which stands for Exclusive-OR, tells you when <strong>only one of</strong> the two inputs are up.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>a</th><th>b</th><th>out</th></tr>
@@ -1018,10 +1007,7 @@
               <tr><td>1</td><td>0</td><td class="o">1</td></tr>
               <tr><td>1</td><td>1</td><td class="o">0</td></tr>
             </table>
-          </div><p>It earns its keep twice over. In Part II that table turns out to <em>be</em> binary
-    addition — 1 plus 1 is 0, carry the 1. And inverted it is equality, which is
-    how your machine will compare two numbers. It is also the first part with real
-    internal structure; four or five NANDs is a normal result.</p>
+          </div><p>This table turns out to be very useful for arithmetic, as you will see in Part II.</p>
   </div>
 </article>
 
@@ -1030,8 +1016,8 @@
   <div>
     <h3>Mux</h3>
     <div class="sig">Mux(a, b, sel) → out</div>
-    <p>Two data inputs, one selector, and the output is whichever input the selector
-    points at — <code>out = sel ? b : a</code>. An <em>if</em>, in copper.</p>
+    <p>MUX gate (<em>multiplexer</em>) allows you to select between one of two signals. Two data inputs, one selector, and the output is whichever input the selector
+    points at. You can decide to select either <code>a</code> or <code>b</code> based on the selector value, it doesn&#39;t matter you just need to be consistent throughout.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>sel</th><th>a</th><th>b</th><th>out</th></tr>
@@ -1044,24 +1030,18 @@
               <tr><td>1</td><td>1</td><td>0</td><td class="o">0</td></tr>
               <tr><td>1</td><td>1</td><td>1</td><td class="o">1</td></tr>
             </table>
-          </div><p>Read the table as two halves: while <code>sel</code> is 0 the output copies <code>a</code> and
-    ignores <code>b</code>; while it is 1 they swap roles.</p>
-    <p>If you build one part from this Part with real care, make it this one. A
-    computer is very largely muxes: which number the ALU operates on, whether a
-    register keeps its value or takes a new one, whether the program counter steps
-    forward or jumps. Almost every decision your machine ever makes is this chip
-    wearing a different label.</p>
-    <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code> — eight vectors, not four. A mux that only works when the data happens to agree is a classic silent failure.</div>
+          </div><p>Read the table as two halves: while <code>sel</code> is 0 the output copies <code>a</code> and ignores <code>b</code>; while it is 1 they swap roles.</p>
+    <p>This is what an <em>if</em> condition is. Almost every decision your machine ever makes is using this chip underneath.</p>
+    <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code> — eight vectors, not four.</div>
   </div>
 </article>
 
 <article class="stage" id="s106">
-  <div class="rail"><span class="num">1.06</span><span class="deps"><b>Needs</b>1.01–1.03</span></div>
+  <div class="rail"><span class="num">1.06</span><span class="deps"><b>Needs</b>1.01, 1.02</span></div>
   <div>
     <h3>DMux</h3>
     <div class="sig">DMux(in, sel) → a, b</div>
-    <p>The mirror image: one input, two outputs, and the selector decides which one
-    receives it. The other goes quiet.</p>
+    <p>DMUX gate (<em>demultiplexer</em>) is the mirror image of MUX. It writes its input to <strong>one of</strong> several outputs based on a selector.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>sel</th><th>in</th><th>a</th><th>b</th></tr>
@@ -1070,28 +1050,22 @@
               <tr><td>1</td><td>0</td><td class="o">0</td><td class="o">0</td></tr>
               <tr><td>1</td><td>1</td><td class="o">0</td><td class="o">1</td></tr>
             </table>
-          </div><p>Where a mux <em>gathers</em>, a demux <em>routes</em>. You will need it the moment you build
-    memory: storing a value at an address means delivering a write signal to
-    exactly one cell out of many and to none of the others. Addressing is
-    demultiplexing.</p>
+          </div><p>Where a mux <em>gathers</em>, a demux <em>routes</em>. You will need it the moment you build memory: storing a value at an address means delivering a write signal to exactly one cell out of many and to none of the others. Addressing is demultiplexing.</p>
   </div>
 </article>
 
 <article class="stage" id="s107">
-  <div class="rail"><span class="num">1.07</span><span class="deps"><b>Needs</b>1.01–1.05</span></div>
+  <div class="rail"><span class="num">1.07</span><span class="deps"><b>Needs</b>1.01–1.06</span></div>
   <div>
-    <h3>Widen everything to sixteen</h3>
-    <div class="sig">Not16(in[16]) → out[16] · And16, Or16, Mux16</div>
-    <p>Your machine will work on <em>words</em>, not bits — sixteen bits at a time is a good
-    size: big enough to address a useful amount of memory, small enough to wire
-    without losing your mind. So each of the gates you just built needs a wide
-    sibling that applies it to every bit position independently.</p>
-    <p>There is no cleverness here and that is the point: this is the first stage
-    that is purely mechanical, and it is where you will be grateful that pins have
-    widths and wires can carry a whole bus. Sixteen copies of a part, side by
-    side, sharing a control signal.</p>
-    <p>Note what <code>Mux16</code> is: a single selector bit choosing between two entire
-    numbers. That is the shape of nearly every control decision to come.</p>
+    <h3>Widen everything to sixteen bits</h3>
+    <div class="sig">Not16(in[16]) → out[16] · And16, Or16, Xor16, Mux16, DMux16</div>
+    <p>Your machine will work on <em>sixteen</em> bits at a time (i.e. a <em>word</em>), not individual bits. Sixteen bits is a good size: big enough to address a useful amount of memory (2^16 = 65536), small enough to wire manually. So each of the gates you just built needs a <em>wide</em> sibling that applies it to every bit position independently.</p>
+    <p>Some notes:</p>
+    <ul>
+    <li><code>Mux16</code> is a <em>single</em> selector bit choosing between two entire numbers.</li>
+    <li>Bit 0 is the lowest significant bit in the software simulation you&#39;re using.</li>
+    <li>Don&#39;t actually create sixteen individual inputs for each chip (although you could), use the <code>bits</code> setting of the input to widen it (make it a bus).</li>
+    </ul>
     <div class="watch"><b>Watch out</b>Test the ends and the middle, not just <code>0000…</code> and <code>1111…</code>. A bus wired one bit out of alignment passes both of those and nothing else.</div>
   </div>
 </article>
@@ -1101,14 +1075,8 @@
   <div>
     <h3>Or16Way</h3>
     <div class="sig">Or16Way(in[16]) → out</div>
-    <p>“Is anything at all switched on in here?” A single bit summarising a whole
-    bus.</p>
-    <p>It looks like a throwaway utility. It is not: this is how your machine answers
-    “is this number zero?”, and that question is the entire basis of conditional
-    branching. Sixteen wide because a number is sixteen wide — invert this chip’s
-    output and you have the ALU’s <code>zr</code> exactly, with nothing left over to build.
-    Every <code>if</code> and every <code>while</code> in every program you ever write on this machine
-    will come down to a chip like this one looking at a bus and shrugging.</p>
+    <p>A gate to output 1 when <em>any</em> one of the input bits is 1.</p>
+    <p>This is how your machine answers &quot;is this number zero?&quot;, which is basis of conditional branching.</p>
   </div>
 </article>
 
@@ -1116,21 +1084,21 @@
   <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b>1.05, 1.07</span></div>
   <div>
     <h3>Mux4Way16 and Mux8Way16</h3>
-    <div class="sig">Mux4Way16(a..d[16], sel[2]) → out[16] · Mux8Way16(a..h[16], sel[3]) → out[16]</div>
-    <p>Choosing between two things is not enough. Build the four-way first, then the
-    eight-way from it: two selector bits and four candidate words, then three bits
-    and eight. One winner either way.</p>
-    <p>Do not invent a new mechanism for this. Build it out of the two-way mux you
-    already have, in layers — and notice while you do that a selector bit is just
-    an address bit. That realisation is most of Part III.</p>
+    <div class="sig">Mux4Way16(a[16], b[16], c[16], d[16], sel[2]) → out[16] · Mux8Way16</div>
+    <p>Currently, <code>Mux16</code> allows you to choose between two words. This is not always enough, so build the four-way version, and then eight-way version out of it.</p>
+    <ul>
+    <li>four-way: 2 selector bits and four candidate words.</li>
+    <li>eight-way: 3 selector bits and eight candidate words.</li>
+    </ul>
+    <p>Remember to reuse existing components.</p>
   </div>
 </article>
 
 <article class="stage" id="s110">
-  <div class="rail"><span class="num">1.10</span><span class="deps"><b>Needs</b>1.06</span></div>
+  <div class="rail"><span class="num">1.10</span><span class="deps"><b>Needs</b>1.07</span></div>
   <div>
     <h3>DMux4Way and DMux8Way</h3>
-    <div class="sig">DMux4Way(in, sel[2]) → a..d · DMux8Way(in, sel[3]) → a..h</div>
+    <div class="sig">DMux4Way(in, sel[2]) → a,b,c,d · DMux8Way</div>
     <p>The routing counterpart, and your address decoder. Two bits in, one of four
     lines raised and three held down; then three bits and one of eight.</p>
     <p>When you build RAM you will hand it an address and expect exactly one cell to
