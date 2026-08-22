@@ -34,6 +34,12 @@ export class Inspector {
 
     app.on('selection', () => this.render(true));
     app.on('project', () => this.render());
+    // The footer's one button is only meaningful over a schematic, so it goes
+    // grey in the other views -- which means a change of view is a change to
+    // this panel, and it has to be redrawn for it. Without this the button
+    // stayed disabled after coming back from the code view, until some
+    // unrelated edit happened to redraw the panel underneath it.
+    app.on('view', () => this.render());
     app.on('sim', () => this.render());
     app.on('tick', () => { for (const fn of this.tickUpdaters) fn(); });
     this.render(true);
