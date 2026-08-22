@@ -22,6 +22,13 @@ const COL_W = 26;
 const ROW_H = 30;
 const AMP = 14;
 const VIEW_KEY = 'nand.tests.view';
+/**
+ * Gates above which a run is worth announcing. Below it the whole thing is
+ * over in a few milliseconds -- less time than the two frames it takes to get
+ * a spinner painted -- so announcing it would add both a delay and a flicker
+ * to the case that never needed either.
+ */
+const SPINNER_GATES = 1500;
 
 /** Bases a column can be written in. Signed is a readout, not an input format. */
 const BASES: Array<[NumberFormat, string, string]> = [
@@ -375,6 +382,27 @@ export class TestsView {
     if (this.running) return;
     const app = this.app;
     const def = app.openDef;
+    const go = () => {
+      this.results = runTests(app.project, def.id, {
+        vectors: this.vectors,
+        settleTicks: this.settleTicks,
+        resetEachVector: this.resetEach,
+      });
+    };
+
+    // Last run's verdicts go with it either way. Leaving them coloured through
+    // the next run means the only thing that changes when you press the button
+    // is the button, and a table still saying everything passed is worse than
+    // a blank one -- especially when the answer this time is the same, so that
+    // nothing on screen would move at all.
+    this.results = undefined;
+
+    if ((app.netlist?.gateCount ?? 0) <= SPINNER_GATES) {
+      go();
+      this.render();
+      return;
+    }
+
     this.running = true;
     this.render();
     await new Promise((done) => {
@@ -382,11 +410,7 @@ export class TestsView {
       setTimeout(done, 60);
     });
     try {
-      this.results = runTests(app.project, def.id, {
-        vectors: this.vectors,
-        settleTicks: this.settleTicks,
-        resetEachVector: this.resetEach,
-      });
+      go();
     } finally {
       this.running = false;
       this.render();
