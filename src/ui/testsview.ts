@@ -601,8 +601,9 @@ export class TestsView {
       this.mode === 'wave'
         ? 'Click or drag along a row to draw it; drag paints whatever you started with. '
           + 'Each column is one step in time, and the circuit is not reset between them, so a '
-          + 'column means "and then". Set ticks to 1 and a column is one gate delay, which is '
-          + 'what you want for drawing a clock.'
+          + 'column means "and then". Ticks is how long a column lasts, and it has to be longer '
+          + 'than the deepest path of gates in the circuit or you are reading it midway through '
+          + 'settling: a couple for a gate, a couple of dozen for anything with a flip-flop in it.'
         : 'Arrow keys move between cells, Enter steps down a row. '
           + 'Leave ticks at 0 for combinational logic; the runner settles until nothing is left to '
           + 'propagate. Set it for sequential circuits so each test advances the clock by a fixed amount.'));
