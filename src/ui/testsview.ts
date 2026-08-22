@@ -44,6 +44,8 @@ export class TestsView {
   private resetEach = false;
   private base: NumberFormat = 'dec';
   private results: ReturnType<typeof runTests> | undefined;
+  /** Set while a run is in flight, so the button can say so. */
+  private running = false;
   /**
    * Which way the same vectors are drawn. A viewing preference, not a property
    * of the circuit, so it lives in the browser rather than in the project --
@@ -329,18 +331,14 @@ export class TestsView {
         this.focusCell(this.vectors.length - 1, 0);
       },
     }));
-    this.head.appendChild(button('Run', {
-      icon: 'beaker', className: 'primary',
-      disabled: !this.vectors.length,
-      onClick: () => {
-        this.results = runTests(app.project, def.id, {
-          vectors: this.vectors,
-          settleTicks: this.settleTicks,
-          resetEachVector: this.resetEach,
-        });
-        this.render();
-      },
-    }));
+    this.head.appendChild(this.running
+      ? h('button', { class: 'btn primary', disabled: true },
+        h('span', { class: 'spinner' }), 'Running')
+      : button('Run', {
+        icon: 'beaker', className: 'primary',
+        disabled: !this.vectors.length,
+        onClick: () => { void this.run(); },
+      }));
 
     /* ----- the vectors, drawn whichever way ----- */
 
@@ -355,6 +353,44 @@ export class TestsView {
     }
 
     this.renderSummary(sig);
+  }
+
+  /**
+   * Run the vectors, having first let the button say that it is doing so.
+   *
+   * The work is one long synchronous burst -- compile the whole component,
+   * then step a few thousand gates once per vector -- and on anything the size
+   * of a RAM it is comfortably long enough to see. Yielding two frames before
+   * starting is what puts the spinner on screen, since a render that is never
+   * painted before the thread blocks is the same as no render at all. The
+   * spinner itself animates a transform and nothing else, so the compositor
+   * keeps turning it while this thread is busy.
+   *
+   * The timer beside the frame request is not belt and braces. A hidden tab
+   * never paints, so requestAnimationFrame never fires there, and waiting on
+   * it alone would leave the run unstarted and the button reading Running
+   * until someone came back to look -- which is exactly when nobody is.
+   */
+  private async run() {
+    if (this.running) return;
+    const app = this.app;
+    const def = app.openDef;
+    this.running = true;
+    this.render();
+    await new Promise((done) => {
+      requestAnimationFrame(() => requestAnimationFrame(done));
+      setTimeout(done, 60);
+    });
+    try {
+      this.results = runTests(app.project, def.id, {
+        vectors: this.vectors,
+        settleTicks: this.settleTicks,
+        resetEachVector: this.resetEach,
+      });
+    } finally {
+      this.running = false;
+      this.render();
+    }
   }
 
   /* ---------------- the grid ---------------- */
@@ -586,6 +622,13 @@ export class TestsView {
         + `${n === 1 ? 'belongs' : 'belong'} to a pin this component no longer has, so `
         + `${n === 1 ? 'it is' : 'they are'} not shown. Nothing has been deleted: if the pin `
         + `comes back, so does the column. This component's pins are ${pins}.`));
+    }
+    if (this.results?.unstable) {
+      this.summary.appendChild(h('div', { style: { color: 'var(--warn)' } },
+        'Some steps never settled. With ticks at 0 the runner waits for the circuit to go '
+        + 'quiet and gives up after 20,000 of them, which is most of why a run like this is '
+        + 'slow. A circuit with a latch in it is not meant to go quiet on its own: give it a '
+        + 'tick count instead, comfortably more than its deepest path of gates.'));
     }
     if (this.results?.ran) {
       const failed = this.results.total - this.results.passed;

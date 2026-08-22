@@ -711,3 +711,16 @@ table.grid-table td.res { text-align: center; width: 26px; }
   fill: var(--danger); opacity: 0; pointer-events: none;
 }
 .wave-hit:hover + .wave-flip { opacity: 1; }
+
+/* A run is one long synchronous burst, so this has to keep moving while the
+   main thread is blocked. It animates nothing but a transform, which the
+   compositor can carry on its own. */
+.spinner {
+  flex: none;
+  width: 11px; height: 11px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
