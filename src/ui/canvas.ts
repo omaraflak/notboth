@@ -4,7 +4,7 @@ import {
   type BoxLayout, type Measure, type PinLayout, type RoutePlan, type WireGeom,
 } from '../core/layout';
 import { arrangeDef } from '../core/autolayout';
-import { clampWidth, isPrim, primKind, primLabel } from '../core/primitives';
+import { clampWidth, customLabel, isPrim, primKind, primLabel } from '../core/primitives';
 import {
   connect, defSignature, makeInstance, nameNewInstances, nextFreeBits, removeInstances, removeWires,
   wouldRecurse,
@@ -179,7 +179,7 @@ export class CanvasView {
     this.placed = def.instances.map((inst) => {
       const sig = defSignature(app.project, inst.def, inst.props);
       const name = isPrim(inst.def) ? primLabel(inst) : (nameOfDef(app, inst.def) ?? '?');
-      return { inst, sig, box: layoutBox(sig, name, this.measure) };
+      return { inst, sig, box: layoutBox(sig, name, this.measure, customLabel(inst)) };
     });
     this.byId = new Map(this.placed.map((p) => [p.inst.id, p]));
     this.planRouting();
@@ -673,7 +673,12 @@ export class CanvasView {
     const sim = this.app.powered && this.app.sim && this.app.netlist ? this.app.sim : null;
     const def = this.app.openDef;
 
-    for (const w of def.wires) this.paintWire(ctx, c, w, sim);
+    // Selected wires go on top. Where wires overlap they are drawn in list
+    // order, so a selected one underneath is hidden exactly where the overlap
+    // is -- which is where seeing the selection matters most.
+    const picked = this.app.selection.wires;
+    for (const w of def.wires) if (!picked.has(w.id)) this.paintWire(ctx, c, w, sim);
+    for (const w of def.wires) if (picked.has(w.id)) this.paintWire(ctx, c, w, sim);
     this.paintJunctions(ctx, c, sim);
     if (this.drag.kind === 'wire') this.paintPendingWire(ctx, c);
     for (const p of this.placed) this.paintBox(ctx, c, p, sim);
@@ -779,10 +784,16 @@ export class CanvasView {
     const def = this.app.openDef;
     const scale = 1 / Math.max(0.6, Math.min(1, this.view.zoom));
     ctx.save();
-    for (const j of this.routes.junctions) {
-      const wire = def.wires.find(
-        (w) => `${w.from.inst}:${w.from.pin}:${w.from.lo}-${w.from.hi}` === j.net,
-      );
+    const wireFor = (net: string) => def.wires.find(
+      (w) => `${w.from.inst}:${w.from.pin}:${w.from.lo}-${w.from.hi}` === net,
+    );
+    // Same reason as the wires themselves: a junction on a selected wire must
+    // not be painted over by an unselected one crossing it.
+    const order = this.routes.junctions.slice().sort((a, b) =>
+      Number(this.app.selection.wires.has(wireFor(a.net)?.id ?? '')) -
+      Number(this.app.selection.wires.has(wireFor(b.net)?.id ?? '')));
+    for (const j of order) {
+      const wire = wireFor(j.net);
       if (!wire) continue;
       const base = wire.color || c.wire;
       const level = this.pinLevel(sim, wire.from.inst, wire.from.pin, wire.from.lo, wire.from.hi);
@@ -879,15 +890,24 @@ export class CanvasView {
     // The name sits centred; pin labels hug the edges. The box was sized to
     // fit both, so they can never collide.
     const valueText = this.boxValue(inst, kind, sim);
+    const label = customLabel(inst);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    let cy = y + h / 2 - (valueText ? 6 : 0) + (label ? 5 : 0);
+    if (label) {
+      // The name the author gave this part, above the type it is. Both are
+      // worth seeing: the label says which one this is, the type says what.
+      ctx.font = PIN_FONT;
+      ctx.fillStyle = c.accent;
+      ctx.fillText(label, x + w / 2, cy - 10);
+    }
     ctx.font = NAME_FONT;
     ctx.fillStyle = c['box-text'];
-    ctx.fillText(name, x + w / 2, y + h / 2 - (valueText ? 6 : 0));
+    ctx.fillText(name, x + w / 2, cy);
     if (valueText) {
       ctx.font = `10px ${MONO}`;
       ctx.fillStyle = c.warn;
-      ctx.fillText(valueText, x + w / 2, y + h / 2 + 7);
+      ctx.fillText(valueText, x + w / 2, cy + 13);
     }
 
     ctx.font = PIN_FONT;

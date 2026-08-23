@@ -41,7 +41,12 @@ const MIN_W = 3;
  * Box size follows from the pin count, so a component's shape tells you its
  * signature at a glance and neighbouring boxes always align.
  */
-export function layoutBox(sig: Signature, name: string, measure: Measure = approxMeasure): BoxLayout {
+export function layoutBox(
+  sig: Signature,
+  name: string,
+  measure: Measure = approxMeasure,
+  label?: string | null,
+): BoxLayout {
   const rows = Math.max(sig.inputs.length, sig.outputs.length, 1);
   const h = rows + 1;
 
@@ -56,7 +61,9 @@ export function layoutBox(sig: Signature, name: string, measure: Measure = appro
   for (const p of sig.outputs) {
     if (showPinLabel(p, name, pinCount)) maxOut = Math.max(maxOut, measure(p.name, PIN_FONT));
   }
-  const nameW = measure(name, NAME_FONT);
+  // A renamed part shows its label above its type, so the box has to be wide
+  // enough for whichever of the two is longer.
+  const nameW = Math.max(measure(name, NAME_FONT), label ? measure(label, PIN_FONT) : 0);
 
   const needed = maxIn + maxOut + nameW + PAD_PX * 4;
   const w = Math.max(MIN_W, Math.ceil(needed / GRID));

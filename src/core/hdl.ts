@@ -105,6 +105,28 @@ export function labelsFor(project: Project, def: ComponentDef): Map<Id, string> 
   return labels;
 }
 
+/**
+ * Rename one part. A label is identity in the text form, so no two parts may
+ * share one: a name already taken gets a numeric suffix rather than being
+ * dropped, which is what labelsFor would otherwise do silently. Returns the
+ * label actually given.
+ */
+export function renameInstance(project: Project, def: ComponentDef, instId: Id, wanted: string): string {
+  const inst = def.instances.find((i) => i.id === instId);
+  if (!inst) return '';
+  const fallback = isPrim(inst.def) ? primKind(inst.def).toLowerCase() : 'part';
+  const base = asIdentifier(wanted, fallback);
+
+  const taken = new Set<string>();
+  for (const [id, label] of labelsFor(project, def)) if (id !== instId) taken.add(label);
+
+  let name = base;
+  const join = /\d$/.test(base) ? '_' : '';
+  for (let n = 2; taken.has(name); n++) name = `${base}${join}${n}`;
+  inst.props.name = name;
+  return name;
+}
+
 /* ------------------------------------------------------------------ *
  * Graph -> text
  * ------------------------------------------------------------------ */

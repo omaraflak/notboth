@@ -10,6 +10,14 @@ const sig = (ins: number, outs: number): Signature => ({
 });
 
 describe('box layout', () => {
+  it('widens a box to fit the label the author gave the part', () => {
+    const plain = layoutBox(sig(2, 1), 'NAND', undefined, null);
+    const named = layoutBox(sig(2, 1), 'NAND', undefined, 'carryFromTheLowHalf');
+    expect(named.w).toBeGreaterThan(plain.w);
+    // A short label needs no more room than the type name already took.
+    expect(layoutBox(sig(2, 1), 'NAND', undefined, 'c').w).toBe(plain.w);
+  });
+
   it('sizes height from the pin count so pins land on grid points', () => {
     expect(layoutBox(sig(2, 1), 'NAND').h).toBe(3);
     expect(layoutBox(sig(1, 1), 'Not').h).toBe(2);

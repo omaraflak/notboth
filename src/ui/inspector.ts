@@ -1,4 +1,5 @@
 import { formatValue } from '../core/layout';
+import { labelsFor, renameInstance } from '../core/hdl';
 import { MAX_WIDTH } from '../core/types';
 import { clampWidth, isPrim, primKind, primName } from '../core/primitives';
 import { asIdentifier, defSignature, movePort, signatureOf, usageCount } from '../core/project';
@@ -123,6 +124,19 @@ export class Inspector {
     ]);
   }
 
+  /**
+   * Every part carries a label, and it is that label the text form uses to
+   * refer to it. Naming one is how a schematic says which Register is which,
+   * so it is offered for anything whose name is not already its box text.
+   */
+  private labelField(inst: Instance) {
+    const app = this.app;
+    const shown = labelsFor(app.project, app.openDef).get(inst.id) ?? '';
+    return this.textField('Name', shown, (v) => {
+      app.mutate(() => { renameInstance(app.project, app.openDef, inst.id, v); });
+    });
+  }
+
   /* ---------------- instance ---------------- */
 
   private instanceSection(inst: Instance) {
@@ -133,7 +147,8 @@ export class Inspector {
       const def = app.project.defs.find((d) => d.id === inst.def);
       const sig = defSignature(app.project, inst.def);
       this.section(def?.name ?? 'Component', [
-        h('div', { class: 'hint', style: { marginTop: '-4px' } },
+        this.labelField(inst),
+        h('div', { class: 'hint' },
           `${sig.inputs.length} in, ${sig.outputs.length} out. Instances follow the definition, so editing it updates every copy.`),
         h('div', { class: 'field', style: { marginTop: '8px' } },
           button('Open definition', { icon: 'chip', className: 'bordered', onClick: () => app.openComponent(inst.def) })),
@@ -146,7 +161,8 @@ export class Inspector {
 
     switch (kind) {
       case 'NAND':
-        fields.push(h('div', { class: 'hint', style: { marginTop: '-4px' } },
+        fields.push(this.labelField(inst));
+        fields.push(h('div', { class: 'hint' },
           'Nand has no settings. Every gate takes exactly one tick to propagate, which is what makes feedback loops latch predictably.'));
         break;
 
@@ -189,11 +205,13 @@ export class Inspector {
       }
 
       case 'CONST':
+        fields.push(this.labelField(inst));
         fields.push(this.widthField(inst, mutate));
         fields.push(this.numberField('Value', inst.props.value ?? 0, (v) => mutate(() => { inst.props.value = v; })));
         break;
 
       case 'CLOCK': {
+        fields.push(this.labelField(inst));
         const period = Math.max(2, inst.props.period ?? 16);
         fields.push(this.numberField('Period', period, (v) => mutate(() => { inst.props.period = Math.max(2, v); }), 2, 100000));
         fields.push(h('div', { class: 'hint' },
@@ -214,6 +232,7 @@ export class Inspector {
 
       case 'ROM':
       case 'RAM': {
+        fields.push(this.labelField(inst));
         const addrWidth = clampWidth(inst.props.addrWidth, 8);
         const dataWidth = clampWidth(inst.props.dataWidth, 16);
         fields.push(this.numberField('Address', addrWidth, (v) => mutate(() => { inst.props.addrWidth = clampWidth(v, 8); }), 1, 20));

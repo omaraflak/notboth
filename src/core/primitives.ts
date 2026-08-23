@@ -152,6 +152,20 @@ export function primLabel(inst: Instance): string {
   }
 }
 
+/**
+ * The label a part carries because the author typed it, rather than because
+ * one was generated. Ports, toggles and probes already show their name as the
+ * box label, so for those there is nothing extra to display.
+ */
+export function customLabel(inst: Instance): string | null {
+  if (isPrim(inst.def)) {
+    const kind = primKind(inst.def);
+    if (kind === 'IN' || kind === 'OUT' || kind === 'TOGGLE' || kind === 'PROBE') return null;
+  }
+  const name = inst.props.name;
+  return typeof name === 'string' && name ? name : null;
+}
+
 /** Which primitives make sense to offer in the palette, in display order. */
 export const PALETTE_PRIMITIVES: PrimitiveKind[] =
   ['NAND', 'IN', 'OUT', 'TOGGLE', 'CONST', 'CLOCK', 'PROBE', 'ROM', 'RAM'];

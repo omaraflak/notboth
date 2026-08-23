@@ -21,7 +21,7 @@
  *    somewhere to go and the parts move apart to make room.
  */
 import { approxMeasure, layoutBox, type Measure } from './layout';
-import { isPrim, primKind } from './primitives';
+import { customLabel, isPrim, primKind } from './primitives';
 import { defSignature } from './project';
 import type { ComponentDef, Id, Instance, Project, Wire } from './types';
 
@@ -147,7 +147,7 @@ function buildGraph(
   };
 
   instances.forEach((inst, rank) => {
-    const box = layoutBox(defSignature(project, inst.def, inst.props), labelOf(project, inst), measure);
+    const box = layoutBox(defSignature(project, inst.def, inst.props), labelOf(project, inst), measure, customLabel(inst));
     const kind = isPrim(inst.def) ? primKind(inst.def) : null;
     put({
       key: inst.id,
@@ -290,6 +290,7 @@ function place(
           defSignature(project, node.inst.def, node.inst.props),
           labelOf(project, node.inst),
           measure,
+          customLabel(node.inst),
         );
         widest = Math.max(widest, box.w);
         if (!options.only || options.only.has(node.inst.id)) {

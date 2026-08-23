@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { applyText, fromText, toText } from '../src/core/hdl';
+import { applyText, fromText, labelsFor, renameInstance, toText } from '../src/core/hdl';
 import { compile } from '../src/core/compile';
 import { Simulator } from '../src/core/sim';
 import { addPrimitive, connect, createProject, emptyDef, signatureOf } from '../src/core/project';
+import { customLabel } from '../src/core/primitives';
 import type { ComponentDef, Project } from '../src/core/types';
 
 function project(): Project {
@@ -602,5 +603,66 @@ describe('names the text form has to be able to write', () => {
     const out = d.instances.find((i) => i.props.name === 'y')!;
     out.props.name = '2nd';
     expect(applyText(p, d, toText(p, d))).toEqual([]);
+  });
+});
+
+describe('renaming a part', () => {
+  it('gives the part the name and writes it into the text form', () => {
+    const p = project();
+    const d = def(p, 'C');
+    const a = addPrimitive(d, 'IN', 0, 0, { name: 'a', width: 1 });
+    const g = addPrimitive(d, 'NAND', 5, 0);
+    const o = addPrimitive(d, 'OUT', 10, 0, { name: 'y', width: 1 });
+    connect(p, d, { inst: a.id, pin: 'out' }, { inst: g.id, pin: 'a' });
+    connect(p, d, { inst: a.id, pin: 'out' }, { inst: g.id, pin: 'b' });
+    connect(p, d, { inst: g.id, pin: 'y' }, { inst: o.id, pin: 'in' });
+
+    expect(labelsFor(p, d).get(g.id)).toBe('nand1');
+    expect(renameInstance(p, d, g.id, 'carry')).toBe('carry');
+    expect(labelsFor(p, d).get(g.id)).toBe('carry');
+    expect(toText(p, d)).toContain('carry : Nand');
+    expect(applyText(p, d, toText(p, d))).toEqual([]);
+  });
+
+  it('refuses to hand out a label another part already has', () => {
+    const p = project();
+    const d = def(p, 'C');
+    const g1 = addPrimitive(d, 'NAND', 0, 0);
+    const g2 = addPrimitive(d, 'NAND', 5, 0);
+    expect(renameInstance(p, d, g1.id, 'carry')).toBe('carry');
+    // Silently keeping the old label is what labelsFor would do; a suffix is
+    // visible, so the author can see what happened.
+    expect(renameInstance(p, d, g2.id, 'carry')).toBe('carry2');
+    const labels = labelsFor(p, d);
+    expect(labels.get(g1.id)).toBe('carry');
+    expect(labels.get(g2.id)).toBe('carry2');
+  });
+
+  it('lets a part keep the name it already has', () => {
+    const p = project();
+    const d = def(p, 'C');
+    const g = addPrimitive(d, 'NAND', 0, 0);
+    expect(renameInstance(p, d, g.id, 'carry')).toBe('carry');
+    expect(renameInstance(p, d, g.id, 'carry')).toBe('carry');
+  });
+
+  it('sanitises a name that could not be written back', () => {
+    const p = project();
+    const d = def(p, 'C');
+    const g = addPrimitive(d, 'NAND', 0, 0);
+    expect(renameInstance(p, d, g.id, 'my gate!')).toBe('mygate');
+    expect(applyText(p, d, toText(p, d))).toEqual([]);
+  });
+
+  it('is only reported for parts whose name is not already their box label', () => {
+    const p = project();
+    const d = def(p, 'C');
+    const g = addPrimitive(d, 'NAND', 0, 0);
+    const port = addPrimitive(d, 'IN', 5, 0, { name: 'a', width: 1 });
+    expect(customLabel(g)).toBe(null);
+    renameInstance(p, d, g.id, 'carry');
+    expect(customLabel(g)).toBe('carry');
+    // A port already shows its name on the box, so there is nothing to add.
+    expect(customLabel(port)).toBe(null);
   });
 });
