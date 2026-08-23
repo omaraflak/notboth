@@ -1135,7 +1135,7 @@
   <div>
     <h3>HalfAdder</h3>
     <div class="sig">HalfAdder(a, b) → sum, carry</div>
-    <p>A gate that adds two bits. There are only four cases: 0+0, 0+1, 1+0, and 1+1. Remember those are binary addition, but it works exactly like decimal addition:</p>
+    <p>Gate that adds two bits. There are only four cases: 0+0, 0+1, 1+0, and 1+1. Remember those are binary addition, but it works exactly like decimal additions:</p>
     <ul>
     <li>In decimal, when you go above 9 you loop back to 0.</li>
     <li>In binary, when you go above 1 you loop back to 0.</li>
@@ -1149,7 +1149,7 @@
   <div>
     <h3>FullAdder</h3>
     <div class="sig">FullAdder(a, b, c) → sum, carry</div>
-    <p>Gate that adds <em>three</em> bits. This will be useful when we extend the adder over the entire 16-bits space, as we will need to sum two digits + a carry from the previous <em>column</em> (still remember how to make an addition on paper?).</p>
+    <p>A gate that adds <em>three</em> bits. This will be useful when we extend the adder over the entire 16-bits space, as we will need to sum two digits + a carry from the previous <em>column</em> (remember how to make an addition on paper?).</p>
   </div>
 </article>
 
@@ -1169,7 +1169,7 @@
     <h3>Inc16</h3>
     <div class="sig">Inc16(in[16]) → out[16]</div>
     <p>A gate to increment a number by one.</p>
-    <p>The reason is Part III. A program counter spends almost its entire life doing exactly this, once per instruction, forever. Naming the operation now means the counter reads as what it is instead of as a special case of addition.</p>
+    <p>The reason is Part III. A program counter spends almost its entire life doing exactly this, once per instruction, forever.</p>
   </div>
 </article>
 
@@ -1179,7 +1179,7 @@
     <h3>Negative numbers</h3>
     <div class="sig">no new chip — a decision</div>
     <p>This stage builds nothing, it settles a question.</p>
-    <p>You need negative numbers, and you do not want to build a second machine for subtracting. The convention that saves you is <em>two&#39;s complement</em>: negate a number by inverting every bit and adding one. Under that convention <code>a - b</code> is literally <code>a + (-b)</code>, the adder you already have does both jobs, and comparison becomes subtraction followed by a glance at the result.</p>
+    <p>You need negative numbers, and you do not want to build a second machine for subtracting. The convention that saves you is <em>two&#39;s complement</em>: negate a number by inverting every bit and adding one. Under that convention <code>a - b</code> is literally <code>a + (-b)</code>, the adder you already have does both jobs, and comparison becomes subtraction followed by a peek at the result.</p>
     <p>Here is <code>5</code> being negated, and then added back to itself:</p>
           <div class="tt-wrap">
             <table class="tt">
@@ -1189,7 +1189,7 @@
               <tr><td class="l">add one</td><td>1111111111111011</td><td>−5</td></tr>
               <tr><td class="l">add the 5 back</td><td>0000000000000000</td><td>0</td></tr>
             </table>
-          </div><p>The last row carries a 1 off the top end. Since there are only sixteen bits, the seventeenth has nowhere to go and discarding it is exactly what makes the arithmetic wrap round and come out right.</p>
+          </div><p>The last row carries a 1 off the top end. Since there are only sixteen bits, the seventeenth has nowhere to go and discarding it is exactly what makes the arithmetic wrap round and come out right (i.e. <code>5 + (-5) = 0</code>).</p>
   </div>
 </article>
 
@@ -1204,12 +1204,12 @@
     constant.</p>
     <p>Six single-bit controls, acting in this order to compute the output <code>out</code>:</p>
     <ul>
-    <li><strong>zx</strong> — replace <code>x</code> with zero.</li>
-    <li><strong>nx</strong> — invert <code>x</code> (applies after <code>zx</code>).</li>
-    <li><strong>zy</strong> — replace <code>y</code> with zero.</li>
-    <li><strong>ny</strong> — invert <code>y</code>, (applies after <code>zy</code>).</li>
-    <li><strong>f</strong> — the operation: 1 <code>ADD</code>s the two pre-processed inputs, 0 <code>AND</code>s them.</li>
-    <li><strong>no</strong> — invert the answer (<code>NOT</code>) on the way out.</li>
+    <li><code>zx</code> — replace <code>x</code> with zero.</li>
+    <li><code>nx</code> — invert <code>x</code> (applies after <code>zx</code>).</li>
+    <li><code>zy</code> — replace <code>y</code> with zero.</li>
+    <li><code>ny</code> — invert <code>y</code>, (applies after <code>zy</code>).</li>
+    <li><code>f</code> — the operation: 1 <code>ADD</code>s the two pre-processed inputs, 0 <code>AND</code>s them.</li>
+    <li><code>no</code> — invert the answer (<code>NOT</code>) on the way out.</li>
     </ul>
     <p>Two extra outputs matter as much as the number itself:</p>
     <ul>
@@ -1249,10 +1249,10 @@
     <div class="sig">SRLatch(set, reset) → q</div>
     <p>The SRLatch is the first circuit you&#39;ll build that remembers:</p>
     <ul>
-    <li>Set <code>set</code> to 1 and the output <code>q</code> will take that value. Set <code>set</code> to 0 and <code>q</code> won&#39;t change.</li>
-    <li>Set <code>reset</code> to 1 and the output <code>q</code> will be released and back to 0. Set <code>reset</code> to 0 and <code>q</code> won&#39;t change.</li>
+    <li>Set <code>set</code> to 1 and the output <code>q</code> will lock in that value. Flipping <code>set</code> again to 0/1 won&#39;t affect <code>q</code>.</li>
+    <li>Set <code>reset</code> to 1 and the output <code>q</code> will be released and back to 0. Flipping <code>reset</code> to 0/1 after that won&#39;t affect <code>q</code>.</li>
     </ul>
-    <p>You can actually build this from <strong>NAND</strong> gates or <strong>NOR</strong> gates. With <strong>NOR</strong> gates, everything happens as described above. With <strong>NAND</strong> gates however, the <em><strong>active state</strong></em> for <code>set</code> and <code>reset</code> is 0 not 1 (so you have to set <code>set</code> to 0 to flip <code>q</code> from 0 to 1, and you have to set <code>reset</code> to 0 to flip <code>q</code> from 1 to 0).</p>
+    <p>You can actually build this from <strong>NAND</strong> gates or <strong>NOR</strong> gates. With <strong>NOR</strong> gates, everything happens as described above. With <strong>NAND</strong> gates however, the <em><strong>active/trigger state</strong></em> for <code>set</code> and <code>reset</code> is 0 instead of 1 (so you have to set <code>set</code> to 0 to flip <code>q</code> from 0 to 1, and you have to set <code>reset</code> to 0 to flip <code>q</code> from 1 to 0).</p>
     <p>While a circuit with <strong>NOR</strong> seems more intuitive, you should still go with <strong>NAND</strong> for performance reasons (<strong>NOR</strong> is not a primitive, it&#39;s built out of <strong>NANDs</strong>).</p>
     <p>The SRLatch gate is implemented very simply with <em><strong>two</strong></em> <strong>NANDs</strong> cross-feeding their outputs into their inputs.</p>
     <p>They, however, have two flaws:</p>
@@ -1278,8 +1278,8 @@
         <text class="wv-note" x="556" y="181" text-anchor="end">contradiction</text>
       </svg>
     </figure><ul>
-    <li>The right-hand end of the picture is the first flaw: we can assert (i.e. set in the active state) both inputs <code>set</code> and <code>reset</code>, in which case it&#39;s not clear what <code>q</code> should be (<code>set</code> is asking for 1, while <code>reset</code> is asking for 0). This is a design flaw.</li>
-    <li>The second flaw is what happens on the way out of that state: release both <code>set</code> and <code>reset</code> at once (i.e. go from 0 to 1 quickly for both inputs) and the two gates are perfectly symmetric with no way to choose, which shows up in the simulation as an <em><strong>oscillation</strong></em>. Real hardware breaks the tie with manufacturing imperfection.</li>
+    <li>The right-hand end of the picture is the first flaw: we can lower (i.e. set to 0, the active state) both <code>set</code> and <code>reset</code>, in which case it&#39;s not clear what <code>q</code> should be (<code>set</code> is asking for 1, while <code>reset</code> is asking for 0). This is a design flaw.</li>
+    <li>The second flaw is what happens on the way out of that state: release both <code>set</code> and <code>reset</code> at once (i.e. go from 0 to 1 quickly for both inputs) and the two gates are perfectly symmetric with no way to choose. This shows up in the simulation as an <em><strong>oscillation</strong></em>, while real hardware breaks the tie with manufacturing imperfection.</li>
     </ul>
   </div>
 </article>
@@ -1289,11 +1289,11 @@
   <div>
     <h3>Data latch</h3>
     <div class="sig">DLatch(d, enable) → q</div>
-    <p>DLatch takes a single <code>data</code> input instead of two (<code>set</code>/<code>reset</code> in the <code>SRLatch</code>), plus an <code>enable</code> bit:</p>
+    <p>DLatch takes a single data input <code>d</code> instead of two (<code>set</code>/<code>reset</code> in the <code>SRLatch</code>), plus an <code>enable</code> bit:</p>
     <ul>
-    <li><strong>d</strong> — the value to store.</li>
-    <li><strong>enable</strong> — while it is high the output <code>q</code> follows <code>d</code>; when it drops, <code>q</code> holds on whatever value it had.</li>
-    <li><strong>q</strong> — the stored bit.</li>
+    <li><code>d</code> — the value to store.</li>
+    <li><code>enable</code> — while it is high the output <code>q</code> follows <code>d</code>; when it drops, <code>q</code> holds on whatever value it had.</li>
+    <li><code>q</code> — the stored bit.</li>
     </ul>
     <p>The first flaw of the previous model automatically disappears since we can&#39;t have contradictory inputs, i.e. asking for a 0 and 1 at the same time.</p>
     <figure class="wave" role="img" aria-label="Timing diagram for the gated latch">
@@ -1313,7 +1313,7 @@
         <path class="wv-span" d="M466,120 L466,124 L556,124 L556,120"/>
         <text class="wv-note" x="556" y="137" text-anchor="end">holds</text>
       </svg>
-    </figure><p>However, one problem remains: while <code>enable</code> is high the chip is <em>transparent</em> (it let&#39;s the <code>d</code> signal pass through). If you chain multiple DLatches and open the gates (<code>enable</code> set to 1), a value can race down the whole chain in one go instead of moving step-by-step — which is undesirable because the machine relies on a value crossing exactly one storage element per tick (whereas here, how far a value travels depends only on gate delays).</p>
+    </figure><p>However, one problem remains: while <code>enable</code> is high the chip is <em>transparent</em> (it let&#39;s the <code>d</code> signal pass through). If you chain multiple DLatches and open the gates (<code>enable</code> set to 1), a value can race down the whole chain in one go instead of moving step-by-step. This is undesirable because the machine relies on a value crossing exactly one storage element per tick (whereas here, how far a value travels depends only on gate delays).</p>
   </div>
 </article>
 
@@ -1322,14 +1322,12 @@
   <div>
     <h3>Flip-flop</h3>
     <div class="sig">DFF(d, clk) → q</div>
-    <p>The most important idea in the sequential half of this build. A flip-flop
-    samples its input at one <em>instant</em> and holds it steady for the rest of the
-    cycle. Never transparent.</p>
+    <p>A flip-flop samples its input at one <em>instant</em> using a <em><strong>clock</strong></em> and outputs it for the rest of the clock cycle.</p>
+    <p>We&#39;re using the notion of a <em>clock</em> here for the first time. This will be just a normal input (not the actual clock chip given to you in the interface), but you should expect the <em>signal</em> itself to be passed down from an <em>actual</em> clock chip higher up in the chain. So the <code>clk</code> input is a signal that goes <em>up</em> then <em>down</em> periodically.</p>
     <ul>
-    <li><strong>d</strong> — read only at the edge. What it does between edges is ignored, and
-    that is not a side effect but the entire specification.</li>
-    <li><strong>clk</strong> — the clock. This one acts on the <strong>rising</strong> edge.</li>
-    <li><strong>q</strong> — whatever <code>d</code> was at the last edge.</li>
+    <li><code>d</code> — data signal to be held on to. Read it only at the <em>rising</em> edge of the clock. What it does <em>during</em> the cycle should be ignored.</li>
+    <li><code>clk</code> — the clock signal. When the clock goes from low to high (i.e. <em>rising</em> edge) is when you sample the <code>d</code> value and write it to <code>q</code>.</li>
+    <li><code>q</code> — whatever <code>d</code> was at the last edge.</li>
     </ul>
     <figure class="wave" role="img" aria-label="Timing diagram for the flip-flop">
       <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
@@ -1346,22 +1344,8 @@
         <line class="wv-mark" x1="436" y1="6" x2="436" y2="118"/>
         <text class="wv-tick" x="436" y="130" text-anchor="middle">read</text>
       </svg>
-    </figure><p>Read the picture at the dashed lines and nowhere else: <code>d</code> moves seven times,
-    <code>q</code> moves three, always at an edge and always to whatever <code>d</code> was at that
-    instant.</p>
-    <p>Use the rising edge. Either works in principle so long as every clocked part
-    of the machine agrees on one, and the built-in RAM writes on the rise — so
-    that is the agreement already on the table. Mixing the two gives a bug that
-    presents as a timing problem and is very hard to find.</p>
-    <p>Build it from two gated latches back to back: the first enabled while the
-    clock is <em>low</em>, the second while it is high. Whichever is listening, the other
-    is holding, so a value can only advance one stage per tick. That restriction
-    is what makes the rest of the build tractable — the whole machine changes
-    state together, and every part can rely on the others staying still while it
-    thinks.</p>
-    <p>When it works, chain a handful, feed the clock, and watch a single 1 march
-    through them one stage per tick.</p>
-    <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge. Too fast a clock does not run your machine faster; it runs it wrongly.</div>
+    </figure><p>Read the picture at the dashed lines: <code>d</code> moves seven times, <code>q</code> moves three, always at a <em>rising</em> edge of <code>clk</code> and always to whatever <code>d</code> was at that instant.</p>
+    <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge.</div>
   </div>
 </article>
 
