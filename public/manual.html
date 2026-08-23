@@ -585,6 +585,36 @@
       white-space: nowrap;
     }
 
+    /* A markdown blockquote is the manual's aside: a remark that belongs in
+       the middle of a specification without interrupting its numbering. It is
+       filled rather than ruled so it reads as a detour from the paragraph
+       around it, and it carries no label, because "Watch out" is the loud box
+       and this one is deliberately the quiet one. */
+    blockquote {
+      max-width: var(--measure);
+      margin: 1.25rem 0;
+      padding: 0.7rem 0.9rem;
+      background: var(--tint);
+      border-left: 2px solid var(--spot);
+      border-radius: 0 2px 2px 0;
+      font-size: 0.94rem;
+      line-height: 1.55;
+      color: var(--ink-2);
+    }
+
+    blockquote > :first-child { margin-top: 0; }
+    blockquote > :last-child { margin-bottom: 0; }
+
+    blockquote p {
+      max-width: none;
+      margin: 0 0 0.6em;
+    }
+
+    blockquote b,
+    blockquote strong {
+      color: var(--ink);
+    }
+
     .watch {
       max-width: var(--measure);
       margin: 1.3rem 0 0;
@@ -1252,7 +1282,7 @@
     <li>Set <code>set</code> to 1 and the output <code>q</code> will lock in that value. Flipping <code>set</code> again to 0/1 won&#39;t affect <code>q</code>.</li>
     <li>Set <code>reset</code> to 1 and the output <code>q</code> will be released and back to 0. Flipping <code>reset</code> to 0/1 after that won&#39;t affect <code>q</code>.</li>
     </ul>
-    <p>You can actually build this from <strong>NAND</strong> gates or <strong>NOR</strong> gates. With <strong>NOR</strong> gates, everything happens as described above. With <strong>NAND</strong> gates however, the <em><strong>active/trigger state</strong></em> for <code>set</code> and <code>reset</code> is 0 instead of 1 (so you have to set <code>set</code> to 0 to flip <code>q</code> from 0 to 1, and you have to set <code>reset</code> to 0 to flip <code>q</code> from 1 to 0).</p>
+    <p>You can actually build this from <strong>NAND</strong> gates or <strong>NOR</strong> gates. With <strong>NOR</strong> gates, everything happens as described above. With <strong>NAND</strong> gates however, the <em><strong>active</strong></em> / <em><strong>trigger</strong></em> state for <code>set</code> and <code>reset</code> is 0 instead of 1 (so you have to set <code>set</code> to 0 to flip <code>q</code> from 0 to 1, and you have to set <code>reset</code> to 0 to flip <code>q</code> from 1 to 0).</p>
     <p>While a circuit with <strong>NOR</strong> seems more intuitive, you should still go with <strong>NAND</strong> for performance reasons (<strong>NOR</strong> is not a primitive, it&#39;s built out of <strong>NANDs</strong>).</p>
     <p>The SRLatch gate is implemented very simply with <em><strong>two</strong></em> <strong>NANDs</strong> cross-feeding their outputs into their inputs.</p>
     <p>They, however, have two flaws:</p>
@@ -1318,12 +1348,14 @@
 </article>
 
 <article class="stage" id="s304">
-  <div class="rail"><span class="num">3.04</span><span class="deps"><b>Needs</b>3.03, the clock</span></div>
+  <div class="rail"><span class="num">3.04</span><span class="deps"><b>Needs</b>1.01, 3.03</span></div>
   <div>
     <h3>Flip-flop</h3>
     <div class="sig">DFF(d, clk) → q</div>
     <p>A flip-flop samples its input at one <em>instant</em> using a <em><strong>clock</strong></em> and outputs it for the rest of the clock cycle.</p>
-    <p>We&#39;re using the notion of a <em>clock</em> here for the first time. This will be just a normal input (not the actual clock chip given to you in the interface), but you should expect the <em>signal</em> itself to be passed down from an <em>actual</em> clock chip higher up in the chain. So the <code>clk</code> input is a signal that goes <em>up</em> then <em>down</em> periodically.</p>
+    <blockquote>
+    <p>We&#39;re using the notion of a <em>clock</em> here for the first time. This is a normal input (not the actual clock chip given to you in the interface), but you should expect the <em>signal</em> itself to be passed down from an <em>actual</em> clock chip higher up in the chain. So the <code>clk</code> input is a signal that goes <em>up</em> then <em>down</em> periodically.</p>
+    </blockquote>
     <ul>
     <li><code>d</code> — data signal to be held on to. Read it only at the <em>rising</em> edge of the clock. What it does <em>during</em> the cycle should be ignored.</li>
     <li><code>clk</code> — the clock signal. When the clock goes from low to high (i.e. <em>rising</em> edge) is when you sample the <code>d</code> value and write it to <code>q</code>.</li>
@@ -1345,27 +1377,26 @@
         <text class="wv-tick" x="436" y="130" text-anchor="middle">read</text>
       </svg>
     </figure><p>Read the picture at the dashed lines: <code>d</code> moves seven times, <code>q</code> moves three, always at a <em>rising</em> edge of <code>clk</code> and always to whatever <code>d</code> was at that instant.</p>
-    <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge.</div>
+    <p>So the real difference with the <code>DLatch</code> gate is that we write <code>d</code> to <code>q</code> <strong>only</strong> at the rising edge of the clock, and not before or after. So while the clock is up, unlike the <code>DLatch</code>, we won&#39;t write changes in <code>d</code> to <code>q</code>. This fixes the <em>transparency</em> issue of the <code>DLatch</code> and we now have the building block of a <code>Bit</code>!</p>
+    <p>Hint: you only need two <code>DLatch</code> gates to build a <code>Flip-Flop</code>.</p>
+    <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge. This holds for tests as well.</div>
   </div>
 </article>
 
 <article class="stage" id="s305">
-  <div class="rail"><span class="num">3.05</span><span class="deps"><b>Needs</b>3.04, 1.05</span></div>
+  <div class="rail"><span class="num">3.05</span><span class="deps"><b>Needs</b>1.05, 3.04</span></div>
   <div>
     <h3>Bit</h3>
     <div class="sig">Bit(in, load, clk) → out</div>
-    <p>A flip-flop takes whatever arrives, every single tick. What you want is
-    storage that <em>keeps</em> its value until told otherwise.</p>
+    <p>A flip-flop copies the data, whatever it is, every single tick. So if <code>d</code> doesn&#39;t happen to hold what you want to write during a rising edge of the clock, you are in a bad position because it is written to <code>q</code> anyways!</p>
+    <p>What you want is storage that <em>keeps</em> or <em>discards</em> its value only if you ask it to. This is the <code>Bit</code>!</p>
     <ul>
-    <li><strong>in</strong> — the value to store.</li>
-    <li><strong>load</strong> — 1 takes <code>in</code> at the next edge, 0 keeps what is already there.</li>
-    <li><strong>clk</strong> and <strong>out</strong> — as in 3.04.</li>
+    <li><code>in</code> — the value to store.</li>
+    <li><code>load</code> — 1 will write <code>in</code> to <code>out</code> at the next rising edge of <code>clk</code>, while 0 should hold the value of <code>out</code>.</li>
+    <li><code>clk</code> — same as in 3.04.</li>
+    <li><code>out</code> — same as in 3.04.</li>
     </ul>
-    <p>So on each edge, store either the new input or the value already held.
-    Choosing between two values with a control bit is a multiplexer, and the
-    second value comes from the flip-flop’s own output: a one-bit register is a
-    flip-flop with a mux in its feedback path. That is where stage 1.05 pays for
-    itself.</p>
+    <p>So on each rising edge, store either the new input or the value already held.</p>
     <figure class="wave" role="img" aria-label="Timing diagram for a one-bit register">
       <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
@@ -1383,11 +1414,7 @@
         <line class="wv-mark" x1="436" y1="6" x2="436" y2="162"/>
         <text class="wv-tick" x="436" y="174" text-anchor="middle">load</text>
       </svg>
-    </figure><p>The middle edge is the one to look at. <code>in</code> has gone low and the clock has
-    ticked, either of which would have moved a bare flip-flop, and <code>out</code> does not
-    move — because <code>load</code> was low and the mux was feeding the flip-flop its own
-    output. Storage is the flip-flop plus somewhere for the old value to go round
-    again.</p>
+    </figure><p>The middle edge is the one to look at. <code>in</code> has gone low and the clock has ticked, but because <code>load</code> is also low, <code>out</code> remains unchanged.</p>
   </div>
 </article>
 
@@ -1396,39 +1423,31 @@
   <div>
     <h3>Register</h3>
     <div class="sig">Register(in[16], load, clk) → out[16]</div>
-    <p>Sixteen Bits side by side, sharing one <code>load</code> and one clock. Every pin is the
-    one from 3.05 made sixteen bits wide, and it behaves identically: <code>load</code> high
-    takes <code>in</code> at the next edge, low keeps what is there.</p>
-    <p>Mechanical and quick, and the first component that would be recognisable to
-    someone who has only seen a computer from the software side. It is a variable.</p>
+    <p>A Register holds on to a <em>word</em>: sixteen <code>Bit</code>s side by side, sharing one <code>load</code> and one <code>clk</code>.</p>
+    <blockquote>
+    <p>You now have a way to store variables!</p>
+    </blockquote>
+    <div class="watch"><b>Watch out</b>Remember to uses buses, and not sixteen individual inputs/outputs!</div>
   </div>
 </article>
 
 <article class="stage" id="s307">
-  <div class="rail"><span class="num">3.07</span><span class="deps"><b>Needs</b>3.06, 1.09, 1.10</span></div>
+  <div class="rail"><span class="num">3.07</span><span class="deps"><b>Needs</b>1.09, 1.10, 3.06</span></div>
   <div>
     <h3>RAM8</h3>
     <div class="sig">RAM8(in[16], load, address[3], clk) → out[16]</div>
     <p>Eight registers and an address that picks one of them.</p>
     <ul>
-    <li><strong>address[3]</strong> — which of the eight.</li>
-    <li><strong>in[16]</strong>, <strong>load</strong>, <strong>clk</strong> — write <code>in</code> into that register on the next
-    edge, if <code>load</code> is high.</li>
-    <li><strong>out[16]</strong> — that register’s contents, always. Reading needs no clock;
-    only writing waits for the edge.</li>
+    <li><code>in[16]</code> — data to write on the next rising edge of the clock if <code>load</code> is high.</li>
+    <li><code>load</code> — same as in 3.06.</li>
+    <li><code>address[3]</code> — which of the eight registers to write to.</li>
+    <li><code>clk</code> — same as in 3.06.</li>
+    <li><code>out[16]</code> — that register&#39;s content.</li>
     </ul>
-    <p>Two jobs, and both parts are already on your shelf: route the write signal to
-    exactly one register (a demux) and select one register’s output to present (a
-    wide mux).</p>
-    <p>Build it and the recursion is visible: RAM64 is eight RAM8s addressed by three
-    more bits, RAM512 is eight RAM64s. Only the depth of the address changes.</p>
-    <p>Then stop. Having proved you can, use the built-in RAM part for the real
-    machine. It is worth saying why that is a reasonable place to stop: a
-    sixteen-thousand-word memory made of flip-flops is around two and a half
-    million gates, and real hardware does not build it that way either — an SRAM
-    cell is six transistors, not a netlist of gates. You have demonstrated that
-    memory <em>can</em> be made of NANDs. Now buy it off the shelf and spend your gates
-    on the CPU, where the interesting decisions are.</p>
+    <p>Build it and the recursion is visible: RAM64 is eight RAM8s addressed by three more bits, RAM512 is eight RAM64s. Only the depth of the address changes.</p>
+    <blockquote>
+    <p>Then <strong>stop</strong>! Having proved you can build RAM out of NANDs, use the built-in RAM part for the real machine. A register is about ~300 gates, so building a 16kB memory would be over ~2.4M gates!</p>
+    </blockquote>
   </div>
 </article>
 
@@ -1437,36 +1456,19 @@
   <div>
     <h3>Program counter</h3>
     <div class="sig">PC(in[16], load, inc, reset, clk) → out[16]</div>
-    <p>The register that says which instruction to run next, and the last piece of
-    Part III. Four things can happen to it on a clock edge, and naming all four is
-    most of the specification:</p>
+    <p>The program counter is a special register that says which instruction to run next in your CPU (by holding on to the instruction address). Four things can happen to it on the rising edge of the clock:</p>
     <ul>
-    <li><strong>reset</strong> — <code>out</code> becomes 0. What happens when you switch the machine on.</li>
-    <li><strong>load</strong> — <code>out</code> becomes <code>in</code>. A jump, and therefore where every <code>if</code>,
-    every <code>while</code> and every function call eventually comes from.</li>
-    <li><strong>inc</strong> — <code>out</code> becomes <code>out + 1</code>. The next instruction, which is what
-    happens on almost every tick a machine ever runs.</li>
-    <li><strong>none of them asserted</strong> — <code>out</code> does not change. This one is easy to
-    leave out, because it is the case where nothing is supposed to happen, and
-    leaving it out is the usual way to end up with a counter that will not sit
-    still.</li>
+    <li><code>reset</code> — <code>out</code> becomes 0. What happens when you switch the machine on.</li>
+    <li><code>load</code> — <code>out</code> becomes <code>in</code>. This is how you would <em>jump</em> from one instruction address to another.</li>
+    <li><code>inc</code> — <code>out</code> becomes <code>out + 1</code>. Point to the next instruction, which is what happens on almost every tick a machine ever runs.</li>
+    <li>None of <code>reset</code>/<code>load</code>/<code>inc</code> are set — <code>out</code> should hold on its value.</li>
     </ul>
-    <p>When more than one is asserted, take them in the order above: reset beats
-    load, and load beats inc. Any consistent order can be made to work, but that
-    one agrees with what the words mean — a machine being switched on should not
-    also be jumping, and an instruction that says “jump” should not also step past
-    the place it jumped to. Whichever you choose, write it down, because Part IV
-    will depend on it.</p>
-    <p>One thing about the shape before you draw it: <strong>the incrementer reads <code>out</code>,
-    not <code>in</code>.</strong> A counter counts <em>itself</em>. Feed the adder from <code>in</code> and you have
-    built a chip that computes one more than whatever is being loaded, which
-    accumulates nothing and sits at the same number for ever. It is the same
-    arrangement as 3.05 one size up: the register’s own output goes back round
-    into the thing that decides its next input, and that loop is the whole of what
-    makes it a counter rather than a register.</p>
-    <p>With that settled it is a register with a stack of muxes in front of it, one
-    per behaviour, and stage 1.05 paying for itself yet again.</p>
-    <div class="watch"><b>Watch out</b>All three controls have to make the register <em>store</em>, not just choose a value. Wire the register’s load to the chip’s <code>load</code> alone and <code>inc</code> and <code>reset</code> will compute exactly the right number and then throw it away, which looks like a broken incrementer and is not one. One way out: store on every edge, and let the muxes hand the register its own output when nothing is asserted — then “do not change” needs no gates of its own.</div>
+    <p>When more than one control bit is set, take them in the order above: <code>reset</code> beats <code>load</code>, and <code>load</code> beats <code>inc</code>. Any consistent order can be made to work, but that one is easy to make sense of:</p>
+    <ul>
+    <li>A machine being switched on should not also be jumping to a non-zero address.</li>
+    <li>An instruction that says &quot;jump&quot; should not also step past (i.e. <code>inc</code>) the place it just jumped to.</li>
+    </ul>
+    <div class="watch"><b>Watch out</b>All three controls have to make the register <em>store</em>, not just choose a value.</div>
   </div>
 </article>
 

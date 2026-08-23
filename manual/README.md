@@ -34,7 +34,7 @@ A part header uses `kind: part`, `roman:` and `title:` instead.
 ## Body
 
 Ordinary markdown — paragraphs, `**bold**`, `*italic*`, `` `code` `` and `-`
-lists — plus three things markdown has no way to say.
+lists — plus four things markdown has no way to say.
 
 ### Truth tables
 
@@ -68,6 +68,23 @@ that is not yet known. `@col` puts a labelled dashed line at a column boundary,
 All the geometry — coordinates, edges, where a caption has to anchor so it does
 not collide with its neighbour — is worked out at build time. Every signal must
 have the same number of columns, and the build fails loudly if one does not.
+
+### Notes
+
+A blockquote is an aside: a remark that belongs in the middle of a
+specification without breaking its flow. It takes any markdown inside,
+including several paragraphs, and it goes wherever you put it.
+
+    Ordinary paragraph.
+
+    > **Lead-in, if you want one.** The rest of the note, which can hold
+    > `code`, *emphasis*, and lists.
+
+    The specification continues here.
+
+Use it for something a reader wants while reading, and a `::: watch` box for
+something that will bite them while building. The note is filled and quiet;
+Watch out is ruled, labelled and sits at the end of the stage.
 
 ### Watch out boxes
 
