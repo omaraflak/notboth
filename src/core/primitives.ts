@@ -153,11 +153,15 @@ export function primLabel(inst: Instance): string {
 }
 
 /**
- * The label a part carries because the author typed it, rather than because
- * one was generated. Ports, toggles and probes already show their name as the
- * box label, so for those there is nothing extra to display.
+ * The label to draw on a part's box, or null for the usual case of none. Every
+ * part has a label -- it is what the text form calls it -- but showing it is
+ * opt-in per part, so a schematic only carries the names worth carrying.
+ *
+ * Ports, toggles and probes are excluded because their name is already their
+ * box label; there is nothing extra to show.
  */
 export function customLabel(inst: Instance): string | null {
+  if (!inst.props.showName) return null;
   if (isPrim(inst.def)) {
     const kind = primKind(inst.def);
     if (kind === 'IN' || kind === 'OUT' || kind === 'TOGGLE' || kind === 'PROBE') return null;

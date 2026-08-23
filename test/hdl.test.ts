@@ -654,15 +654,22 @@ describe('renaming a part', () => {
     expect(applyText(p, d, toText(p, d))).toEqual([]);
   });
 
-  it('is only reported for parts whose name is not already their box label', () => {
+  it('draws a label only for a part that asked to show one', () => {
     const p = project();
     const d = def(p, 'C');
     const g = addPrimitive(d, 'NAND', 0, 0);
     const port = addPrimitive(d, 'IN', 5, 0, { name: 'a', width: 1 });
-    expect(customLabel(g)).toBe(null);
+
     renameInstance(p, d, g.id, 'carry');
+    // Named, but not asked for: the label lives in the text form and nowhere
+    // else, which is the default for every part.
+    expect(customLabel(g)).toBe(null);
+
+    g.props.showName = true;
     expect(customLabel(g)).toBe('carry');
+
     // A port already shows its name on the box, so there is nothing to add.
+    port.props.showName = true;
     expect(customLabel(port)).toBe(null);
   });
 });

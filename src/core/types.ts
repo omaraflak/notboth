@@ -62,6 +62,13 @@ export interface InstanceProps {
   /** ROM/RAM initial contents, indexed by address. */
   contents?: number[];
   format?: NumberFormat;
+  /**
+   * Draw this part's label on its box. Off by default: a label is identity in
+   * the text form whether or not it is shown, and a schematic where every box
+   * carries one is harder to read than one where only the parts worth naming
+   * do.
+   */
+  showName?: boolean;
 }
 
 export type NumberFormat = 'bin' | 'hex' | 'dec' | 'sdec';

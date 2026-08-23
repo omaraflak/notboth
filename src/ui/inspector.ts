@@ -125,16 +125,43 @@ export class Inspector {
   }
 
   /**
-   * Every part carries a label, and it is that label the text form uses to
-   * refer to it. Naming one is how a schematic says which Register is which,
-   * so it is offered for anything whose name is not already its box text.
+   * Every part carries a label -- it is what the text form calls it -- but a
+   * schematic with a name on every box reads worse than one with names only
+   * where they help, so showing it is opt-in. Ticking the box also settles the
+   * generated label into the part, so what the canvas shows and what the text
+   * form says are the same string from then on.
    */
-  private labelField(inst: Instance) {
+  private labelFields(inst: Instance): (Node | null)[] {
     const app = this.app;
-    const shown = labelsFor(app.project, app.openDef).get(inst.id) ?? '';
-    return this.textField('Name', shown, (v) => {
-      app.mutate(() => { renameInstance(app.project, app.openDef, inst.id, v); });
+    const shown = !!inst.props.showName;
+    const box = h('input', {
+      type: 'checkbox', checked: shown, style: { width: 'auto' },
+      onchange: (e: Event) => {
+        const on = (e.target as HTMLInputElement).checked;
+        app.mutate(() => {
+          const live = app.openDef.instances.find((i) => i.id === inst.id);
+          if (!live) return;
+          if (on) {
+            live.props.showName = true;
+            if (!live.props.name) {
+              renameInstance(app.project, app.openDef, inst.id,
+                labelsFor(app.project, app.openDef).get(inst.id) ?? '');
+            }
+          } else {
+            delete live.props.showName;
+          }
+        });
+      },
     });
+    const fields: (Node | null)[] = [
+      h('div', { class: 'field' }, h('label', null, 'Show name'), h('div', { class: 'control' }, box)),
+    ];
+    if (shown) {
+      fields.push(this.textField('Name', labelsFor(app.project, app.openDef).get(inst.id) ?? '', (v) => {
+        app.mutate(() => { renameInstance(app.project, app.openDef, inst.id, v); });
+      }));
+    }
+    return fields;
   }
 
   /* ---------------- instance ---------------- */
@@ -147,7 +174,7 @@ export class Inspector {
       const def = app.project.defs.find((d) => d.id === inst.def);
       const sig = defSignature(app.project, inst.def);
       this.section(def?.name ?? 'Component', [
-        this.labelField(inst),
+        ...this.labelFields(inst),
         h('div', { class: 'hint' },
           `${sig.inputs.length} in, ${sig.outputs.length} out. Instances follow the definition, so editing it updates every copy.`),
         h('div', { class: 'field', style: { marginTop: '8px' } },
@@ -161,7 +188,7 @@ export class Inspector {
 
     switch (kind) {
       case 'NAND':
-        fields.push(this.labelField(inst));
+        fields.push(...this.labelFields(inst));
         fields.push(h('div', { class: 'hint' },
           'Nand has no settings. Every gate takes exactly one tick to propagate, which is what makes feedback loops latch predictably.'));
         break;
@@ -205,13 +232,13 @@ export class Inspector {
       }
 
       case 'CONST':
-        fields.push(this.labelField(inst));
+        fields.push(...this.labelFields(inst));
         fields.push(this.widthField(inst, mutate));
         fields.push(this.numberField('Value', inst.props.value ?? 0, (v) => mutate(() => { inst.props.value = v; })));
         break;
 
       case 'CLOCK': {
-        fields.push(this.labelField(inst));
+        fields.push(...this.labelFields(inst));
         const period = Math.max(2, inst.props.period ?? 16);
         fields.push(this.numberField('Period', period, (v) => mutate(() => { inst.props.period = Math.max(2, v); }), 2, 100000));
         fields.push(h('div', { class: 'hint' },
@@ -232,7 +259,7 @@ export class Inspector {
 
       case 'ROM':
       case 'RAM': {
-        fields.push(this.labelField(inst));
+        fields.push(...this.labelFields(inst));
         const addrWidth = clampWidth(inst.props.addrWidth, 8);
         const dataWidth = clampWidth(inst.props.dataWidth, 16);
         fields.push(this.numberField('Address', addrWidth, (v) => mutate(() => { inst.props.addrWidth = clampWidth(v, 8); }), 1, 20));
