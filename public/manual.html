@@ -964,7 +964,7 @@
   <div>
     <h3>Not</h3>
     <div class="sig">Not(in) → out</div>
-    <p>NOT gate flips the input signal. You have a gate with two inputs (NAND) and you need one with a single input (NOT), so the whole puzzle is what to do with the spare.</p>
+    <p>NOT gate flips the input signal. You have a gate with two inputs (NAND) and you need one with a single input (NOT)...</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>in</th><th>out</th></tr>
@@ -980,7 +980,7 @@
   <div>
     <h3>And</h3>
     <div class="sig">And(a, b) → out</div>
-    <p>AND gate tells you when two signals are up simultaneously. You already own a gate that computes its opposite, and a part that reverses things.</p>
+    <p>AND gate tells you when two signals are up simultaneously. You already own a gate that computes its opposite!</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>a</th><th>b</th><th>out</th></tr>
@@ -1016,7 +1016,7 @@
   <div>
     <h3>Xor</h3>
     <div class="sig">Xor(a, b) → out</div>
-    <p>XOR gate, which stands for Exclusive-OR, tells you when <strong>only one of</strong> the two inputs are up.</p>
+    <p>XOR gate (<em>Exclusive-OR</em>) tells you when <strong>only one of</strong> the two inputs are up.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>a</th><th>b</th><th>out</th></tr>
@@ -1034,8 +1034,7 @@
   <div>
     <h3>Mux</h3>
     <div class="sig">Mux(a, b, sel) → out</div>
-    <p>MUX gate (<em>multiplexer</em>) allows you to select between one of two signals. Two data inputs, one selector, and the output is whichever input the selector
-    points at. You can decide to select either <code>a</code> or <code>b</code> based on the selector value, it doesn&#39;t matter you just need to be consistent throughout.</p>
+    <p>MUX gate (<em>multiplexer</em>) allows you to select between one of two signals <code>a</code> or <code>b</code> using a selector <code>sel</code>. You can decide to select either <code>a</code> or <code>b</code> based on the selector value, it doesn&#39;t matter as long as you stay consistent throughout.</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>sel</th><th>a</th><th>b</th><th>out</th></tr>
@@ -1049,7 +1048,7 @@
               <tr><td>1</td><td>1</td><td>1</td><td class="o">1</td></tr>
             </table>
           </div><p>Read the table as two halves: while <code>sel</code> is 0 the output copies <code>a</code> and ignores <code>b</code>; while it is 1 they swap roles.</p>
-    <p>This is what an <em>if</em> condition is. Almost every decision your machine ever makes is using this chip underneath.</p>
+    <p>This is essentially an <em>if</em> condition. Almost every decision your machine ever makes is using this chip underneath.</p>
     <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code> — eight vectors, not four.</div>
   </div>
 </article>
@@ -1068,7 +1067,7 @@
               <tr><td>1</td><td>0</td><td class="o">0</td><td class="o">0</td></tr>
               <tr><td>1</td><td>1</td><td class="o">0</td><td class="o">1</td></tr>
             </table>
-          </div><p>Where a mux <em>gathers</em>, a demux <em>routes</em>. You will need it the moment you build memory: storing a value at an address means delivering a write signal to exactly one cell out of many and to none of the others. Addressing is demultiplexing.</p>
+          </div><p>While a MUX <em>gathers</em>, a DMUX <em>routes</em>. You will need it the moment you build memory: storing a value at an address means delivering a write signal to exactly one cell out of many. Addressing is demultiplexing.</p>
   </div>
 </article>
 
@@ -1082,7 +1081,7 @@
     <ul>
     <li><code>Mux16</code> is a <em>single</em> selector bit choosing between two entire numbers.</li>
     <li>Bit 0 is the lowest significant bit in the software simulation you&#39;re using.</li>
-    <li>Don&#39;t actually create sixteen individual inputs for each chip (although you could), use the <code>bits</code> setting of the input to widen it (make it a bus).</li>
+    <li>Don&#39;t actually create sixteen individual inputs for each chip (although you could), use the <code>bits</code> setting of the input/output to widen them (we call that a <em>bus</em>).</li>
     </ul>
     <div class="watch"><b>Watch out</b>Test the ends and the middle, not just <code>0000…</code> and <code>1111…</code>. A bus wired one bit out of alignment passes both of those and nothing else.</div>
   </div>
@@ -1094,7 +1093,7 @@
     <h3>Or16Way</h3>
     <div class="sig">Or16Way(in[16]) → out</div>
     <p>A gate to output 1 when <em>any</em> one of the input bits is 1.</p>
-    <p>This is how your machine answers &quot;is this number zero?&quot;, which is basis of conditional branching.</p>
+    <p>This is how your machine answers &quot;is this number zero?&quot;, which is the basis of conditional branching.</p>
   </div>
 </article>
 
@@ -1117,18 +1116,8 @@
   <div>
     <h3>DMux4Way and DMux8Way</h3>
     <div class="sig">DMux4Way(in, sel[2]) → a,b,c,d · DMux8Way</div>
-    <p>The routing counterpart, and your address decoder. Two bits in, one of four
-    lines raised and three held down; then three bits and one of eight.</p>
-    <p>When you build RAM you will hand it an address and expect exactly one cell to
-    react. This chip is what makes that true. Build it the same way as the wide
-    mux: in layers, out of the part you already have.</p>
-    <p>One thing worth being explicit about, because the pair looks lopsided next to
-    each other: the muxes in the stage above are sixteen bits wide and these are
-    one bit. That is not an omission. A mux carries <em>data</em> — it chooses between
-    whole numbers, so it is as wide as a number. A demux carries a <em>decision</em> — it
-    routes a single write signal to one destination out of several. There is no
-    DMux4Way16 because nothing in the machine needs to send a whole word down one
-    of four roads; it needs to tell one register out of four to listen.</p>
+    <p>The routing counterpart.</p>
+    <p>When you build RAM you will hand it an address and expect exactly one cell to react. This chip is what helps you build that.</p>
   </div>
 </article>
 
