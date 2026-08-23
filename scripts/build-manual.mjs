@@ -1,22 +1,26 @@
 /**
  * Build public/manual.html from manual/.
  *
- * The manual is prose with four things prose cannot carry: a stage header, a
- * truth table, a timing diagram, and the two callout boxes. Each of those gets
- * a small syntax here so that the source stays something you can read and edit
- * in a text editor, and the geometry stays something a machine works out.
+ * The manual is prose with five things prose cannot carry: a stage header, a
+ * truth table, a timing diagram, an instruction layout, and the callout box.
+ * Each of those gets a small syntax here so that the source stays something
+ * you can read and edit in a text editor, and the geometry stays something a
+ * machine works out.
  *
- *   ```truth            ```wave                 ::: watch
- *   a | b | >out        !alt text               ...text...
- *   0 | 0 | 0           clk  1100110011001100   :::
- *   ...                 >q   0000111100001111
- *   ```                 @4 read
- *                       ~0-1 unknown at power-on
- *                       ```
+ *   ```truth          ```wave                   ```bits
+ *   a | b | >out      !alt text                 !alt text
+ *   0 | 0 | 0         clk  1100110011001100     0 : op
+ *   ...               >q   0000111100001111     vvvvvvvvvvvvvvv : constant
+ *   ```               @4 read                   ```
+ *                     ~0-1 unknown at power-on
+ *                     ```                       ::: watch
+ *                                               ...text...
+ *                                               :::
  *
  * In a truth table header, `>` marks an answer column and `.` a prose one. In
  * a waveform, `>` marks an output, `?` an unknown level, `@col` a labelled
- * instant and `~a-b` a labelled span.
+ * instant and `~a-b` a labelled span. In a layout, one character per bit and
+ * one line per field.
  */
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -120,12 +124,67 @@ function wave(body) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Instruction layouts. Drawn rather than typed: box-drawing characters are
+ * not in the manual's mono face, so an ASCII diagram falls back to whatever
+ * font has them and the rules stop meeting the cells they belong to.
+ * ------------------------------------------------------------------ */
+
+const BW = 27, BH = 26, BTOP = 15;
+
+function bits(body) {
+  let alt = 'Instruction layout';
+  const fields = [];
+  for (const raw of body.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('!')) { alt = line.slice(1).trim(); continue; }
+    const m = /^(\S+)\s*:\s*(.*)$/.exec(line);
+    if (!m) throw new Error(`bits: cannot read "${line}"`);
+    fields.push({ syms: m[1].split(''), label: m[2].trim() });
+  }
+  const n = fields.reduce((t, f) => t + f.syms.length, 0);
+  // Every word in this manual is sixteen bits wide, and the realistic mistake
+  // is miscounting a run of placeholders, so it is worth refusing to build.
+  if (n !== 16) throw new Error(`bits: fields add up to ${n} bits, expected 16`);
+
+  const parts = [];
+  const bottom = BTOP + BH;
+  let at = 0;
+  fields.forEach((f, i) => {
+    const x = at * BW;
+    const w = f.syms.length * BW;
+    // Alternate fills do the grouping, so the labels below only have to say
+    // which field is which, not draw a bracket to reach it.
+    if (i % 2) parts.push(`<rect class="bt-fill" x="${x}" y="${BTOP}" width="${w}" height="${BH}"/>`);
+    f.syms.forEach((sym, k) => {
+      const cx = x + k * BW;
+      if (k) parts.push(`<line class="bt-div" x1="${cx}" y1="${BTOP}" x2="${cx}" y2="${bottom}"/>`);
+      parts.push(`<text class="bt-sym" x="${cx + BW / 2}" y="${BTOP + BH / 2 + 4}" text-anchor="middle">${sym}</text>`);
+      parts.push(`<text class="bt-idx" x="${cx + BW / 2}" y="${BTOP - 5}" text-anchor="middle">${n - 1 - (at + k)}</text>`);
+    });
+    if (i) parts.push(`<line class="bt-edge" x1="${x}" y1="${BTOP}" x2="${x}" y2="${bottom}"/>`);
+    if (f.label) {
+      parts.push(`<text class="bt-lab" x="${x + w / 2}" y="${bottom + 15}" text-anchor="middle">${f.label}</text>`);
+    }
+    at += f.syms.length;
+  });
+  parts.push(`<rect class="bt-box" x="0" y="${BTOP}" width="${n * BW}" height="${BH}"/>`);
+
+  const h = bottom + 20;
+  return `<figure class="bits" role="img" aria-label="${alt}">\n`
+    + `  <svg viewBox="-1 0 ${n * BW + 2} ${h}" xmlns="http://www.w3.org/2000/svg">\n    `
+    + parts.join('\n    ') + '\n  </svg>\n</figure>';
+}
+
+/* ------------------------------------------------------------------ *
  * Truth tables
  * ------------------------------------------------------------------ */
 
 function truth(bodyText) {
   const lines = bodyText.split('\n').map((l) => l.trim()).filter(Boolean);
-  const cells = (l) => l.split('|').map((c) => c.trim());
+  // A cell may need a literal pipe -- `D|A` is an expression the instruction
+  // set in 4.01 has to name -- so `\\|` escapes the separator.
+  const cells = (l) => l.split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'));
   const heads = cells(lines[0]);
   const kind = heads.map((h) => (h.startsWith('>') ? 'o' : h.startsWith('.') ? 'l' : ''));
   const names = heads.map((h) => h.replace(/^[>.]/, ''));
@@ -159,8 +218,9 @@ function blocks(text) {
   const held = [];
   const keep = (html) => `<!--HOLD:${held.push(html) - 1}-->`;
   let t = text;
-  t = t.replace(/^```(wave|truth)\n([\s\S]*?)\n```$/gm,
-    (_, kind, body) => keep(kind === 'wave' ? wave(body) : truth(body)));
+  const custom = { wave, truth, bits };
+  t = t.replace(/^```(wave|truth|bits)\n([\s\S]*?)\n```$/gm,
+    (_, kind, body) => keep(custom[kind](body)));
   t = t.replace(/^::: watch\n([\s\S]*?)\n:::$/gm,
     (_, body) => keep(`<div class="watch"><b>Watch out</b>${md(body.replace(/\n/g, ' '))}</div>`));
   let html = marked.parse(t);

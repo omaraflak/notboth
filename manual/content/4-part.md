@@ -4,5 +4,4 @@ roman: IV
 title: The machine
 ---
 
-You now own every component a computer is made of. What remains is deciding
-what your computer *is* — and that is a design problem, not a wiring problem.
+In this Part, we design the CPU instruction set, and build the CPU and the machine around it. If you are unfamiliar with the concepts of instructions and state-machines, I would advise to have a look at my article on [Virtual Machines](https://omaraflak.com/articles/virtual-machine).

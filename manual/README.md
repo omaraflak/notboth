@@ -39,7 +39,9 @@ lists — plus four things markdown has no way to say.
 ### Truth tables
 
 `>` on a heading marks an answer column, drawn in the accent colour. `.` marks
-a prose column, set in the body face rather than the mono one.
+a prose column, set in the body face rather than the mono one. A cell that
+needs a literal `|` escapes it as `\|` — the instruction set in 4.01 has to
+name expressions like `D|A`.
 
     ```truth
     a | b | >out
@@ -85,6 +87,42 @@ including several paragraphs, and it goes wherever you put it.
 Use it for something a reader wants while reading, and a `::: watch` box for
 something that will bite them while building. The note is filled and quiet;
 Watch out is ruled, labelled and sits at the end of the stage.
+
+### Instruction layouts
+
+One character per bit, one line per field, `label` after the colon. The build
+draws the boxes, numbers the bits from the left, and refuses to build if the
+fields do not add up to sixteen.
+
+    ```bits
+    !Layout of a C-instruction
+    1 : op
+    11 : unused
+    a : a
+    cccccc : compute
+    ddd : dest
+    jjj : jump
+    ```
+
+Keep the labels to one short word. They are centred under their field, and a
+long one on a narrow field will collide with its neighbour — say the rest in
+the prose underneath.
+
+Do not draw a layout with box-drawing characters in a plain code block. They
+are not in the manual's mono face, so they fall back to whatever font has
+them, and the rules stop lining up with the cells they belong to.
+
+### Code blocks
+
+A plain fenced block, for bit layouts, machine code and assembly listings. It
+is monospace and scrolls inside its own box, so a wide layout never stretches
+the page.
+
+### Subheadings
+
+`##` inside a stage renders as a small tracked label. Only a stage long enough
+to need signposting should use one — 4.01 is the only one that does. Do not
+use `###`: an `h3` is the stage title itself.
 
 ### Watch out boxes
 

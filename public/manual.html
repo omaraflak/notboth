@@ -220,6 +220,10 @@
       font-family: var(--serif);
       font-size: 1rem;
       color: var(--ink-2);
+      /* Prose cells wrap. A mono cell holds a symbol that must not break, but a
+     sentence in the last column is what pushes a table past the measure and
+     into a sideways scroll the reader has to find. */
+      white-space: normal;
     }
 
     /* Lists, for the stages whose subject really is a set of cases. Same measure
@@ -570,6 +574,22 @@
       text-wrap: balance;
     }
 
+    /* A subheading inside a stage. Only the longest stages need one -- 4.01 is
+       a specification carrying five separate tables -- and it must read as
+       clearly below the stage title, which is the h3 above it. */
+    .stage h2 {
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      max-width: var(--measure);
+      margin: 2rem 0 0.7rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--rule-soft);
+    }
+
     .sig {
       font-size: 0.82rem;
       color: var(--ink-2);
@@ -583,6 +603,33 @@
       max-width: 100%;
       overflow-x: auto;
       white-space: nowrap;
+    }
+
+    /* Fenced code: bit layouts, machine code, assembly listings. An
+       instruction layout is wider than the measure and must scroll inside its
+       own box rather than stretch the page. */
+    pre {
+      max-width: var(--measure);
+      margin: 1.2rem 0;
+      padding: 0.75rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-left: 2px solid var(--spot);
+      border-radius: 0 2px 2px 0;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+
+    pre code {
+      font: inherit;
+      background: none;
+      border: 0;
+      padding: 0;
+      color: inherit;
+      white-space: pre;
     }
 
     /* A markdown blockquote is the manual's aside: a remark that belongs in
@@ -602,8 +649,13 @@
       color: var(--ink-2);
     }
 
-    blockquote > :first-child { margin-top: 0; }
-    blockquote > :last-child { margin-bottom: 0; }
+    blockquote> :first-child {
+      margin-top: 0;
+    }
+
+    blockquote> :last-child {
+      margin-bottom: 0;
+    }
 
     blockquote p {
       max-width: none;
@@ -665,6 +717,57 @@
       width: 100%;
       min-width: 30rem;
       height: auto;
+    }
+
+    .bits {
+      max-width: var(--measure);
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+
+    .bits svg {
+      display: block;
+      width: 100%;
+      min-width: 27rem;
+      height: auto;
+    }
+
+    .bt-box {
+      fill: none;
+      stroke: var(--rule);
+    }
+
+    .bt-fill {
+      fill: var(--rule-soft);
+    }
+
+    .bt-div {
+      stroke: var(--rule-soft);
+    }
+
+    .bt-edge {
+      stroke: var(--rule);
+    }
+
+    .bt-sym {
+      font-family: var(--mono);
+      font-size: 12px;
+      fill: var(--ink);
+    }
+
+    .bt-idx {
+      font-family: var(--mono);
+      font-size: 8px;
+      fill: var(--ink-3);
+    }
+
+    .bt-lab {
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      fill: var(--spot);
     }
 
     .wv-lab {
@@ -812,6 +915,10 @@
         for you to figure out. By the end of this journey, you will have a computer that can run your
         own programming language.
       </p>
+      <p class="standfirst">This tutorial is largely insipired by <a href="https://www.nand2tetris.org/"
+          target="_blank">Nand2Tetris</a>'
+        course materials and designs.
+      </p>
     </header>
 
     <figure class="stack">
@@ -938,13 +1045,13 @@
     </div>
     <div class="toc-part">
       <b><i>IV</i>The machine</b>
-      <a href="#s401"><i>4.01</i>Design the instruction set</a>
-      <a href="#s402"><i>4.02</i>The memory map</a>
-      <a href="#s403"><i>4.03</i>Two registers</a>
-      <a href="#s404"><i>4.04</i>The decoder is wires</a>
-      <a href="#s405"><i>4.05</i>The datapath</a>
-      <a href="#s406"><i>4.06</i>Jumps</a>
-      <a href="#s407"><i>4.07</i>Talking to the world</a>
+      <a href="#s401"><i>4.01</i>Machine registers</a>
+      <a href="#s402"><i>4.02</i>The instruction set</a>
+      <a href="#s403"><i>4.03</i>The memory map</a>
+      <a href="#s404"><i>4.04</i>The decoder</a>
+      <a href="#s405"><i>4.05</i>Jumps</a>
+      <a href="#s406"><i>4.06</i>The datapath</a>
+      <a href="#s407"><i>4.07</i>Memory-mapped I/O</a>
       <a href="#s408"><i>4.08</i>The computer</a>
     </div>
     <div class="toc-part">
@@ -1228,10 +1335,7 @@
   <div>
     <h3>ALU</h3>
     <div class="sig">ALU(x[16], y[16], zx, nx, zy, ny, f, no) → out[16], zr, ng</div>
-    <p>The arithmetic and logic unit: one box that computes any of a couple of dozen
-    useful functions of two numbers, with control bits selecting which: add,
-    subtract, negate, increment, bitwise-and, bitwise-or, pass one input through, produce a
-    constant.</p>
+    <p>The arithmetic and logic unit: one box that computes any of a couple of dozen useful functions of two numbers, with control bits selecting which: add, subtract, invert, increment, bitwise-and, bitwise-or, pass one input through, produce a constant.</p>
     <p>Six single-bit controls, acting in this order to compute the output <code>out</code>:</p>
     <ul>
     <li><code>zx</code> — replace <code>x</code> with zero.</li>
@@ -1476,154 +1580,440 @@
   <div class="roman">IV</div>
   <div>
     <h2>The machine</h2>
-    <p>You now own every component a computer is made of. What remains is deciding
-    what your computer <em>is</em> — and that is a design problem, not a wiring problem.</p>
+    <p>In this Part, we design the CPU instruction set, and build the CPU and the machine around it. If you are unfamiliar with the concepts of instructions and state-machines, I would advise to have a look at my article on <a href="https://omaraflak.com/articles/virtual-machine">Virtual Machines</a>.</p>
   </div>
 </div>
 <div class="part-rule"></div>
 
 <article class="stage" id="s401">
-  <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b>paper</span></div>
+  <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b>3.06, 3.07, 3.08</span></div>
   <div>
-    <h3>Design the instruction set first</h3>
-    <div class="sig">no new chip — a specification</div>
-    <p>Do not wire anything in this Part until you have written down your instruction
-    set. The hardware is a <em>consequence</em> of the instruction set, not the other way
-    round, and every hour spent here saves several later.</p>
-    <p>What you are deciding: how wide an instruction is, what an instruction can
-    say, and how few kinds of instruction you can get away with. Fewer is
-    dramatically better — every additional instruction format is more decoding
-    logic and more ways to be wrong.</p>
-    <p>One proven shape, worth understanding before you invent your own: two
-    instruction types, distinguished by a single bit. One loads a constant into a
-    register. The other says “compute something, put the answer somewhere, and
-    maybe jump” — with separate little fields for <em>what to compute</em>, <em>where to put
-    it</em>, and <em>when to jump</em>. Two formats is enough for a real computer, and every
-    format you add is more decoding logic in 4.04.</p>
+    <h3>Machine registers</h3>
+    <div class="sig">no new chip — the three registers</div>
+    <p>Our machine will need only three registers to function properly:</p>
+    <ul>
+    <li><code>A</code> — an address register (<a href="/manual.html#s306">3.06</a>). This register can hold an address pointing to the <code>RAM</code> <em>or</em> a data value directly. The interpretation of <code>A</code>&#39;s content will depend on the instruction using it.</li>
+    <li><code>D</code> — a data register (<a href="/manual.html#s306">3.06</a>). This register holds only data.</li>
+    <li><code>PC</code> — a program counter (<a href="/manual.html#s308">3.08</a>). This register holds the address of the instruction to execute next.</li>
+    </ul>
   </div>
 </article>
 
 <article class="stage" id="s402">
-  <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b>4.01</span></div>
+  <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b>2.06, 4.01</span></div>
   <div>
-    <h3>The memory map</h3>
-    <div class="sig">no new chip — a decision</div>
-    <p>Decide what lives at which addresses, and write that down too. Some region is
-    working memory. If you want a screen or a keyboard, they get addresses as
-    well.</p>
-    <p>That last point is worth dwelling on. If a screen is simply a range of memory
-    addresses whose contents happen to be displayed, then drawing a pixel is
-    <em>storing a number</em>, and you need no new instructions, no new hardware path,
-    and no concept of input or output at all. It is one of the tidiest economies
-    in the design, and it costs nothing but a decision made now.</p>
+    <h3>The instruction set</h3>
+    <div class="sig">no new chip — the encoding of instructions</div>
+    <p>We&#39;ll present an instruction set and design ready to implement, but once you understand this it&#39;ll be much easier to implement your own.</p>
+    <p>In this design, an instruction is 16 bits and we&#39;ll support two instruction <em>layouts</em>. Those two formats are differentiated by the 15th (most significant) bit of the instruction.</p>
+    <h2>instruction[15] = 0</h2>
+    <figure class="bits" role="img" aria-label="Layout of an A-instruction">
+      <svg viewBox="-1 0 434 61" xmlns="http://www.w3.org/2000/svg">
+        <text class="bt-sym" x="13.5" y="32" text-anchor="middle">0</text>
+        <text class="bt-idx" x="13.5" y="10" text-anchor="middle">15</text>
+        <text class="bt-lab" x="13.5" y="56" text-anchor="middle">op</text>
+        <rect class="bt-fill" x="27" y="15" width="405" height="26"/>
+        <text class="bt-sym" x="40.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="40.5" y="10" text-anchor="middle">14</text>
+        <line class="bt-div" x1="54" y1="15" x2="54" y2="41"/>
+        <text class="bt-sym" x="67.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="67.5" y="10" text-anchor="middle">13</text>
+        <line class="bt-div" x1="81" y1="15" x2="81" y2="41"/>
+        <text class="bt-sym" x="94.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="94.5" y="10" text-anchor="middle">12</text>
+        <line class="bt-div" x1="108" y1="15" x2="108" y2="41"/>
+        <text class="bt-sym" x="121.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="121.5" y="10" text-anchor="middle">11</text>
+        <line class="bt-div" x1="135" y1="15" x2="135" y2="41"/>
+        <text class="bt-sym" x="148.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="148.5" y="10" text-anchor="middle">10</text>
+        <line class="bt-div" x1="162" y1="15" x2="162" y2="41"/>
+        <text class="bt-sym" x="175.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="175.5" y="10" text-anchor="middle">9</text>
+        <line class="bt-div" x1="189" y1="15" x2="189" y2="41"/>
+        <text class="bt-sym" x="202.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="202.5" y="10" text-anchor="middle">8</text>
+        <line class="bt-div" x1="216" y1="15" x2="216" y2="41"/>
+        <text class="bt-sym" x="229.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="229.5" y="10" text-anchor="middle">7</text>
+        <line class="bt-div" x1="243" y1="15" x2="243" y2="41"/>
+        <text class="bt-sym" x="256.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="256.5" y="10" text-anchor="middle">6</text>
+        <line class="bt-div" x1="270" y1="15" x2="270" y2="41"/>
+        <text class="bt-sym" x="283.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="283.5" y="10" text-anchor="middle">5</text>
+        <line class="bt-div" x1="297" y1="15" x2="297" y2="41"/>
+        <text class="bt-sym" x="310.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="310.5" y="10" text-anchor="middle">4</text>
+        <line class="bt-div" x1="324" y1="15" x2="324" y2="41"/>
+        <text class="bt-sym" x="337.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="337.5" y="10" text-anchor="middle">3</text>
+        <line class="bt-div" x1="351" y1="15" x2="351" y2="41"/>
+        <text class="bt-sym" x="364.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="364.5" y="10" text-anchor="middle">2</text>
+        <line class="bt-div" x1="378" y1="15" x2="378" y2="41"/>
+        <text class="bt-sym" x="391.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="391.5" y="10" text-anchor="middle">1</text>
+        <line class="bt-div" x1="405" y1="15" x2="405" y2="41"/>
+        <text class="bt-sym" x="418.5" y="32" text-anchor="middle">v</text>
+        <text class="bt-idx" x="418.5" y="10" text-anchor="middle">0</text>
+        <line class="bt-edge" x1="27" y1="15" x2="27" y2="41"/>
+        <text class="bt-lab" x="229.5" y="56" text-anchor="middle">value</text>
+        <rect class="bt-box" x="0" y="15" width="432" height="26"/>
+      </svg>
+    </figure><p>When that most significant bit is 0, then we simply write the 15 remaining bits to register <code>A</code> (zero-extended to 16 bits), and nothing else.</p>
+    <blockquote>
+    <p>Since we&#39;re left with 15 bits, <code>A</code> can therefore contain values between <code>0</code> and <code>32767</code>.</p>
+    </blockquote>
+    <h2>instruction[15] = 1</h2>
+    <figure class="bits" role="img" aria-label="Layout of a C-instruction">
+      <svg viewBox="-1 0 434 61" xmlns="http://www.w3.org/2000/svg">
+        <text class="bt-sym" x="13.5" y="32" text-anchor="middle">1</text>
+        <text class="bt-idx" x="13.5" y="10" text-anchor="middle">15</text>
+        <text class="bt-lab" x="13.5" y="56" text-anchor="middle">op</text>
+        <rect class="bt-fill" x="27" y="15" width="54" height="26"/>
+        <text class="bt-sym" x="40.5" y="32" text-anchor="middle">1</text>
+        <text class="bt-idx" x="40.5" y="10" text-anchor="middle">14</text>
+        <line class="bt-div" x1="54" y1="15" x2="54" y2="41"/>
+        <text class="bt-sym" x="67.5" y="32" text-anchor="middle">1</text>
+        <text class="bt-idx" x="67.5" y="10" text-anchor="middle">13</text>
+        <line class="bt-edge" x1="27" y1="15" x2="27" y2="41"/>
+        <text class="bt-lab" x="54" y="56" text-anchor="middle">unused</text>
+        <text class="bt-sym" x="94.5" y="32" text-anchor="middle">a</text>
+        <text class="bt-idx" x="94.5" y="10" text-anchor="middle">12</text>
+        <line class="bt-edge" x1="81" y1="15" x2="81" y2="41"/>
+        <text class="bt-lab" x="94.5" y="56" text-anchor="middle">a</text>
+        <rect class="bt-fill" x="108" y="15" width="162" height="26"/>
+        <text class="bt-sym" x="121.5" y="32" text-anchor="middle">c</text>
+        <text class="bt-idx" x="121.5" y="10" text-anchor="middle">11</text>
+        <line class="bt-div" x1="135" y1="15" x2="135" y2="41"/>
+        <text class="bt-sym" x="148.5" y="32" text-anchor="middle">c</text>
+        <text class="bt-idx" x="148.5" y="10" text-anchor="middle">10</text>
+        <line class="bt-div" x1="162" y1="15" x2="162" y2="41"/>
+        <text class="bt-sym" x="175.5" y="32" text-anchor="middle">c</text>
+        <text class="bt-idx" x="175.5" y="10" text-anchor="middle">9</text>
+        <line class="bt-div" x1="189" y1="15" x2="189" y2="41"/>
+        <text class="bt-sym" x="202.5" y="32" text-anchor="middle">c</text>
+        <text class="bt-idx" x="202.5" y="10" text-anchor="middle">8</text>
+        <line class="bt-div" x1="216" y1="15" x2="216" y2="41"/>
+        <text class="bt-sym" x="229.5" y="32" text-anchor="middle">c</text>
+        <text class="bt-idx" x="229.5" y="10" text-anchor="middle">7</text>
+        <line class="bt-div" x1="243" y1="15" x2="243" y2="41"/>
+        <text class="bt-sym" x="256.5" y="32" text-anchor="middle">c</text>
+        <text class="bt-idx" x="256.5" y="10" text-anchor="middle">6</text>
+        <line class="bt-edge" x1="108" y1="15" x2="108" y2="41"/>
+        <text class="bt-lab" x="189" y="56" text-anchor="middle">control</text>
+        <text class="bt-sym" x="283.5" y="32" text-anchor="middle">d</text>
+        <text class="bt-idx" x="283.5" y="10" text-anchor="middle">5</text>
+        <line class="bt-div" x1="297" y1="15" x2="297" y2="41"/>
+        <text class="bt-sym" x="310.5" y="32" text-anchor="middle">d</text>
+        <text class="bt-idx" x="310.5" y="10" text-anchor="middle">4</text>
+        <line class="bt-div" x1="324" y1="15" x2="324" y2="41"/>
+        <text class="bt-sym" x="337.5" y="32" text-anchor="middle">d</text>
+        <text class="bt-idx" x="337.5" y="10" text-anchor="middle">3</text>
+        <line class="bt-edge" x1="270" y1="15" x2="270" y2="41"/>
+        <text class="bt-lab" x="310.5" y="56" text-anchor="middle">destination</text>
+        <rect class="bt-fill" x="351" y="15" width="81" height="26"/>
+        <text class="bt-sym" x="364.5" y="32" text-anchor="middle">j</text>
+        <text class="bt-idx" x="364.5" y="10" text-anchor="middle">2</text>
+        <line class="bt-div" x1="378" y1="15" x2="378" y2="41"/>
+        <text class="bt-sym" x="391.5" y="32" text-anchor="middle">j</text>
+        <text class="bt-idx" x="391.5" y="10" text-anchor="middle">1</text>
+        <line class="bt-div" x1="405" y1="15" x2="405" y2="41"/>
+        <text class="bt-sym" x="418.5" y="32" text-anchor="middle">j</text>
+        <text class="bt-idx" x="418.5" y="10" text-anchor="middle">0</text>
+        <line class="bt-edge" x1="351" y1="15" x2="351" y2="41"/>
+        <text class="bt-lab" x="391.5" y="56" text-anchor="middle">jump</text>
+        <rect class="bt-box" x="0" y="15" width="432" height="26"/>
+      </svg>
+    </figure><p>When that most significant bit is 1, our instruction will <strong>compute</strong> something with the <code>ALU</code>, <strong>load</strong> the result into registers, and lastly, optionally jump the program counter register <code>PC</code> to some address. Here&#39;s the format of the instruction:</p>
+    <ul>
+    <li><strong>Unused bits</strong>. These bits have no use in the format, and could be put to 0 or 1.</li>
+    <li><strong>Address.</strong> We said earlier that the <code>A</code> register could contain an address (pointing to data in the <code>RAM</code>) <em>or</em> plain data. This bit is set to 1 when the value of <code>A</code> is an address, and set to 0 when it&#39;s plain data.</li>
+    <li><strong>Control.</strong> These are the 6 control bits the <code>ALU</code> uses and they define the computation performed. In order: <code>zx</code>, <code>ng</code>, <code>zy</code>, <code>ny</code>, <code>f</code>, <code>no</code>. The computation is performed on the following inputs: the <code>ALU</code>&#39;s <code>x</code> input is always <code>D</code>; its <code>y</code> input is either <code>A</code> when <code>a=0</code> or the <code>RAM</code> memory register data <em>pointed by</em> <code>A</code> when <code>a=1</code>.</li>
+    <li><strong>Destination.</strong> These are 3 independent bits each telling whether to write the <code>ALU</code>&#39;s output to <code>A</code>, <code>D</code>, and/or the <code>RAM</code>&#39;s memory register pointed by <code>A</code> (when <code>A</code> is an address, i.e. <code>a=1</code>).</li>
+    <li><strong>Jump.</strong> Lastly, these are 3 bits each telling whether to load the address in <code>A</code> into the program counter register <code>PC</code>. Remember that the <code>ALU</code> outputs a number but also <code>zr</code> (output is zero) and <code>ng</code> (output is negative). If instruction bit 2 is set, then we should load <code>PC</code> if <code>ng</code> is set. If instruction bit 1 is set, then we should load <code>PC</code> if <code>zr</code> is set. Finally, if instruction bit 0 is set, then we should load <code>PC</code> if neither <code>zr</code> nor <code>ng</code> are set.</li>
+    </ul>
+    <h2>All possible computations</h2>
+    <p>The eighteen settings worth naming, in both <code>a</code> versions:</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>a = 0</th><th>a = 1</th><th>a = 0</th><th>a = 1</th></tr>
+              <tr><td class="l"><code>0</code></td><td class="l"><code>0</code></td><td class="l"><code>D+1</code></td><td class="l"><code>D+1</code></td></tr>
+              <tr><td class="l"><code>1</code></td><td class="l"><code>1</code></td><td class="l"><code>A+1</code></td><td class="l"><code>M+1</code></td></tr>
+              <tr><td class="l"><code>-1</code></td><td class="l"><code>-1</code></td><td class="l"><code>D-1</code></td><td class="l"><code>D-1</code></td></tr>
+              <tr><td class="l"><code>D</code></td><td class="l"><code>D</code></td><td class="l"><code>A-1</code></td><td class="l"><code>M-1</code></td></tr>
+              <tr><td class="l"><code>A</code></td><td class="l"><code>M</code></td><td class="l"><code>D+A</code></td><td class="l"><code>D+M</code></td></tr>
+              <tr><td class="l"><code>!D</code></td><td class="l"><code>!D</code></td><td class="l"><code>D-A</code></td><td class="l"><code>D-M</code></td></tr>
+              <tr><td class="l"><code>!A</code></td><td class="l"><code>!M</code></td><td class="l"><code>A-D</code></td><td class="l"><code>M-D</code></td></tr>
+              <tr><td class="l"><code>-D</code></td><td class="l"><code>-D</code></td><td class="l"><code>D&amp;A</code></td><td class="l"><code>D&amp;M</code></td></tr>
+              <tr><td class="l"><code>-A</code></td><td class="l"><code>-M</code></td><td class="l"><code>D|A</code></td><td class="l"><code>D|M</code></td></tr>
+            </table>
+          </div><h2>One instruction, decoded</h2>
+    <p><code>M=D+1</code> is <code>1110011111001000</code>:</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>bits</th><th>field</th><th>meaning</th></tr>
+              <tr><td class="l"><code>1</code></td><td class="l">op</td><td class="l">C-instruction</td></tr>
+              <tr><td class="l"><code>11</code></td><td class="l">unused</td><td class="l">no effect</td></tr>
+              <tr><td class="l"><code>0</code></td><td class="l"><code>a</code></td><td class="l">ALU <code>y</code> is <code>A</code>, unused here</td></tr>
+              <tr><td class="l"><code>011111</code></td><td class="l">comp</td><td class="l"><code>D+1</code></td></tr>
+              <tr><td class="l"><code>001</code></td><td class="l">dest</td><td class="l">store into <code>M</code></td></tr>
+              <tr><td class="l"><code>000</code></td><td class="l">jump</td><td class="l">never</td></tr>
+            </table>
+          </div><h2>A program</h2>
+    <p>Add 2 and 3, store the result at address 0:</p>
+    <pre><code>@2        0000000000000010
+    D=A       1110110000010000
+    @3        0000000000000011
+    D=D+A     1110000010010000
+    @0        0000000000000000
+    M=D       1110001100001000
+    </code></pre>
   </div>
 </article>
 
 <article class="stage" id="s403">
-  <div class="rail"><span class="num">4.03</span><span class="deps"><b>Needs</b>3.06, 4.01</span></div>
+  <div class="rail"><span class="num">4.03</span><span class="deps"><b>Needs</b>4.02</span></div>
   <div>
-    <h3>Two registers</h3>
-    <div class="sig">no new chip — two Registers from 3.06</div>
-    <p>Your CPU needs somewhere to hold values it is working on. Two registers is
-    enough, and each has a distinct character worth respecting.</p>
-    <p>One holds <em>data</em> — a number being worked on. The other does double duty: it
-    holds either a value, or an <em>address</em> — which memory location to read or
-    write, or which instruction to jump to. That double duty is what lets a
-    machine with almost no instructions still reach any part of memory. To use a
-    memory location, you first put its address in that register, then operate.</p>
-    <p>Sixteen bits of storage each, a load signal each. You already built these.</p>
+    <h3>The memory map</h3>
+    <div class="sig">no new chip — what occupies the address space</div>
+    <p><code>A</code> is 16 bits and the RAM&#39;s address input is 16 bits, so the address space is
+    65,536 words. Only the lower half of it is reachable by <code>@</code>, which carries 15
+    bits; the upper half can be reached only by computing into <code>A</code>.</p>
+    <p>Which words mean what is a decision made here, not in hardware. The CPU
+    presents an address and a value and asserts a load line. It has no way to tell
+    what is on the other side.</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>addresses</th><th>words</th><th>contents</th></tr>
+              <tr><td class="l"><code>0 – 16383</code></td><td class="l">16384</td><td class="l">working memory</td></tr>
+              <tr><td class="l"><code>16384 – 24575</code></td><td class="l">8192</td><td class="l">screen</td></tr>
+              <tr><td class="l"><code>24576</code></td><td class="l">1</td><td class="l">keyboard</td></tr>
+              <tr><td class="l"><code>24577 – 65535</code></td><td class="l">40959</td><td class="l">unassigned</td></tr>
+            </table>
+          </div><p>The screen region is 8192 words of 16 bits, which is 131,072 bits, which is a
+    512 × 256 grid of one bit per pixel. Word <em>n</em> holds the 16 pixels starting at
+    row <code>n / 32</code>, column <code>(n % 32) * 16</code>.</p>
+    <p>The keyboard word holds the code of the key currently down, or 0 when none is.
+    It is written by whatever is watching the keyboard, and read by programs like
+    any other address.</p>
+    <p>Nothing in the CPU implements either of these. 4.07 covers what that buys.</p>
+    <div class="watch"><b>Watch out</b>Build the RAM with an address width of 16, matching the bus, even though early programs touch only the first few words. A RAM narrower than the address it is given ignores the high bits, so address 16384 into a 14-bit RAM silently becomes address 0. The program does not fault; it corrupts working memory.</div>
   </div>
 </article>
 
 <article class="stage" id="s404">
-  <div class="rail"><span class="num">4.04</span><span class="deps"><b>Needs</b>4.01</span></div>
+  <div class="rail"><span class="num">4.04</span><span class="deps"><b>Needs</b>4.02</span></div>
   <div>
-    <h3>The decoder is mostly wires</h3>
-    <div class="sig">Decode(instruction[16]) → zx, nx, zy, ny, f, no, useM, loadA, loadD, writeM, jump[n]</div>
-    <p>“Instruction decoding” sounds like it needs a large and clever chip. With a
-    well-chosen instruction set it needs almost nothing: the bits of the
-    instruction <em>are</em> the control signals. The field that says what to compute is
-    wired straight to the ALU’s control inputs. The field that says where to store
-    the answer is wired straight to the load inputs of the registers.</p>
-    <p>The only real logic is a handful of gates deciding which instruction type you
-    are looking at, and gating the control signals accordingly — because a
-    constant-loading instruction must not accidentally trigger a memory write.</p>
-    <p>That list of outputs is not a choice. It is fixed by what your machine already
-    has that needs controlling: the ALU’s six bits from 2.06, a load line for each
-    of the two registers, whether memory is written, whether the ALU’s second
-    input comes from memory or from the address register (<code>useM</code>), and the jump
-    field passed on to 4.06. What <em>is</em> yours is which instruction bits produce
-    them, and how wide the jump field is — the <code>n</code> in the signature is whatever
-    your table in 4.01 says.</p>
-    <p>If this chip is turning out large, the problem is upstream in 4.01. Go back
-    and simplify the encoding; that is much cheaper than building the decoder it
-    demands.</p>
+    <h3>The decoder</h3>
+    <div class="sig">Decode(instruction[16]) → zx, nx, zy, ny, f, no, useM, loadA, loadD, writeM, j1, j2, j3</div>
+    <p>The decoder converts one 16-bit instruction into the control signals the rest
+    of the CPU consumes. With the encoding in 4.02 it is seven gates, because the
+    instruction bits already <em>are</em> those signals. Its only real work is
+    suppressing them when <code>op</code> is 0.</p>
+    <p><code>op</code> is <code>instruction[15]</code>.</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>output</th><th>source bit</th><th>when <code>op</code> = 0</th></tr>
+              <tr><td class="l"><code>zx nx zy ny f no</code></td><td class="l"><code>instruction[11..6]</code></td><td class="l">pass through unchanged</td></tr>
+              <tr><td class="l"><code>useM</code></td><td class="l"><code>instruction[12]</code></td><td class="l">pass through unchanged</td></tr>
+              <tr><td class="l"><code>loadA</code></td><td class="l"><code>instruction[5]</code></td><td class="l">forced to <code>1</code></td></tr>
+              <tr><td class="l"><code>loadD</code></td><td class="l"><code>instruction[4]</code></td><td class="l">forced to <code>0</code></td></tr>
+              <tr><td class="l"><code>writeM</code></td><td class="l"><code>instruction[3]</code></td><td class="l">forced to <code>0</code></td></tr>
+              <tr><td class="l"><code>j1 j2 j3</code></td><td class="l"><code>instruction[2..0]</code></td><td class="l">forced to <code>000</code></td></tr>
+            </table>
+          </div><h2>Where the A-instruction&#39;s value goes</h2>
+    <p>Not through this chip. <code>Decode</code> has no 15-bit output, and it needs none: the
+    constant travels from the <code>instruction</code> bus straight to the <code>A</code> register&#39;s
+    input, on a path built in 4.06. The decoder&#39;s entire involvement with an
+    A-instruction is to stop the rest of the CPU acting on it.</p>
+    <p>That is necessary because the 16 bits of an instruction are on every one of
+    these wires at once. Bit 4 is bit 4 whether you call it part of a constant or
+    <code>d2</code>; nothing in the hardware separates the two readings. Left ungated, <code>@25</code>
+    would execute as a C-instruction whose fields are the bits of 25.</p>
+    <p><code>@25</code> is <code>0000000000011001</code>, so <code>comp</code> is <code>000000</code>, which the ALU reads as
+    <code>D&amp;A</code>:</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>output</th><th>bit</th><th>value</th><th>consequence</th></tr>
+              <tr><td class="l"><code>loadA</code></td><td class="l">5</td><td class="l">0</td><td class="l"><code>A</code> is not loaded — the instruction fails at its only job</td></tr>
+              <tr><td class="l"><code>loadD</code></td><td class="l">4</td><td class="l">1</td><td class="l"><code>D</code> is overwritten with <code>D&amp;A</code></td></tr>
+              <tr><td class="l"><code>writeM</code></td><td class="l">3</td><td class="l">1</td><td class="l"><code>D&amp;A</code> is written to <code>RAM[A]</code></td></tr>
+              <tr><td class="l"><code>j3</code></td><td class="l">0</td><td class="l">1</td><td class="l">jumps if <code>D&amp;A</code> is positive</td></tr>
+            </table>
+          </div><p>Gating is not tidiness. It is what makes the A-instruction exist.</p>
+    <h2>The seven pass-through wires</h2>
+    <p><code>zx</code> through <code>no</code> and <code>useM</code> need no gates. On an A-instruction they still
+    carry the constant&#39;s bits, so the ALU computes an arbitrary value from <code>D</code> and
+    <code>A</code>. That result is harmless because the four gated outputs below are zero:
+    nothing stores it and nothing jumps on it. The ALU&#39;s output goes nowhere.</p>
+    <h2>The four gated outputs</h2>
+    <p><code>loadD</code>, <code>writeM</code> and the three jump bits are suppressed by conjunction with
+    <code>op</code>:</p>
+    <pre><code>loadD  = And(op, instruction[4])
+    writeM = And(op, instruction[3])
+    j1     = And(op, instruction[2])
+    j2     = And(op, instruction[1])
+    j3     = And(op, instruction[0])
+    </code></pre>
+    <p><code>loadA</code> is the exception, and it is forced the <em>other</em> way. Loading <code>A</code> is the
+    entire effect of an A-instruction, so <code>loadA</code> must be 1 whenever <code>op</code> is 0,
+    and <code>instruction[5]</code> otherwise:</p>
+    <pre><code>loadA = Or(Not(op), instruction[5])
+    </code></pre>
+    <p>One Not, one Or, five Ands. A larger decoder means the encoding has been
+    changed, not that the chip is hard.</p>
+    <div class="watch"><b>Watch out</b>Wiring <code>loadA</code> as <code>And(op, instruction[5])</code> by symmetry with the other three produces a machine where <code>@5</code> has no effect. The symptom appears at the <code>A</code> register — it never changes — so the search starts in the wrong chip.</div>
   </div>
 </article>
 
 <article class="stage" id="s405">
-  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b>2.06, 4.03, 4.04</span></div>
+  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b>4.02, 4.04</span></div>
   <div>
-    <h3>The datapath</h3>
-    <div class="sig">CPU(instruction[16], inM[16], clk) → outM[16], writeM, addressM[15], pc[15]</div>
-    <p>Now assemble the CPU. This is the largest chip you will draw. It can look like
-    too much at first; it helps that everything in it is a part you have already
-    built and tested.</p>
-    <p>The structure is a loop. The ALU takes two inputs — one always from the data
-    register, the other selected between the address register and a value fetched
-    from memory. Its output goes back to the registers and out to memory. Which of
-    those actually happen is decided by the control bits from 4.04. Every one of
-    those choices is a mux; every mux is stage 1.05.</p>
-    <p>Work in the order the signal flows and test as you go: get the ALU fed
-    correctly first, then get its output stored correctly, then worry about jumps.</p>
-    <div class="watch"><b>Watch out</b>The single most common bug here is a value being read in the same tick it is written. Sketch on paper what is stable when. This is exactly the discipline the flip-flop bought you in 3.04 — use it.</div>
+    <h3>Jumps</h3>
+    <div class="sig">Jump(zr, ng, j1, j2, j3) → load</div>
+    <p><code>Jump</code> decides whether the program counter loads instead of increments. Its
+    inputs are the ALU&#39;s two status outputs and the three gated jump bits from
+    4.04. Its single output goes to the counter&#39;s <code>load</code> input.</p>
+    <p><code>zr</code> and <code>ng</code> describe the ALU output produced by the instruction currently
+    executing. They are mutually exclusive, so the positive case is the complement
+    of both:</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>outcome</th><th>expression</th></tr>
+              <tr><td class="l">negative</td><td class="l"><code>ng</code></td></tr>
+              <tr><td class="l">zero</td><td class="l"><code>zr</code></td></tr>
+              <tr><td class="l">positive</td><td class="l"><code>Not(Or(zr, ng))</code></td></tr>
+            </table>
+          </div><p>An instruction jumps when it requested an outcome that occurred. Since exactly
+    one outcome occurs, the three terms are disjoint and an Or combines them:</p>
+    <pre><code>load = Or(Or(And(j1, ng),
+                 And(j2, zr)),
+              And(j3, Not(Or(zr, ng))))
+    </code></pre>
+    <p>One Or and one Not for the positive test, three Ands, two Ors to combine:
+    seven gates.</p>
+    <p><code>j1</code>, <code>j2</code> and <code>j3</code> arrive already conjoined with <code>op</code> in 4.04, so an
+    A-instruction cannot jump regardless of what its low three bits contain. Do
+    not gate them again here.</p>
+    <div class="watch"><b>Watch out</b><code>zr</code> and <code>ng</code> describe the ALU&#39;s output, not the contents of any register. There is no path from a register to <code>Jump</code> that does not pass through the ALU. Testing <code>D</code> therefore means computing <code>D</code> — the instruction <code>D;JGT</code> sets <code>comp</code> to the expression <code>D</code>, stores the result nowhere, and jumps on the sign of what the ALU produced.</div>
   </div>
 </article>
 
 <article class="stage" id="s406">
-  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>4.05, 3.08</span></div>
+  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>2.06, 4.01, 4.04, 4.05</span></div>
   <div>
-    <h3>Jumps</h3>
-    <div class="sig">Jump(zr, ng, jump[n]) → load</div>
-    <p>The last piece of the CPU, and the one that turns a calculator into a
-    computer. Your ALU reports two facts about its result: it was zero (<code>zr</code>) and
-    it was negative (<code>ng</code>). Your instruction carries a small field saying which
-    outcomes should cause a jump. Compare the two, and if they agree, tell the
-    program counter to load instead of increment.</p>
-    <p>That handful of gates is where every <code>if</code>, every <code>while</code>, every function call
-    and every loop in every program that will ever run on this machine comes from.</p>
+    <h3>The datapath</h3>
+    <div class="sig">CPU(instruction[16], inM[16], reset, clk) → outM[16], writeM, addressM[16], pc[16]</div>
+    <p>The CPU holds <code>A</code>, <code>D</code>, the ALU, <code>Decode</code> from 4.04, <code>Jump</code> from 4.05 and the
+    counter from 3.08. Its interface to the world outside is four signals to
+    memory and one from it.</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>port</th><th>direction</th><th>meaning</th></tr>
+              <tr><td class="l"><code>instruction</code></td><td class="l">in</td><td class="l">the word the ROM holds at address <code>pc</code></td></tr>
+              <tr><td class="l"><code>inM</code></td><td class="l">in</td><td class="l">the word the RAM holds at address <code>addressM</code></td></tr>
+              <tr><td class="l"><code>reset</code></td><td class="l">in</td><td class="l">forces <code>pc</code> to 0</td></tr>
+              <tr><td class="l"><code>addressM</code></td><td class="l">out</td><td class="l">which RAM word <code>M</code> refers to</td></tr>
+              <tr><td class="l"><code>outM</code></td><td class="l">out</td><td class="l">the value to write there</td></tr>
+              <tr><td class="l"><code>writeM</code></td><td class="l">out</td><td class="l">whether to write it this tick</td></tr>
+              <tr><td class="l"><code>pc</code></td><td class="l">out</td><td class="l">the address of the next instruction</td></tr>
+            </table>
+          </div><p>Feed <code>instruction</code> to <code>Decode</code>, then wire exactly this:</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>input</th><th>source</th></tr>
+              <tr><td class="l"><code>A</code> register <code>in</code></td><td class="l"><code>Mux16(ALU out, instruction, sel = Not(op))</code></td></tr>
+              <tr><td class="l"><code>A</code> register <code>load</code></td><td class="l"><code>loadA</code></td></tr>
+              <tr><td class="l"><code>D</code> register <code>in</code></td><td class="l">ALU out</td></tr>
+              <tr><td class="l"><code>D</code> register <code>load</code></td><td class="l"><code>loadD</code></td></tr>
+              <tr><td class="l">ALU <code>x</code></td><td class="l"><code>D</code> out</td></tr>
+              <tr><td class="l">ALU <code>y</code></td><td class="l"><code>Mux16(A out, inM, sel = useM)</code></td></tr>
+              <tr><td class="l">ALU control</td><td class="l"><code>zx nx zy ny f no</code></td></tr>
+              <tr><td class="l"><code>outM</code></td><td class="l">ALU out</td></tr>
+              <tr><td class="l"><code>addressM</code></td><td class="l"><code>A</code> out</td></tr>
+              <tr><td class="l"><code>writeM</code></td><td class="l"><code>writeM</code></td></tr>
+              <tr><td class="l"><code>PC in</code></td><td class="l"><code>A</code> out</td></tr>
+              <tr><td class="l"><code>PC load</code></td><td class="l"><code>Jump(zr, ng, j1, j2, j3)</code></td></tr>
+              <tr><td class="l"><code>PC inc</code></td><td class="l">constant 1</td></tr>
+              <tr><td class="l"><code>PC reset</code></td><td class="l"><code>reset</code></td></tr>
+            </table>
+          </div><p>Two of those lines carry the design.</p>
+    <p><strong>The mux on <code>A</code>&#39;s input</strong> is what lets one register serve both instruction
+    layouts. On a C-instruction <code>op</code> is 1, <code>Not(op)</code> is 0, and the mux selects the
+    ALU. On an A-instruction it selects the instruction word itself, whose top bit
+    is 0 and whose remaining 15 bits are the value.</p>
+    <p><strong>The mux on the ALU&#39;s <code>y</code> input</strong> is what gives <code>M</code> meaning. <code>useM</code> is
+    <code>instruction[12]</code> unchanged, so the <code>a</code> bit selects between the <code>A</code> register&#39;s
+    output and the word the RAM is currently presenting.</p>
+    <p><code>PC inc</code> is tied to a constant 1 and never changes. The counter from 3.08
+    gives <code>load</code> priority over <code>inc</code>, so a jump overrides the increment without
+    anything needing to switch <code>inc</code> off.</p>
+    <p>Build and test in signal order: ALU inputs correct first, then storage into
+    each of the three destinations, then jumps.</p>
+    <div class="watch"><b>Watch out</b>Everything in this chip reads its inputs and writes its outputs within one tick, which is only consistent because <code>A</code> and <code>D</code> are edge-triggered. When an instruction writes <code>A</code> and reads <code>M</code> in the same tick, <code>M</code> is the word at the <em>old</em> <code>A</code> — the new value does not reach <code>addressM</code> until the next tick. If the registers were the transparent latches of 3.03, <code>addressM</code> would change mid-tick and the RAM would be addressed by two different values during one instruction.</div>
   </div>
 </article>
 
 <article class="stage" id="s407">
-  <div class="rail"><span class="num">4.07</span><span class="deps"><b>Needs</b>4.02</span></div>
+  <div class="rail"><span class="num">4.07</span><span class="deps"><b>Needs</b>4.03, 4.06</span></div>
   <div>
-    <h3>Talking to the world</h3>
-    <div class="sig">no new chip — a region of RAM that something else is watching</div>
-    <p>Optional, and worth it. If you reserved addresses for a screen and a keyboard
-    back in 4.02, wire them up now — a region of memory whose contents are
-    displayed, and a location that holds whichever key is currently down.</p>
-    <p>Notice that the CPU needs no changes whatsoever. It has no idea a screen
-    exists. It stores a number at an address, exactly as it always does, and
-    something else is watching.</p>
+    <h3>Memory-mapped input and output</h3>
+    <div class="sig">no new chip — a consequence of 4.03</div>
+    <p>The screen and keyboard regions of 4.03 require nothing from the CPU. A
+    program draws a pixel by storing a number at an address in <code>16384 – 24575</code>;
+    the CPU executes that as it executes any store, presenting an address, a value
+    and <code>writeM</code>. Whatever is attached to those addresses reads them and displays
+    them.</p>
+    <p>The alternative is to encode input and output in the instruction set: a device
+    number, a <code>read</code> instruction and a <code>write</code> instruction. Each of those is a
+    third instruction layout for 4.04 to recognise, a path through the datapath in
+    4.06 that exists only for I/O, and a set of states the CPU can be in that
+    ordinary instructions cannot reach. Memory mapping replaces all of it with the
+    decision already made in 4.03.</p>
+    <p>This editor has nothing attached to those addresses, so there is no device to
+    wire. What is testable is the mechanism: store a value at 16384 and inspect
+    the RAM&#39;s contents. A display would have shown it, and the CPU would be
+    executing the same instruction either way.</p>
   </div>
 </article>
 
 <article class="stage" id="s408">
-  <div class="rail"><span class="num">4.08</span><span class="deps"><b>Needs</b>4.05, 4.06, 3.07</span></div>
+  <div class="rail"><span class="num">4.08</span><span class="deps"><b>Needs</b>4.06, 3.07</span></div>
   <div>
     <h3>The computer</h3>
-    <div class="sig">Computer(reset, clk) → nothing — the output is what it leaves in memory</div>
-    <p>Three boxes and the wires between them: a ROM holding the program, the CPU,
-    and the RAM. The counter’s output addresses the ROM; the ROM’s output is the
-    instruction; the CPU’s memory outputs go to the RAM and back.</p>
-    <p>Keeping instructions and data in separate memories is a real architectural
-    choice, called Harvard, and what it buys you is simplicity: the machine can
-    fetch an instruction and touch data in the same tick without them queuing for
-    the same memory. The cost is that a program cannot modify itself, which is
-    rarely a loss at this scale.</p>
-    <p>Wire it up. Then stop, because you have built a computer, and there is nothing
-    left to add to the hardware. Everything after this is software.</p>
+    <div class="sig">Computer(reset, clk) → nothing — the result is what it leaves in memory</div>
+    <p>Three chips.</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>chip</th><th>address from</th><th>data in</th><th>data out</th></tr>
+              <tr><td class="l"><code>ROM</code></td><td class="l"><code>pc</code></td><td class="l">—</td><td class="l"><code>instruction</code></td></tr>
+              <tr><td class="l"><code>CPU</code></td><td class="l">—</td><td class="l"><code>instruction</code>, <code>inM</code></td><td class="l"><code>outM</code>, <code>writeM</code>, <code>addressM</code>, <code>pc</code></td></tr>
+              <tr><td class="l"><code>RAM</code></td><td class="l"><code>addressM</code></td><td class="l"><code>outM</code> when <code>writeM</code></td><td class="l"><code>inM</code></td></tr>
+            </table>
+          </div><p>Use the built-in <code>ROM</code> and <code>RAM</code> primitives rather than the RAM8 from 3.07.
+    3.07 exists to show what is inside a memory. A 65,536-word memory built from
+    Registers would be around twenty million gates — a Register is roughly 300 —
+    and every test vector would have to settle all of them.</p>
+    <p>Set both address widths to 16, matching the buses. Unused capacity costs
+    nothing: a memory here is an array the simulator indexes, not a netlist it
+    settles, so compile and settle times are the same for 65,536 words as for 256.
+    The contents editor holds only the words you actually write.</p>
+    <h2>Two memories, not one</h2>
+    <p>Instructions and data live in separate memories, which is the Harvard
+    arrangement. The CPU presents <code>pc</code> to one and <code>addressM</code> to the other in the
+    same tick, and neither waits for the other. A single memory would have to
+    serve both, which means either two ports or an extra tick per instruction, and
+    the second option means every chip in this Part needs a notion of which phase
+    of an instruction it is in.</p>
+    <p>The cost is that a program cannot write to its own instruction memory. There
+    is no wire from <code>outM</code> to the ROM.</p>
+    <h2>reset</h2>
+    <p><code>reset</code> reaches the counter through the CPU and forces <code>pc</code> to 0. Without it,
+    the counter starts at whatever its flip-flops settle to at power-on, and the
+    first instruction fetched is at an arbitrary address. The symptom is a program
+    that produces partial results, because it began in the middle.</p>
   </div>
 </article>
 
@@ -1641,9 +2031,9 @@
   <div class="rail"><span class="num">5.01</span><span class="deps"><b>Needs</b>4.08</span></div>
   <div>
     <h3>A program in binary</h3>
-    <div class="sig">your instruction table → bits in the ROM, by hand</div>
+    <div class="sig">the instruction set from 4.02 → bits in the ROM, by hand</div>
     <p>Write something tiny directly in machine code — add two numbers and store the
-    result — encode it by hand from your table in 4.01, load it into the ROM, and
+    result — encode it by hand from the tables in 4.02, load it into the ROM, and
     run it.</p>
     <p>Do this exactly once. It is the moment the hardware stops being a diagram and
     becomes a machine, and it will teach you more about your instruction set in

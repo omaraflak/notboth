@@ -220,6 +220,10 @@
       font-family: var(--serif);
       font-size: 1rem;
       color: var(--ink-2);
+      /* Prose cells wrap. A mono cell holds a symbol that must not break, but a
+     sentence in the last column is what pushes a table past the measure and
+     into a sideways scroll the reader has to find. */
+      white-space: normal;
     }
 
     /* Lists, for the stages whose subject really is a set of cases. Same measure
@@ -570,6 +574,22 @@
       text-wrap: balance;
     }
 
+    /* A subheading inside a stage. Only the longest stages need one -- 4.01 is
+       a specification carrying five separate tables -- and it must read as
+       clearly below the stage title, which is the h3 above it. */
+    .stage h2 {
+      font-family: var(--sans);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      max-width: var(--measure);
+      margin: 2rem 0 0.7rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--rule-soft);
+    }
+
     .sig {
       font-size: 0.82rem;
       color: var(--ink-2);
@@ -583,6 +603,33 @@
       max-width: 100%;
       overflow-x: auto;
       white-space: nowrap;
+    }
+
+    /* Fenced code: bit layouts, machine code, assembly listings. An
+       instruction layout is wider than the measure and must scroll inside its
+       own box rather than stretch the page. */
+    pre {
+      max-width: var(--measure);
+      margin: 1.2rem 0;
+      padding: 0.75rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-left: 2px solid var(--spot);
+      border-radius: 0 2px 2px 0;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+
+    pre code {
+      font: inherit;
+      background: none;
+      border: 0;
+      padding: 0;
+      color: inherit;
+      white-space: pre;
     }
 
     /* A markdown blockquote is the manual's aside: a remark that belongs in
@@ -602,8 +649,13 @@
       color: var(--ink-2);
     }
 
-    blockquote > :first-child { margin-top: 0; }
-    blockquote > :last-child { margin-bottom: 0; }
+    blockquote> :first-child {
+      margin-top: 0;
+    }
+
+    blockquote> :last-child {
+      margin-bottom: 0;
+    }
 
     blockquote p {
       max-width: none;
@@ -665,6 +717,57 @@
       width: 100%;
       min-width: 30rem;
       height: auto;
+    }
+
+    .bits {
+      max-width: var(--measure);
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+
+    .bits svg {
+      display: block;
+      width: 100%;
+      min-width: 27rem;
+      height: auto;
+    }
+
+    .bt-box {
+      fill: none;
+      stroke: var(--rule);
+    }
+
+    .bt-fill {
+      fill: var(--rule-soft);
+    }
+
+    .bt-div {
+      stroke: var(--rule-soft);
+    }
+
+    .bt-edge {
+      stroke: var(--rule);
+    }
+
+    .bt-sym {
+      font-family: var(--mono);
+      font-size: 12px;
+      fill: var(--ink);
+    }
+
+    .bt-idx {
+      font-family: var(--mono);
+      font-size: 8px;
+      fill: var(--ink-3);
+    }
+
+    .bt-lab {
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      fill: var(--spot);
     }
 
     .wv-lab {
@@ -811,6 +914,10 @@
         why, not <strong><em>how</em></strong> to do it. That part is
         for you to figure out. By the end of this journey, you will have a computer that can run your
         own programming language.
+      </p>
+      <p class="standfirst">This tutorial is largely insipired by <a href="https://www.nand2tetris.org/"
+          target="_blank">Nand2Tetris</a>'
+        course materials and designs.
       </p>
     </header>
 
