@@ -841,11 +841,8 @@
       <h2>Before you switch anything on</h2>
       <div class="body">
         <p>
-          A NAND gate answers one question: <em>are both of my inputs on?</em> &mdash;
-          and then says the opposite. That is the whole of it. It has no memory, no
-          arithmetic, no notion of a number. From that, in about forty moves, you
-          can build a machine that runs software you wrote in a language you
-          designed.
+          You will start with a basic NAND gate. From that, in about forty moves, you can build a machine that runs
+          software you wrote in a language you designed.
         </p>
         <p>
           Three habits are worth adopting from the start.
@@ -865,7 +862,9 @@
 
         </p>
         <p>
-          Remember: when you are stuck, the answer is almost always a part you already built.
+          For each component, a <em>NEEDS</em> mention will tell you which other components you need to build it.
+          However, you will almost always find multiple ways to build the same thing, so this is not a rule to follow
+          but an indication.
         </p>
       </div>
     </section>
@@ -875,6 +874,7 @@
   <div class="toc-grid">
     <div class="toc-part">
       <b><i>I</i>The gates</b>
+      <a href="#s100"><i>1.00</i>Nand</a>
       <a href="#s101"><i>1.01</i>Not</a>
       <a href="#s102"><i>1.02</i>And</a>
       <a href="#s103"><i>1.03</i>Or</a>
@@ -941,8 +941,26 @@
 </div>
 <div class="part-rule"></div>
 
+<article class="stage" id="s100">
+  <div class="rail"><span class="num">1.00</span><span class="deps"><b>Needs</b>—</span></div>
+  <div>
+    <h3>Nand</h3>
+    <div class="sig">Nand(a, b) → out</div>
+    <p>A NAND gate outputs a low signal when both inputs are high. This chip is given to you in the interface.</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>a</th><th>b</th><th>out</th></tr>
+              <tr><td>0</td><td>0</td><td class="o">1</td></tr>
+              <tr><td>0</td><td>1</td><td class="o">1</td></tr>
+              <tr><td>1</td><td>0</td><td class="o">1</td></tr>
+              <tr><td>1</td><td>1</td><td class="o">0</td></tr>
+            </table>
+          </div>
+  </div>
+</article>
+
 <article class="stage" id="s101">
-  <div class="rail"><span class="num">1.01</span><span class="deps"><b>Needs</b>nothing</span></div>
+  <div class="rail"><span class="num">1.01</span><span class="deps"><b>Needs</b>1.00</span></div>
   <div>
     <h3>Not</h3>
     <div class="sig">Not(in) → out</div>
@@ -958,7 +976,7 @@
 </article>
 
 <article class="stage" id="s102">
-  <div class="rail"><span class="num">1.02</span><span class="deps"><b>Needs</b>1.01</span></div>
+  <div class="rail"><span class="num">1.02</span><span class="deps"><b>Needs</b>1.00, 1.01</span></div>
   <div>
     <h3>And</h3>
     <div class="sig">And(a, b) → out</div>
@@ -994,7 +1012,7 @@
 </article>
 
 <article class="stage" id="s104">
-  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b>1.02, 1.03</span></div>
+  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b>1.00, 1.02, 1.03</span></div>
   <div>
     <h3>Xor</h3>
     <div class="sig">Xor(a, b) → out</div>
@@ -1187,29 +1205,29 @@
 </article>
 
 <article class="stage" id="s206">
-  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>all of Part I, 2.03–2.05</span></div>
+  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>1.xx, 2.03–2.05</span></div>
   <div>
     <h3>ALU</h3>
     <div class="sig">ALU(x[16], y[16], zx, nx, zy, ny, f, no) → out[16], zr, ng</div>
     <p>The arithmetic and logic unit: one box that computes any of a couple of dozen
-    useful functions of two numbers, with control bits selecting which. Add,
+    useful functions of two numbers, with control bits selecting which: add,
     subtract, negate, increment, bitwise-and, bitwise-or, pass one input through, produce a
-    constant — all from one chip.</p>
-    <p>Six single-bit controls, acting in this order:</p>
+    constant.</p>
+    <p>Six single-bit controls, acting in this order to compute the output <code>out</code>:</p>
     <ul>
     <li><strong>zx</strong> — replace <code>x</code> with zero.</li>
-    <li><strong>nx</strong> — invert <code>x</code>, after any zeroing.</li>
+    <li><strong>nx</strong> — invert <code>x</code> (applies after <code>zx</code>).</li>
     <li><strong>zy</strong> — replace <code>y</code> with zero.</li>
-    <li><strong>ny</strong> — invert <code>y</code>, after any zeroing.</li>
-    <li><strong>f</strong> — the operation: 1 adds the two conditioned inputs, 0 ands them.</li>
-    <li><strong>no</strong> — invert the answer on the way out.</li>
+    <li><strong>ny</strong> — invert <code>y</code>, (applies after <code>zy</code>).</li>
+    <li><strong>f</strong> — the operation: 1 <code>ADD</code>s the two pre-processed inputs, 0 <code>AND</code>s them.</li>
+    <li><strong>no</strong> — invert the answer (<code>NOT</code>) on the way out.</li>
     </ul>
-    <p>Every one of those six is a choice between two values, which is the chip you
-    built in 1.05. So the ALU is layers of muxes with one adder and one and-gate
-    in the middle of them.</p>
-    <p>Two extra outputs matter as much as the number itself. <code>zr</code> says the result
-    was zero; <code>ng</code> says it was negative (c.f. two&#39;s complement).</p>
-    <div class="watch"><b>Watch out</b>This is the largest chip so far. Test <em>every</em> control combination you intend to use, with at least one negative operand.</div>
+    <p>Two extra outputs matter as much as the number itself:</p>
+    <ul>
+    <li><code>zr</code> says if the result is zero.</li>
+    <li><code>ng</code> says if the result is negative (c.f. two&#39;s complement).</li>
+    </ul>
+    <div class="watch"><b>Watch out</b>This is the largest chip so far. Test every control combination you intend to use, with at least one negative operand.</div>
   </div>
 </article>
 
@@ -1236,7 +1254,7 @@
 </article>
 
 <article class="stage" id="s302">
-  <div class="rail"><span class="num">3.02</span><span class="deps"><b>Needs</b>3.01</span></div>
+  <div class="rail"><span class="num">3.02</span><span class="deps"><b>Needs</b>1.00, 3.01</span></div>
   <div>
     <h3>Set-reset latch</h3>
     <div class="sig">SRLatch(set, reset) → q</div>
@@ -1278,7 +1296,7 @@
 </article>
 
 <article class="stage" id="s303">
-  <div class="rail"><span class="num">3.03</span><span class="deps"><b>Needs</b>1.01, 3.02</span></div>
+  <div class="rail"><span class="num">3.03</span><span class="deps"><b>Needs</b>1.00, 1.01, 3.02</span></div>
   <div>
     <h3>Data latch</h3>
     <div class="sig">DLatch(d, enable) → q</div>
