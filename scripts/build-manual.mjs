@@ -21,10 +21,15 @@
  * a waveform, `>` marks an output, `?` an unknown level, `@col` a labelled
  * instant and `~a-b` a labelled span. In a layout, one character per bit and
  * one line per field.
+ *
+ * A fence naming a language is highlighted, and one naming `latex` is set as
+ * mathematics -- both at build time, so the page carries no script.
  */
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { marked } from 'marked';
+import hljs from 'highlight.js';
+import katex from 'katex';
 
 const CONTENT = 'manual/content';
 const OUT = 'public/manual.html';
@@ -200,6 +205,42 @@ function truth(bodyText) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Code and mathematics
+ * ------------------------------------------------------------------ */
+
+/**
+ * A fence with a language is highlighted here rather than in the browser, so
+ * the page ships no script and no highlighter. An unknown language is a build
+ * error: silently emitting unhighlighted code hides a typo in the fence.
+ */
+function code(lang, body) {
+  if (!hljs.getLanguage(lang)) {
+    throw new Error(`code: no highlighter for "${lang}"`);
+  }
+  const html = hljs.highlight(body, { language: lang, ignoreIllegals: true }).value;
+  return `<pre class="code"><code class="lang-${lang}">${html}</code></pre>`;
+}
+
+/**
+ * LaTeX, rendered to MathML at build time. KaTeX's usual HTML output needs a
+ * stylesheet and six font files; MathML needs neither, because the browser
+ * already knows how to set mathematics. The manual stays one file.
+ */
+function latex(body) {
+  try {
+    const math = katex.renderToString(body.trim(), {
+      output: 'mathml',
+      displayMode: true,
+      throwOnError: true,
+      strict: 'ignore',
+    });
+    return `<figure class="math">${math}</figure>`;
+  } catch (e) {
+    throw new Error(`latex: ${e.message.split('\n')[0]}`);
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Markdown
  * ------------------------------------------------------------------ */
 
@@ -221,6 +262,11 @@ function blocks(text) {
   const custom = { wave, truth, bits };
   t = t.replace(/^```(wave|truth|bits)\n([\s\S]*?)\n```$/gm,
     (_, kind, body) => keep(custom[kind](body)));
+  t = t.replace(/^```latex\n([\s\S]*?)\n```$/gm, (_, body) => keep(latex(body)));
+  // Any other fence that names a language. A bare fence is left to marked, so
+  // the layouts and listings that are not code in any language stay plain.
+  t = t.replace(/^```([A-Za-z][\w+#-]*)\n([\s\S]*?)\n```$/gm,
+    (_, lang, body) => keep(code(lang, body)));
   t = t.replace(/^::: watch\n([\s\S]*?)\n:::$/gm,
     (_, body) => keep(`<div class="watch"><b>Watch out</b>${md(body.replace(/\n/g, ' '))}</div>`));
   let html = marked.parse(t);

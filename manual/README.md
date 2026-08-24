@@ -118,6 +118,33 @@ A plain fenced block, for bit layouts, machine code and assembly listings. It
 is monospace and scrolls inside its own box, so a wide layout never stretches
 the page.
 
+Name a language after the opening fence and it is highlighted:
+
+    ```python
+    def decode(instruction):
+        return instruction >> 15
+    ```
+
+Highlighting happens at build time, so the page carries no script and no
+highlighter. Any language `highlight.js` knows will do; one it does not know
+is a build error rather than a silently unhighlighted block, because that is
+almost always a typo in the fence. The colours are the manual's own two --
+keywords take the accent, literals sit at full ink, comments fade -- rather
+than a syntax rainbow.
+
+### Mathematics
+
+A fence named `latex` is set as displayed mathematics:
+
+    ```latex
+    \text{out} = \overline{a \land b}
+    ```
+
+Also build time: KaTeX renders it to MathML, which browsers set themselves, so
+there is no stylesheet to load and no font to download and the manual stays a
+single file. LaTeX that does not parse fails the build with KaTeX's own
+message. There is no inline math -- a fence is the only form.
+
 ### Subheadings
 
 `##` inside a stage renders as a small tracked label. Only a stage long enough

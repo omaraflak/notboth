@@ -632,6 +632,61 @@
       white-space: pre;
     }
 
+    /* Highlighting, in the manual's two colours rather than a rainbow. What a
+       reader needs from a listing is which parts are structure and which are
+       data, so keywords take the spot colour, literals sit at full ink, and
+       everything incidental fades. */
+    .hljs-comment,
+    .hljs-quote {
+      color: var(--ink-3);
+      font-style: italic;
+    }
+
+    .hljs-keyword,
+    .hljs-literal,
+    .hljs-selector-tag,
+    .hljs-built_in,
+    .hljs-name {
+      color: var(--spot);
+      font-weight: 600;
+    }
+
+    .hljs-string,
+    .hljs-regexp,
+    .hljs-symbol,
+    .hljs-attr,
+    .hljs-number {
+      color: var(--ink);
+    }
+
+    .hljs-title,
+    .hljs-section,
+    .hljs-class .hljs-title,
+    .hljs-type {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .hljs-meta,
+    .hljs-doctag,
+    .hljs-params,
+    .hljs-variable,
+    .hljs-attribute {
+      color: var(--ink-2);
+    }
+
+    /* LaTeX arrives as MathML, which the browser sets itself -- there is no
+       stylesheet to load and nothing here to do but give it room. */
+    .math {
+      max-width: var(--measure);
+      margin: 1.4rem 0;
+      padding: 0.2rem 0;
+      overflow-x: auto;
+      text-align: center;
+      color: var(--ink);
+      font-size: 1.1rem;
+    }
+
     /* A markdown blockquote is the manual's aside: a remark that belongs in
        the middle of a specification without interrupting its numbering. It is
        filled rather than ruled so it reads as a detour from the paragraph
