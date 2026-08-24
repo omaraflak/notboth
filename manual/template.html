@@ -256,11 +256,11 @@
       margin-bottom: 0;
     }
 
-    ul > li {
+    ul>li {
       padding-left: 1.15rem;
     }
 
-    ul > li::before {
+    ul>li::before {
       content: "";
       position: absolute;
       left: 0.25rem;
@@ -271,7 +271,7 @@
       background: var(--spot);
     }
 
-    ol > li::marker {
+    ol>li::marker {
       color: var(--spot);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
@@ -289,6 +289,22 @@
       color: var(--spot);
       text-decoration-thickness: 1px;
       text-underline-offset: 2px;
+    }
+
+    /* A cross-reference to another stage. There are dozens of these, so they
+   take the ink of the sentence they sit in and mark themselves with a rule
+   underneath rather than a colour: sixty orange numbers would read as sixty
+   interruptions. The colour arrives on hover, where it confirms the target. */
+    a.xref {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--spot);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    a.xref:hover {
+      color: var(--spot);
     }
 
     a:focus-visible {
@@ -1059,14 +1075,11 @@
 
         <ul>
           <li><strong>Build small.</strong> A
-            component should do one nameable thing. If you cannot name it in one word,
-            it is two components.</li>
-          <li><strong>Test before you move on.</strong> Write tests for every chip you build before using it.
-            If you don't, expect troubles along the way!
+            component should do one nameable thing.</li>
+          <li><strong>Test.</strong> Write tests for every chip you build before moving on.
           </li>
           <li>
-            <strong>Reuse components.</strong> Chips are abstractions that make your job easier. Build upon them, only
-            their interfaces matter.
+            <strong>Reuse.</strong> Chips are abstractions that make your job easier. Build upon them.
           </li>
         </ul>
 

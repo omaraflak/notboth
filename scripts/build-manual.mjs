@@ -290,6 +290,40 @@ function indent(html, pad = '    ') {
   }).join('\n');
 }
 
+/**
+ * Turn every mention of a stage number into a link to that stage.
+ *
+ * Done here rather than in the sources so that writing "see 3.04" is all a
+ * stage has to do, and so a cross-reference cannot rot into a link to an
+ * anchor that no longer exists -- a number with no stage behind it is simply
+ * left as text.
+ *
+ * The scan walks tags and text alternately and goes quiet inside <pre>,
+ * <code>, <svg> and <a>: a number in a listing is data, a number in a
+ * waveform is geometry, and a number already inside a link is spoken for.
+ */
+function crossLink(html, ids, self) {
+  const parts = html.split(/(<[^>]+>)/);
+  let mute = 0;
+  return parts.map((part) => {
+    if (part.startsWith('<')) {
+      const m = /^<(\/?)(pre|code|svg|a)\b/i.exec(part);
+      if (m) {
+        if (m[1]) mute = Math.max(0, mute - 1);
+        else if (!/\/>$/.test(part)) mute++;
+      }
+      return part;
+    }
+    if (mute) return part;
+    return part.replace(/\b\d\.\d\d\b/g, (num) => {
+      const id = ids.get(num);
+      // Not a stage, or this stage: a link to where you already are is noise.
+      if (!id || num === self) return num;
+      return `<a class="xref" href="#${id}">${num}</a>`;
+    });
+  }).join('');
+}
+
 /* ------------------------------------------------------------------ *
  * Sources
  * ------------------------------------------------------------------ */
@@ -321,6 +355,11 @@ const docs = readdirSync(CONTENT).filter((f) => f.endsWith('.md')).sort()
 
 const idOf = (num) => (/^[A-Z]/.test(num) ? num.toLowerCase().replace('.', '') : 's' + num.replace('.', ''));
 
+/** Stage number -> anchor, for the cross-references. */
+const stageIds = new Map(
+  docs.filter((d) => d.meta.num).map((d) => [d.meta.num, idOf(d.meta.num)]),
+);
+
 const body = [];
 const toc = [];
 let group = null;
@@ -330,7 +369,7 @@ for (const { file, meta, body: text } of docs) {
     body.push('<div class="part-head">\n'
       + `  <div class="roman">${md(meta.roman)}</div>\n  <div>\n`
       + `    <h2>${md(meta.title)}</h2>\n`
-      + indent(blocks(text))
+      + indent(crossLink(blocks(text), stageIds, null))
       + '\n  </div>\n</div>\n<div class="part-rule"></div>');
     group = { roman: meta.roman, title: meta.short ?? meta.title, links: [] };
     toc.push(group);
@@ -339,11 +378,13 @@ for (const { file, meta, body: text } of docs) {
   if (!meta.num || !meta.title) throw new Error(`${file}: a stage needs num and title`);
   const id = idOf(meta.num);
   const rail = `<span class="num">${meta.num}</span>`
-    + (meta.needs ? `<span class="deps"><b>Needs</b>${md(meta.needs)}</span>` : '');
+    + (meta.needs
+      ? `<span class="deps"><b>Needs</b>${crossLink(md(meta.needs), stageIds, meta.num)}</span>`
+      : '');
   body.push(`<article class="stage" id="${id}">\n  <div class="rail">${rail}</div>\n  <div>\n`
     + `    <h3>${md(meta.title)}</h3>\n`
     + (meta.sig ? `    <div class="sig">${md(meta.sig)}</div>\n` : '')
-    + indent(blocks(text))
+    + indent(crossLink(blocks(text), stageIds, meta.num))
     + '\n  </div>\n</article>');
   if (group) {
     // Appendix entries are lettered rather than numbered, and their numbers say

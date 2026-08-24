@@ -256,11 +256,11 @@
       margin-bottom: 0;
     }
 
-    ul > li {
+    ul>li {
       padding-left: 1.15rem;
     }
 
-    ul > li::before {
+    ul>li::before {
       content: "";
       position: absolute;
       left: 0.25rem;
@@ -271,7 +271,7 @@
       background: var(--spot);
     }
 
-    ol > li::marker {
+    ol>li::marker {
       color: var(--spot);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
@@ -289,6 +289,22 @@
       color: var(--spot);
       text-decoration-thickness: 1px;
       text-underline-offset: 2px;
+    }
+
+    /* A cross-reference to another stage. There are dozens of these, so they
+   take the ink of the sentence they sit in and mark themselves with a rule
+   underneath rather than a colour: sixty orange numbers would read as sixty
+   interruptions. The colour arrives on hover, where it confirms the target. */
+    a.xref {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--spot);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    a.xref:hover {
+      color: var(--spot);
     }
 
     a:focus-visible {
@@ -1059,14 +1075,11 @@
 
         <ul>
           <li><strong>Build small.</strong> A
-            component should do one nameable thing. If you cannot name it in one word,
-            it is two components.</li>
-          <li><strong>Test before you move on.</strong> Write tests for every chip you build before using it.
-            If you don't, expect troubles along the way!
+            component should do one nameable thing.</li>
+          <li><strong>Test.</strong> Write tests for every chip you build before moving on.
           </li>
           <li>
-            <strong>Reuse components.</strong> Chips are abstractions that make your job easier. Build upon them, only
-            their interfaces matter.
+            <strong>Reuse.</strong> Chips are abstractions that make your job easier. Build upon them.
           </li>
         </ul>
 
@@ -1142,9 +1155,7 @@
   <div class="roman">I</div>
   <div>
     <h2>The gates</h2>
-    <p>Ten parts, none of them larger than a handful of NANDs. By the end of this
-    Part you will be thinking less about gates and more about operations, which is
-    where the rest of the build happens.</p>
+    <p>Ten parts, none of them larger than a handful of NANDs. These are the most basic gates that perform boolean logic. We need them for creating arithmetic.</p>
   </div>
 </div>
 <div class="part-rule"></div>
@@ -1168,7 +1179,7 @@
 </article>
 
 <article class="stage" id="s101">
-  <div class="rail"><span class="num">1.01</span><span class="deps"><b>Needs</b>1.00</span></div>
+  <div class="rail"><span class="num">1.01</span><span class="deps"><b>Needs</b><a class="xref" href="#s100">1.00</a></span></div>
   <div>
     <h3>Not</h3>
     <div class="sig">Not(in) → out</div>
@@ -1184,7 +1195,7 @@
 </article>
 
 <article class="stage" id="s102">
-  <div class="rail"><span class="num">1.02</span><span class="deps"><b>Needs</b>1.00, 1.01</span></div>
+  <div class="rail"><span class="num">1.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s100">1.00</a>, <a class="xref" href="#s101">1.01</a></span></div>
   <div>
     <h3>And</h3>
     <div class="sig">And(a, b) → out</div>
@@ -1202,7 +1213,7 @@
 </article>
 
 <article class="stage" id="s103">
-  <div class="rail"><span class="num">1.03</span><span class="deps"><b>Needs</b>1.01, 1.02</span></div>
+  <div class="rail"><span class="num">1.03</span><span class="deps"><b>Needs</b><a class="xref" href="#s101">1.01</a>, <a class="xref" href="#s102">1.02</a></span></div>
   <div>
     <h3>Or</h3>
     <div class="sig">Or(a, b) → out</div>
@@ -1220,7 +1231,7 @@
 </article>
 
 <article class="stage" id="s104">
-  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b>1.00, 1.02, 1.03</span></div>
+  <div class="rail"><span class="num">1.04</span><span class="deps"><b>Needs</b><a class="xref" href="#s100">1.00</a>, <a class="xref" href="#s102">1.02</a>, <a class="xref" href="#s103">1.03</a></span></div>
   <div>
     <h3>Xor</h3>
     <div class="sig">Xor(a, b) → out</div>
@@ -1238,7 +1249,7 @@
 </article>
 
 <article class="stage" id="s105">
-  <div class="rail"><span class="num">1.05</span><span class="deps"><b>Needs</b>1.01–1.03</span></div>
+  <div class="rail"><span class="num">1.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s101">1.01</a>–<a class="xref" href="#s103">1.03</a></span></div>
   <div>
     <h3>Mux</h3>
     <div class="sig">Mux(a, b, sel) → out</div>
@@ -1255,16 +1266,16 @@
               <tr><td>1</td><td>1</td><td>0</td><td class="o">0</td></tr>
               <tr><td>1</td><td>1</td><td>1</td><td class="o">1</td></tr>
             </table>
-          </div><p>Read the table as two halves: while <code>sel</code> is 0 the output copies <code>a</code> and ignores <code>b</code>; while it is 1 they swap roles.</p>
+          </div><p>Read the table as two halves: while <code>sel</code> is <code>0</code> the output copies <code>a</code> and ignores <code>b</code>; while it is <code>1</code> they swap roles.</p>
     <blockquote>
     <p>This is essentially an <em>if</em> condition.</p>
     </blockquote>
-    <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code> — eight vectors, not four.</div>
+    <div class="watch"><b>Watch out</b>Test all four combinations of <code>a</code> and <code>b</code> against <em>both</em> settings of <code>sel</code>.</div>
   </div>
 </article>
 
 <article class="stage" id="s106">
-  <div class="rail"><span class="num">1.06</span><span class="deps"><b>Needs</b>1.01, 1.02</span></div>
+  <div class="rail"><span class="num">1.06</span><span class="deps"><b>Needs</b><a class="xref" href="#s101">1.01</a>, <a class="xref" href="#s102">1.02</a></span></div>
   <div>
     <h3>DMux</h3>
     <div class="sig">DMux(in, sel) → a, b</div>
@@ -1282,13 +1293,13 @@
 </article>
 
 <article class="stage" id="s107">
-  <div class="rail"><span class="num">1.07</span><span class="deps"><b>Needs</b>1.01–1.06</span></div>
+  <div class="rail"><span class="num">1.07</span><span class="deps"><b>Needs</b><a class="xref" href="#s101">1.01</a>–<a class="xref" href="#s106">1.06</a></span></div>
   <div>
     <h3>Widen everything to sixteen bits</h3>
     <div class="sig">Not16(in[16]) → out[16] · And16, Or16, Xor16, Mux16, DMux16</div>
     <p>Your machine will work on <em>sixteen</em> bits at a time (i.e. a <em>word</em>), not individual bits. Sixteen bits is a good size: big enough to address a useful amount of memory (2^16 = 65536), small enough to wire manually. So each of the gates you just built needs a <em>wide</em> sibling that applies it to every bit position independently.</p>
     <blockquote>
-    <p><code>Mux16</code> is a <em>single</em> selector bit choosing between two entire numbers.</p>
+    <p><strong>Mux16</strong> is a <em>single</em> selector bit choosing between two entire numbers.</p>
     </blockquote>
     <blockquote>
     <p>Bit 0 is the lowest significant bit in the software simulation you&#39;re using.</p>
@@ -1296,12 +1307,12 @@
     <blockquote>
     <p>Don&#39;t actually create sixteen individual inputs for each chip (although you could), use the <code>bits</code> setting of the input/output to widen them (we call that a <em>bus</em>).</p>
     </blockquote>
-    <div class="watch"><b>Watch out</b>Test the ends and the middle, not just <code>0000…</code> and <code>1111…</code>. A bus wired one bit out of alignment passes both of those and nothing else.</div>
+    <div class="watch"><b>Watch out</b>Test the ends and the middle, not just <code>0000…</code> and <code>1111…</code>. A bus wired one bit out of alignment passes both of those tests but nothing else.</div>
   </div>
 </article>
 
 <article class="stage" id="s108">
-  <div class="rail"><span class="num">1.08</span><span class="deps"><b>Needs</b>1.03</span></div>
+  <div class="rail"><span class="num">1.08</span><span class="deps"><b>Needs</b><a class="xref" href="#s103">1.03</a></span></div>
   <div>
     <h3>Or16Way</h3>
     <div class="sig">Or16Way(in[16]) → out</div>
@@ -1311,7 +1322,7 @@
 </article>
 
 <article class="stage" id="s109">
-  <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b>1.05, 1.07</span></div>
+  <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b><a class="xref" href="#s105">1.05</a>, <a class="xref" href="#s107">1.07</a></span></div>
   <div>
     <h3>Mux4Way16 and Mux8Way16</h3>
     <div class="sig">Mux4Way16(a[16], b[16], c[16], d[16], sel[2]) → out[16] · Mux8Way16</div>
@@ -1325,7 +1336,7 @@
 </article>
 
 <article class="stage" id="s110">
-  <div class="rail"><span class="num">1.10</span><span class="deps"><b>Needs</b>1.07</span></div>
+  <div class="rail"><span class="num">1.10</span><span class="deps"><b>Needs</b><a class="xref" href="#s107">1.07</a></span></div>
   <div>
     <h3>DMux4Way and DMux8Way</h3>
     <div class="sig">DMux4Way(in, sel[2]) → a,b,c,d · DMux8Way</div>
@@ -1344,7 +1355,7 @@
 <div class="part-rule"></div>
 
 <article class="stage" id="s201">
-  <div class="rail"><span class="num">2.01</span><span class="deps"><b>Needs</b>1.02, 1.04</span></div>
+  <div class="rail"><span class="num">2.01</span><span class="deps"><b>Needs</b><a class="xref" href="#s102">1.02</a>, <a class="xref" href="#s104">1.04</a></span></div>
   <div>
     <h3>HalfAdder</h3>
     <div class="sig">HalfAdder(a, b) → sum, carry</div>
@@ -1358,7 +1369,7 @@
 </article>
 
 <article class="stage" id="s202">
-  <div class="rail"><span class="num">2.02</span><span class="deps"><b>Needs</b>1.03, 2.01</span></div>
+  <div class="rail"><span class="num">2.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s103">1.03</a>, <a class="xref" href="#s201">2.01</a></span></div>
   <div>
     <h3>FullAdder</h3>
     <div class="sig">FullAdder(a, b, c) → sum, carry</div>
@@ -1367,17 +1378,17 @@
 </article>
 
 <article class="stage" id="s203">
-  <div class="rail"><span class="num">2.03</span><span class="deps"><b>Needs</b>2.02</span></div>
+  <div class="rail"><span class="num">2.03</span><span class="deps"><b>Needs</b><a class="xref" href="#s202">2.02</a></span></div>
   <div>
     <h3>Add16</h3>
     <div class="sig">Add16(a[16], b[16]) → out[16]</div>
-    <p>Sixteen full adders in a row. This will mimic the extact steps you take when adding two numbers on papers. Now your machine can add two 16-bit numbers, which — using two&#39;s complement in 2.05 — means it can also subtract, compare, and count.</p>
+    <p>Sixteen full adders in a row. This will mimic the extact steps you take when adding two numbers on papers. Now your machine can add two 16-bit numbers, which — using two&#39;s complement in <a class="xref" href="#s205">2.05</a> — means it can also subtract, compare, and count.</p>
     <div class="watch"><b>Watch out</b>Test the carry chain deliberately!</div>
   </div>
 </article>
 
 <article class="stage" id="s204">
-  <div class="rail"><span class="num">2.04</span><span class="deps"><b>Needs</b>2.03</span></div>
+  <div class="rail"><span class="num">2.04</span><span class="deps"><b>Needs</b><a class="xref" href="#s203">2.03</a></span></div>
   <div>
     <h3>Inc16</h3>
     <div class="sig">Inc16(in[16]) → out[16]</div>
@@ -1387,7 +1398,7 @@
 </article>
 
 <article class="stage" id="s205">
-  <div class="rail"><span class="num">2.05</span><span class="deps"><b>Needs</b>2.03, 2.04, 1.07</span></div>
+  <div class="rail"><span class="num">2.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s203">2.03</a>, <a class="xref" href="#s204">2.04</a>, <a class="xref" href="#s107">1.07</a></span></div>
   <div>
     <h3>Negative numbers</h3>
     <div class="sig">no new chip — a decision</div>
@@ -1407,7 +1418,7 @@
 </article>
 
 <article class="stage" id="s206">
-  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>1.xx, 2.03–2.05</span></div>
+  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>1.xx, <a class="xref" href="#s203">2.03</a>–<a class="xref" href="#s205">2.05</a></span></div>
   <div>
     <h3>ALU</h3>
     <div class="sig">ALU(x[16], y[16], zx, nx, zy, ny, f, no) → out[16], zr, ng</div>
@@ -1476,7 +1487,7 @@
 </article>
 
 <article class="stage" id="s302">
-  <div class="rail"><span class="num">3.02</span><span class="deps"><b>Needs</b>1.00, 3.01</span></div>
+  <div class="rail"><span class="num">3.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s100">1.00</a>, <a class="xref" href="#s301">3.01</a></span></div>
   <div>
     <h3>Set-reset latch</h3>
     <div class="sig">SRLatch(set, reset) → q</div>
@@ -1518,7 +1529,7 @@
 </article>
 
 <article class="stage" id="s303">
-  <div class="rail"><span class="num">3.03</span><span class="deps"><b>Needs</b>1.00, 1.01, 3.02</span></div>
+  <div class="rail"><span class="num">3.03</span><span class="deps"><b>Needs</b><a class="xref" href="#s100">1.00</a>, <a class="xref" href="#s101">1.01</a>, <a class="xref" href="#s302">3.02</a></span></div>
   <div>
     <h3>Data latch</h3>
     <div class="sig">DLatch(d, enable) → q</div>
@@ -1551,7 +1562,7 @@
 </article>
 
 <article class="stage" id="s304">
-  <div class="rail"><span class="num">3.04</span><span class="deps"><b>Needs</b>1.01, 3.03</span></div>
+  <div class="rail"><span class="num">3.04</span><span class="deps"><b>Needs</b><a class="xref" href="#s101">1.01</a>, <a class="xref" href="#s303">3.03</a></span></div>
   <div>
     <h3>Flip-flop</h3>
     <div class="sig">DFF(d, clk) → q</div>
@@ -1587,7 +1598,7 @@
 </article>
 
 <article class="stage" id="s305">
-  <div class="rail"><span class="num">3.05</span><span class="deps"><b>Needs</b>1.05, 3.04</span></div>
+  <div class="rail"><span class="num">3.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s105">1.05</a>, <a class="xref" href="#s304">3.04</a></span></div>
   <div>
     <h3>Bit</h3>
     <div class="sig">Bit(in, load, clk) → out</div>
@@ -1596,8 +1607,8 @@
     <ul>
     <li><code>in</code> — the value to store.</li>
     <li><code>load</code> — 1 will write <code>in</code> to <code>out</code> at the next rising edge of <code>clk</code>, while 0 should hold the value of <code>out</code>.</li>
-    <li><code>clk</code> — same as in 3.04.</li>
-    <li><code>out</code> — same as in 3.04.</li>
+    <li><code>clk</code> — same as in <a class="xref" href="#s304">3.04</a>.</li>
+    <li><code>out</code> — same as in <a class="xref" href="#s304">3.04</a>.</li>
     </ul>
     <p>So on each rising edge, store either the new input or the value already held.</p>
     <figure class="wave" role="img" aria-label="Timing diagram for a one-bit register">
@@ -1622,7 +1633,7 @@
 </article>
 
 <article class="stage" id="s306">
-  <div class="rail"><span class="num">3.06</span><span class="deps"><b>Needs</b>3.05</span></div>
+  <div class="rail"><span class="num">3.06</span><span class="deps"><b>Needs</b><a class="xref" href="#s305">3.05</a></span></div>
   <div>
     <h3>Register</h3>
     <div class="sig">Register(in[16], load, clk) → out[16]</div>
@@ -1635,16 +1646,16 @@
 </article>
 
 <article class="stage" id="s307">
-  <div class="rail"><span class="num">3.07</span><span class="deps"><b>Needs</b>1.09, 1.10, 3.06</span></div>
+  <div class="rail"><span class="num">3.07</span><span class="deps"><b>Needs</b><a class="xref" href="#s109">1.09</a>, <a class="xref" href="#s110">1.10</a>, <a class="xref" href="#s306">3.06</a></span></div>
   <div>
     <h3>RAM8</h3>
     <div class="sig">RAM8(in[16], load, address[3], clk) → out[16]</div>
     <p>Eight registers and an address that picks one of them.</p>
     <ul>
     <li><code>in[16]</code> — data to write on the next rising edge of the clock if <code>load</code> is high.</li>
-    <li><code>load</code> — same as in 3.06.</li>
+    <li><code>load</code> — same as in <a class="xref" href="#s306">3.06</a>.</li>
     <li><code>address[3]</code> — which of the eight registers to write to.</li>
-    <li><code>clk</code> — same as in 3.06.</li>
+    <li><code>clk</code> — same as in <a class="xref" href="#s306">3.06</a>.</li>
     <li><code>out[16]</code> — that register&#39;s content.</li>
     </ul>
     <p>Build it and the recursion is visible: RAM64 is eight RAM8s addressed by three more bits, RAM512 is eight RAM64s. Only the depth of the address changes.</p>
@@ -1655,7 +1666,7 @@
 </article>
 
 <article class="stage" id="s308">
-  <div class="rail"><span class="num">3.08</span><span class="deps"><b>Needs</b>1.03, 1.05 (1.07), 2.04, 3.06</span></div>
+  <div class="rail"><span class="num">3.08</span><span class="deps"><b>Needs</b><a class="xref" href="#s103">1.03</a>, <a class="xref" href="#s105">1.05</a> (<a class="xref" href="#s107">1.07</a>), <a class="xref" href="#s204">2.04</a>, <a class="xref" href="#s306">3.06</a></span></div>
   <div>
     <h3>Program counter</h3>
     <div class="sig">PC(in[16], load, inc, reset, clk) → out[16]</div>
@@ -1685,7 +1696,7 @@
 <div class="part-rule"></div>
 
 <article class="stage" id="s401">
-  <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b>3.06, 3.07, 3.08</span></div>
+  <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b><a class="xref" href="#s306">3.06</a>, <a class="xref" href="#s307">3.07</a>, <a class="xref" href="#s308">3.08</a></span></div>
   <div>
     <h3>Machine registers</h3>
     <div class="sig">no new chip — the three registers</div>
@@ -1699,7 +1710,7 @@
 </article>
 
 <article class="stage" id="s402">
-  <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b>2.06, 4.01</span></div>
+  <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s206">2.06</a>, <a class="xref" href="#s401">4.01</a></span></div>
   <div>
     <h3>Instruction set</h3>
     <div class="sig">no new chip — the encoding of instructions</div>
@@ -1866,7 +1877,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s403">
-  <div class="rail"><span class="num">4.03</span><span class="deps"><b>Needs</b>4.02</span></div>
+  <div class="rail"><span class="num">4.03</span><span class="deps"><b>Needs</b><a class="xref" href="#s402">4.02</a></span></div>
   <div>
     <h3>Decoder</h3>
     <div class="sig">Decode(instruction[16]) → zx, nx, zy, ny, f, no, isAddr, loadA, loadD, writeM, j1, j2, j3</div>
@@ -1888,12 +1899,12 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s404">
-  <div class="rail"><span class="num">4.04</span><span class="deps"><b>Needs</b>4.02</span></div>
+  <div class="rail"><span class="num">4.04</span><span class="deps"><b>Needs</b><a class="xref" href="#s402">4.02</a></span></div>
   <div>
     <h3>Jumps</h3>
     <div class="sig">Jump(zr, ng, j1, j2, j3) → load</div>
     <p>This gate is just to declutter the CPU implementation. It decides whether the program counter <code>PC</code> should load instead of increment.</p>
-    <p>This decision is based on the ALU&#39;s two status outputs and the three gated jump bits from 4.02:</p>
+    <p>This decision is based on the ALU&#39;s two status outputs and the three gated jump bits from <a class="xref" href="#s402">4.02</a>:</p>
     <ul>
     <li>If <code>j3</code> is set, then we should load <code>PC</code> if <code>ng</code> is set.</li>
     <li>If <code>j2</code> is set, then we should load <code>PC</code> if <code>zr</code> is set.</li>
@@ -1903,7 +1914,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s405">
-  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b>2.06, 4.xx</span></div>
+  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s206">2.06</a>, 4.xx</span></div>
   <div>
     <h3>CPU</h3>
     <div class="sig">CPU(instruction[16], inM[16], reset, clk) → outM[16], writeM, addressM[16], pc[16]</div>
@@ -1927,7 +1938,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s406">
-  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>3.07, 4.06</span></div>
+  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b><a class="xref" href="#s307">3.07</a>, 4.06</span></div>
   <div>
     <h3>The computer</h3>
     <div class="sig">Computer(reset, clk) → nothing</div>
@@ -1961,7 +1972,7 @@ RAM[A]=D   1110001100001000</code></pre>
     <h3>A program in binary</h3>
     <div class="sig">the instruction set from 4.02 → bits in the ROM, by hand</div>
     <p>Write something tiny directly in machine code — add two numbers and store the
-    result — encode it by hand from the tables in 4.02, load it into the ROM, and
+    result — encode it by hand from the tables in <a class="xref" href="#s402">4.02</a>, load it into the ROM, and
     run it.</p>
     <p>Do this exactly once. It is the moment the hardware stops being a diagram and
     becomes a machine, and it will teach you more about your instruction set in
@@ -1971,7 +1982,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s502">
-  <div class="rail"><span class="num">5.02</span><span class="deps"><b>Needs</b>5.01</span></div>
+  <div class="rail"><span class="num">5.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s501">5.01</a></span></div>
   <div>
     <h3>The assembler</h3>
     <div class="sig">text → machine code</div>
@@ -1983,12 +1994,12 @@ RAM[A]=D   1110001100001000</code></pre>
     number 47 — a number that changes the moment you insert a line. Everything
     else is optional.</p>
     <p>This is also the first opportunity to write a real test: assemble the program
-    from 5.01 and check you get the same bits you produced by hand.</p>
+    from <a class="xref" href="#s501">5.01</a> and check you get the same bits you produced by hand.</p>
   </div>
 </article>
 
 <article class="stage" id="s503">
-  <div class="rail"><span class="num">5.03</span><span class="deps"><b>Needs</b>5.02</span></div>
+  <div class="rail"><span class="num">5.03</span><span class="deps"><b>Needs</b><a class="xref" href="#s502">5.02</a></span></div>
   <div>
     <h3>A stack, and a convention for calling things</h3>
     <div class="sig">a region of RAM, plus rules → functions that can call functions</div>
@@ -2006,7 +2017,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s504">
-  <div class="rail"><span class="num">5.04</span><span class="deps"><b>Needs</b>5.03</span></div>
+  <div class="rail"><span class="num">5.04</span><span class="deps"><b>Needs</b><a class="xref" href="#s503">5.03</a></span></div>
   <div>
     <h3>An intermediate language</h3>
     <div class="sig">stack operations → assembly</div>
@@ -2022,7 +2033,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s505">
-  <div class="rail"><span class="num">5.05</span><span class="deps"><b>Needs</b>5.04</span></div>
+  <div class="rail"><span class="num">5.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s504">5.04</a></span></div>
   <div>
     <h3>The compiler</h3>
     <div class="sig">your language → the intermediate language</div>
@@ -2038,7 +2049,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s506">
-  <div class="rail"><span class="num">5.06</span><span class="deps"><b>Needs</b>5.05</span></div>
+  <div class="rail"><span class="num">5.06</span><span class="deps"><b>Needs</b><a class="xref" href="#s505">5.05</a></span></div>
   <div>
     <h3>A runtime</h3>
     <div class="sig">your language → multiply, divide, allocate, draw</div>
@@ -2053,7 +2064,7 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s507">
-  <div class="rail"><span class="num">5.07</span><span class="deps"><b>Needs</b>5.06</span></div>
+  <div class="rail"><span class="num">5.07</span><span class="deps"><b>Needs</b><a class="xref" href="#s506">5.06</a></span></div>
   <div>
     <h3>Primes</h3>
     <div class="sig">your language → the primes below a thousand</div>

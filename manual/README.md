@@ -151,6 +151,16 @@ message. There is no inline math -- a fence is the only form.
 to need signposting should use one — 4.01 is the only one that does. Do not
 use `###`: an `h3` is the stage title itself.
 
+### Cross-references
+
+Write a stage number as plain text -- "the flip-flop from 3.04" -- and the
+build makes it a link to that stage. Nothing is needed in the source, and a
+number with no stage behind it is left alone, so a reference cannot rot into a
+link to an anchor that is not there.
+
+The scan goes quiet inside code, listings, diagrams and existing links: a
+number in a program is data, not a reference.
+
 ### Watch out boxes
 
     ::: watch
