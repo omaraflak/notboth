@@ -1903,95 +1903,45 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s405">
-  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b>2.06, 4.01, 4.04, 4.05</span></div>
+  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b>2.06, 4.xx</span></div>
   <div>
     <h3>CPU</h3>
     <div class="sig">CPU(instruction[16], inM[16], reset, clk) → outM[16], writeM, addressM[16], pc[16]</div>
-    <p>The CPU holds <code>A</code>, <code>D</code>, the ALU, <code>Decode</code> from 4.04, <code>Jump</code> from 4.05 and the
-    counter from 3.08. Its interface to the world outside is four signals to
-    memory and one from it.</p>
-          <div class="tt-wrap">
-            <table class="tt">
-              <tr><th>port</th><th>direction</th><th>meaning</th></tr>
-              <tr><td class="l"><code>instruction</code></td><td class="l">in</td><td class="l">the word the ROM holds at address <code>pc</code></td></tr>
-              <tr><td class="l"><code>inM</code></td><td class="l">in</td><td class="l">the word the RAM holds at address <code>addressM</code></td></tr>
-              <tr><td class="l"><code>reset</code></td><td class="l">in</td><td class="l">forces <code>pc</code> to 0</td></tr>
-              <tr><td class="l"><code>addressM</code></td><td class="l">out</td><td class="l">which RAM word <code>M</code> refers to</td></tr>
-              <tr><td class="l"><code>outM</code></td><td class="l">out</td><td class="l">the value to write there</td></tr>
-              <tr><td class="l"><code>writeM</code></td><td class="l">out</td><td class="l">whether to write it this tick</td></tr>
-              <tr><td class="l"><code>pc</code></td><td class="l">out</td><td class="l">the address of the next instruction</td></tr>
-            </table>
-          </div><p>Feed <code>instruction</code> to <code>Decode</code>, then wire exactly this:</p>
-          <div class="tt-wrap">
-            <table class="tt">
-              <tr><th>input</th><th>source</th></tr>
-              <tr><td class="l"><code>A</code> register <code>in</code></td><td class="l"><code>Mux16(ALU out, instruction, sel = Not(op))</code></td></tr>
-              <tr><td class="l"><code>A</code> register <code>load</code></td><td class="l"><code>loadA</code></td></tr>
-              <tr><td class="l"><code>D</code> register <code>in</code></td><td class="l">ALU out</td></tr>
-              <tr><td class="l"><code>D</code> register <code>load</code></td><td class="l"><code>loadD</code></td></tr>
-              <tr><td class="l">ALU <code>x</code></td><td class="l"><code>D</code> out</td></tr>
-              <tr><td class="l">ALU <code>y</code></td><td class="l"><code>Mux16(A out, inM, sel = useM)</code></td></tr>
-              <tr><td class="l">ALU control</td><td class="l"><code>zx nx zy ny f no</code></td></tr>
-              <tr><td class="l"><code>outM</code></td><td class="l">ALU out</td></tr>
-              <tr><td class="l"><code>addressM</code></td><td class="l"><code>A</code> out</td></tr>
-              <tr><td class="l"><code>writeM</code></td><td class="l"><code>writeM</code></td></tr>
-              <tr><td class="l"><code>PC in</code></td><td class="l"><code>A</code> out</td></tr>
-              <tr><td class="l"><code>PC load</code></td><td class="l"><code>Jump(zr, ng, j1, j2, j3)</code></td></tr>
-              <tr><td class="l"><code>PC inc</code></td><td class="l">constant 1</td></tr>
-              <tr><td class="l"><code>PC reset</code></td><td class="l"><code>reset</code></td></tr>
-            </table>
-          </div><p>Two of those lines carry the design.</p>
-    <p><strong>The mux on <code>A</code>&#39;s input</strong> is what lets one register serve both instruction
-    layouts. On a C-instruction <code>op</code> is 1, <code>Not(op)</code> is 0, and the mux selects the
-    ALU. On an A-instruction it selects the instruction word itself, whose top bit
-    is 0 and whose remaining 15 bits are the value.</p>
-    <p><strong>The mux on the ALU&#39;s <code>y</code> input</strong> is what gives <code>M</code> meaning. <code>useM</code> is
-    <code>instruction[12]</code> unchanged, so the <code>a</code> bit selects between the <code>A</code> register&#39;s
-    output and the word the RAM is currently presenting.</p>
-    <p><code>PC inc</code> is tied to a constant 1 and never changes. The counter from 3.08
-    gives <code>load</code> priority over <code>inc</code>, so a jump overrides the increment without
-    anything needing to switch <code>inc</code> off.</p>
-    <p>Build and test in signal order: ALU inputs correct first, then storage into
-    each of the three destinations, then jumps.</p>
-    <div class="watch"><b>Watch out</b>Everything in this chip reads its inputs and writes its outputs within one tick, which is only consistent because <code>A</code> and <code>D</code> are edge-triggered. When an instruction writes <code>A</code> and reads <code>M</code> in the same tick, <code>M</code> is the word at the <em>old</em> <code>A</code> — the new value does not reach <code>addressM</code> until the next tick. If the registers were the transparent latches of 3.03, <code>addressM</code> would change mid-tick and the RAM would be addressed by two different values during one instruction.</div>
+    <p>At last, the CPU! Its circuit holds registers <code>A</code> and <code>D</code>, the <code>ALU</code>, <code>Decode</code>, <code>Jump</code>, and the
+    program counter <code>PC</code>.</p>
+    <p>Its job is to take an instruction, decode it, execute it, read/write to registers <code>A</code>/<code>D</code> and/or RAM, and increment or jump the program counter <code>PC</code>.</p>
+    <p>The inputs are:</p>
+    <ul>
+    <li><code>instruction</code> — the 16-bit instruction to execute.</li>
+    <li><code>inM</code> — the value of a register in the RAM (fetched at <code>addressM</code>, outputted at the previous turn).</li>
+    <li><code>reset</code> — to reset the program counter <code>PC</code>.</li>
+    <li><code>clk</code> — the clock running the whole machine.</li>
+    </ul>
+    <p>The outputs are:</p>
+    <ul>
+    <li><code>outM</code>, <code>writeM</code>, <code>addressM</code> — The value <code>outM</code> is be written to the RAM at <code>addressM</code> if <code>writeM=1</code>.</li>
+    <li><code>pc</code> — the value of the <code>PC</code> register after being incremented or loaded, i.e. the address of the next instruction.</li>
+    </ul>
+    <div class="watch"><b>Watch out</b>Remember to explicitly handle the case where <code>op=0</code>, i.e. load register <code>A</code> with the 15 bit value of the instruction.</div>
   </div>
 </article>
 
 <article class="stage" id="s406">
-  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>4.06, 3.07</span></div>
+  <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b>3.07, 4.06</span></div>
   <div>
     <h3>The computer</h3>
-    <div class="sig">Computer(reset, clk) → nothing — the result is what it leaves in memory</div>
-    <p>Three chips.</p>
-          <div class="tt-wrap">
-            <table class="tt">
-              <tr><th>chip</th><th>address from</th><th>data in</th><th>data out</th></tr>
-              <tr><td class="l"><code>ROM</code></td><td class="l"><code>pc</code></td><td class="l">—</td><td class="l"><code>instruction</code></td></tr>
-              <tr><td class="l"><code>CPU</code></td><td class="l">—</td><td class="l"><code>instruction</code>, <code>inM</code></td><td class="l"><code>outM</code>, <code>writeM</code>, <code>addressM</code>, <code>pc</code></td></tr>
-              <tr><td class="l"><code>RAM</code></td><td class="l"><code>addressM</code></td><td class="l"><code>outM</code> when <code>writeM</code></td><td class="l"><code>inM</code></td></tr>
-            </table>
-          </div><p>Use the built-in <code>ROM</code> and <code>RAM</code> primitives rather than the RAM8 from 3.07.
-    3.07 exists to show what is inside a memory. A 65,536-word memory built from
-    Registers would be around twenty million gates — a Register is roughly 300 —
-    and every test vector would have to settle all of them.</p>
-    <p>Set both address widths to 16, matching the buses. Unused capacity costs
-    nothing: a memory here is an array the simulator indexes, not a netlist it
-    settles, so compile and settle times are the same for 65,536 words as for 256.
-    The contents editor holds only the words you actually write.</p>
-    <h2>Two memories, not one</h2>
-    <p>Instructions and data live in separate memories, which is the Harvard
-    arrangement. The CPU presents <code>pc</code> to one and <code>addressM</code> to the other in the
-    same tick, and neither waits for the other. A single memory would have to
-    serve both, which means either two ports or an extra tick per instruction, and
-    the second option means every chip in this Part needs a notion of which phase
-    of an instruction it is in.</p>
-    <p>The cost is that a program cannot write to its own instruction memory. There
-    is no wire from <code>outM</code> to the ROM.</p>
-    <h2>reset</h2>
-    <p><code>reset</code> reaches the counter through the CPU and forces <code>pc</code> to 0. Without it,
-    the counter starts at whatever its flip-flops settle to at power-on, and the
-    first instruction fetched is at an arbitrary address. The symptom is a program
-    that produces partial results, because it began in the middle.</p>
+    <div class="sig">Computer(reset, clk) → nothing</div>
+    <p>The final computer, three chips: <code>CPU</code>, <code>RAM</code>, <code>ROM</code>.</p>
+    <blockquote>
+    <p>Use the built-in <code>RAM</code> and <code>ROM</code>.</p>
+    </blockquote>
+    <ul>
+    <li>The program to execute lives in the <code>ROM</code>.</li>
+    <li>The <code>reset</code> bit will set the <code>PC</code> counter inside the <code>CPU</code> to zero. It boots the machine.</li>
+    <li>The CPU outputs that initial <code>pc</code> which it feeds into the <code>ROM</code> to get the value of the instruction.</li>
+    <li>The instruction fetched from the <code>ROM</code> simply goes back into the <code>CPU</code> to be executed.</li>
+    <li>The <code>RAM</code> is wired to the <code>CPU</code>&#39;s <code>writeM</code>/<code>addressM</code>/<code>outM</code> fields.</li>
+    </ul>
   </div>
 </article>
 
