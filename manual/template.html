@@ -229,24 +229,38 @@
     /* Lists, for the stages whose subject really is a set of cases. Same measure
    and rhythm as the body text, with the marker in the spot colour so a list of
    behaviours reads as part of the specification rather than as decoration. */
-    ul {
+    ul,
+    ol {
       max-width: var(--measure);
       margin: 0 0 1em;
+    }
+
+    ul {
       padding: 0;
       list-style: none;
+    }
+
+    /* An ordered list keeps its own numbers: the order is the content there,
+   and a hand-drawn bullet in front of one would be saying nothing twice. */
+    ol {
+      padding-left: 1.5rem;
+      list-style: decimal;
     }
 
     li {
       position: relative;
       margin: 0 0 0.55em;
-      padding-left: 1.15rem;
     }
 
     li:last-child {
       margin-bottom: 0;
     }
 
-    li::before {
+    ul > li {
+      padding-left: 1.15rem;
+    }
+
+    ul > li::before {
       content: "";
       position: absolute;
       left: 0.25rem;
@@ -255,6 +269,12 @@
       height: 5px;
       border-radius: 50%;
       background: var(--spot);
+    }
+
+    ol > li::marker {
+      color: var(--spot);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
 
     em {
@@ -749,7 +769,7 @@
     /* Code in a sentence, set as a chip. The `:not(pre)` matters: a <code>
    inside a <pre> is one inline box spanning every line of the listing, so a
    border on it is drawn once per line rather than once around the block. */
-    .stage :not(pre) > code {
+    .stage :not(pre)>code {
       font-size: 0.86em;
       background: var(--surface);
       border: 1px solid var(--rule-soft);
@@ -975,7 +995,7 @@
       </p>
       <p class="standfirst">This tutorial is largely insipired by <a href="https://www.nand2tetris.org/"
           target="_blank">Nand2Tetris</a>'
-        course materials and designs.
+        designs.
       </p>
     </header>
 
@@ -1025,11 +1045,6 @@
           <circle cx="360" cy="368" r="3" fill="var(--spot)" />
         </g>
       </svg>
-      <figcaption>
-        Everything above balances on the block at the bottom. Nothing in this manual
-        is given to you except that one gate &mdash; and a switch to feed it, and a
-        clock to keep time.
-      </figcaption>
     </figure>
 
     <section class="front">
