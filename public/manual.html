@@ -746,7 +746,10 @@
       color: var(--spot);
     }
 
-    .stage code {
+    /* Code in a sentence, set as a chip. The `:not(pre)` matters: a <code>
+   inside a <pre> is one inline box spanning every line of the listing, so a
+   border on it is drawn once per line rather than once around the block. */
+    .stage :not(pre) > code {
       font-size: 0.86em;
       background: var(--surface);
       border: 1px solid var(--rule-soft);
@@ -1397,7 +1400,7 @@
     <li><code>nx</code> — invert <code>x</code> (applies after <code>zx</code>).</li>
     <li><code>zy</code> — replace <code>y</code> with zero.</li>
     <li><code>ny</code> — invert <code>y</code>, (applies after <code>zy</code>).</li>
-    <li><code>f</code> — the operation: 1 <code>ADD</code>s the two pre-processed inputs, 0 <code>AND</code>s them.</li>
+    <li><code>f</code> — the operation: 0 <code>AND</code>s the two pre-processed inputs, 1 <code>ADD</code>s them.</li>
     <li><code>no</code> — invert the answer (<code>NOT</code>) on the way out.</li>
     </ul>
     <p>Two extra outputs matter as much as the number itself:</p>
@@ -1405,7 +1408,30 @@
     <li><code>zr</code> says if the result is zero.</li>
     <li><code>ng</code> says if the result is negative (c.f. two&#39;s complement).</li>
     </ul>
-    <div class="watch"><b>Watch out</b>This is the largest chip so far. Test every control combination you intend to use, with at least one negative operand.</div>
+    <p>Since there are 6 control bits, that&#39;s <code>2^6=64</code> different operations supported! These are some useful ones:</p>
+          <div class="tt-wrap">
+            <table class="tt">
+              <tr><th>compute</th><th>zx</th><th>nx</th><th>zy</th><th>ny</th><th>f</th><th>no</th></tr>
+              <tr><td class="l"><code>0</code></td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>1</code></td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>-1</code></td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>x</code></td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>y</code></td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>!x</code></td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>!y</code></td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>-x</code></td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>-y</code></td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>x+1</code></td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>y+1</code></td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>x-1</code></td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>y-1</code></td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>x+y</code></td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>x-y</code></td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>y-x</code></td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
+              <tr><td class="l"><code>x&amp;y</code></td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td></tr>
+              <tr><td class="l"><code>x|y</code></td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">1</td></tr>
+            </table>
+          </div><div class="watch"><b>Watch out</b>This is the largest chip so far. Test every control combination you intend to use, with at least one negative operand.</div>
   </div>
 </article>
 
@@ -1789,42 +1815,29 @@
     <li><strong>Destination.</strong> These are 3 independent bits each telling whether to write the <code>ALU</code>&#39;s output to <code>A</code>, <code>D</code>, and/or the <code>RAM</code>&#39;s register pointed by <code>A</code> (only when <code>A</code> is an address, i.e. <code>a=1</code>).</li>
     <li><strong>Jump.</strong> Lastly, these are 3 bits each telling whether to load the address in <code>A</code> into the program counter register <code>PC</code> (only when <code>A</code> is an address, i.e. <code>a=1</code>). Remember that the <code>ALU</code> outputs a number but also <code>zr</code> (output is zero) and <code>ng</code> (output is negative). If instruction bit 2 is set, then we should load <code>PC</code> if <code>ng</code> is set. If instruction bit 1 is set, then we should load <code>PC</code> if <code>zr</code> is set. Finally, if instruction bit 0 is set, then we should load <code>PC</code> if neither <code>zr</code> nor <code>ng</code> are set.</li>
     </ul>
-    <h2>All possible computations</h2>
-    <p>The eighteen settings worth naming, in both <code>a</code> versions:</p>
-          <div class="tt-wrap">
-            <table class="tt">
-              <tr><th>a = 0</th><th>a = 1</th><th>a = 0</th><th>a = 1</th></tr>
-              <tr><td class="l"><code>0</code></td><td class="l"><code>0</code></td><td class="l"><code>D+1</code></td><td class="l"><code>D+1</code></td></tr>
-              <tr><td class="l"><code>1</code></td><td class="l"><code>1</code></td><td class="l"><code>A+1</code></td><td class="l"><code>M+1</code></td></tr>
-              <tr><td class="l"><code>-1</code></td><td class="l"><code>-1</code></td><td class="l"><code>D-1</code></td><td class="l"><code>D-1</code></td></tr>
-              <tr><td class="l"><code>D</code></td><td class="l"><code>D</code></td><td class="l"><code>A-1</code></td><td class="l"><code>M-1</code></td></tr>
-              <tr><td class="l"><code>A</code></td><td class="l"><code>M</code></td><td class="l"><code>D+A</code></td><td class="l"><code>D+M</code></td></tr>
-              <tr><td class="l"><code>!D</code></td><td class="l"><code>!D</code></td><td class="l"><code>D-A</code></td><td class="l"><code>D-M</code></td></tr>
-              <tr><td class="l"><code>!A</code></td><td class="l"><code>!M</code></td><td class="l"><code>A-D</code></td><td class="l"><code>M-D</code></td></tr>
-              <tr><td class="l"><code>-D</code></td><td class="l"><code>-D</code></td><td class="l"><code>D&amp;A</code></td><td class="l"><code>D&amp;M</code></td></tr>
-              <tr><td class="l"><code>-A</code></td><td class="l"><code>-M</code></td><td class="l"><code>D|A</code></td><td class="l"><code>D|M</code></td></tr>
-            </table>
-          </div><h2>One instruction, decoded</h2>
-    <p><code>M=D+1</code> is <code>1110011111001000</code>:</p>
+    <h2>One instruction decoded</h2>
+    <p><code>RAM[A]=D+1</code> is <code>1110011111001000</code>:</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>bits</th><th>field</th><th>meaning</th></tr>
-              <tr><td class="l"><code>1</code></td><td class="l">op</td><td class="l">C-instruction</td></tr>
+              <tr><td class="l"><code>1</code></td><td class="l">op</td><td class="l">compute instruction</td></tr>
               <tr><td class="l"><code>11</code></td><td class="l">unused</td><td class="l">no effect</td></tr>
-              <tr><td class="l"><code>0</code></td><td class="l"><code>a</code></td><td class="l">ALU <code>y</code> is <code>A</code>, unused here</td></tr>
-              <tr><td class="l"><code>011111</code></td><td class="l">comp</td><td class="l"><code>D+1</code></td></tr>
-              <tr><td class="l"><code>001</code></td><td class="l">dest</td><td class="l">store into <code>M</code></td></tr>
+              <tr><td class="l"><code>0</code></td><td class="l"><code>a</code></td><td class="l">ALU <code>y</code> is <code>A</code> (unused here)</td></tr>
+              <tr><td class="l"><code>011111</code></td><td class="l">control</td><td class="l"><code>D+1</code></td></tr>
+              <tr><td class="l"><code>001</code></td><td class="l">destination</td><td class="l">store into the <code>RAM</code> pointed by <code>A</code></td></tr>
               <tr><td class="l"><code>000</code></td><td class="l">jump</td><td class="l">never</td></tr>
             </table>
-          </div><h2>A program</h2>
+          </div><blockquote>
+    <p>Note that you would need to load register <code>A</code> with a valid address in a previous instruction for this to work.</p>
+    </blockquote>
+    <h2>A program</h2>
     <p>Add 2 and 3, store the result at address 0:</p>
-    <pre><code>@2        0000000000000010
-    D=A       1110110000010000
-    @3        0000000000000011
-    D=D+A     1110000010010000
-    @0        0000000000000000
-    M=D       1110001100001000
-    </code></pre>
+    <pre class="code"><code class="lang-text">@2        0000000000000010
+D=A       1110110000010000
+@3        0000000000000011
+D=D+A     1110000010010000
+@0        0000000000000000
+M=D       1110001100001000</code></pre>
   </div>
 </article>
 
@@ -1907,16 +1920,16 @@
     <p><code>loadD</code>, <code>writeM</code> and the three jump bits are suppressed by conjunction with
     <code>op</code>:</p>
     <pre><code>loadD  = And(op, instruction[4])
-    writeM = And(op, instruction[3])
-    j1     = And(op, instruction[2])
-    j2     = And(op, instruction[1])
-    j3     = And(op, instruction[0])
-    </code></pre>
+writeM = And(op, instruction[3])
+j1     = And(op, instruction[2])
+j2     = And(op, instruction[1])
+j3     = And(op, instruction[0])
+</code></pre>
     <p><code>loadA</code> is the exception, and it is forced the <em>other</em> way. Loading <code>A</code> is the
     entire effect of an A-instruction, so <code>loadA</code> must be 1 whenever <code>op</code> is 0,
     and <code>instruction[5]</code> otherwise:</p>
     <pre><code>loadA = Or(Not(op), instruction[5])
-    </code></pre>
+</code></pre>
     <p>One Not, one Or, five Ands. A larger decoder means the encoding has been
     changed, not that the chip is hard.</p>
     <div class="watch"><b>Watch out</b>Wiring <code>loadA</code> as <code>And(op, instruction[5])</code> by symmetry with the other three produces a machine where <code>@5</code> has no effect. The symptom appears at the <code>A</code> register — it never changes — so the search starts in the wrong chip.</div>
@@ -1944,9 +1957,9 @@
           </div><p>An instruction jumps when it requested an outcome that occurred. Since exactly
     one outcome occurs, the three terms are disjoint and an Or combines them:</p>
     <pre><code>load = Or(Or(And(j1, ng),
-                 And(j2, zr)),
-              And(j3, Not(Or(zr, ng))))
-    </code></pre>
+             And(j2, zr)),
+          And(j3, Not(Or(zr, ng))))
+</code></pre>
     <p>One Or and one Not for the positive test, three Ands, two Ors to combine:
     seven gates.</p>
     <p><code>j1</code>, <code>j2</code> and <code>j3</code> arrive already conjoined with <code>op</code> in 4.04, so an

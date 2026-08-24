@@ -274,6 +274,22 @@ function blocks(text) {
   return html.trim();
 }
 
+/**
+ * Indent generated markup so the page source stays readable -- but not inside
+ * a <pre>, where the whitespace is the content. A listing lines its columns up
+ * with spaces, and four more on every line but the first is exactly enough to
+ * ruin that.
+ */
+function indent(html, pad = '    ') {
+  let inPre = false;
+  return html.split('\n').map((line) => {
+    const out = inPre ? line : pad + line;
+    if (/<pre[\s>]/.test(line)) inPre = true;
+    if (/<\/pre>/.test(line)) inPre = false;
+    return out;
+  }).join('\n');
+}
+
 /* ------------------------------------------------------------------ *
  * Sources
  * ------------------------------------------------------------------ */
@@ -314,7 +330,7 @@ for (const { file, meta, body: text } of docs) {
     body.push('<div class="part-head">\n'
       + `  <div class="roman">${md(meta.roman)}</div>\n  <div>\n`
       + `    <h2>${md(meta.title)}</h2>\n`
-      + blocks(text).split('\n').map((l) => '    ' + l).join('\n')
+      + indent(blocks(text))
       + '\n  </div>\n</div>\n<div class="part-rule"></div>');
     group = { roman: meta.roman, title: meta.short ?? meta.title, links: [] };
     toc.push(group);
@@ -327,7 +343,7 @@ for (const { file, meta, body: text } of docs) {
   body.push(`<article class="stage" id="${id}">\n  <div class="rail">${rail}</div>\n  <div>\n`
     + `    <h3>${md(meta.title)}</h3>\n`
     + (meta.sig ? `    <div class="sig">${md(meta.sig)}</div>\n` : '')
-    + blocks(text).split('\n').map((l) => '    ' + l).join('\n')
+    + indent(blocks(text))
     + '\n  </div>\n</article>');
   if (group) {
     // Appendix entries are lettered rather than numbered, and their numbers say
