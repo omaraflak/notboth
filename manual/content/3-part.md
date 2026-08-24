@@ -4,6 +4,4 @@ roman: III
 title: Memory
 ---
 
-Everything so far has been a function: inputs in, outputs out, no history.
-This Part breaks that. It is the conceptually hardest stretch of the whole
-build, and the most worthwhile.
+Everything so far has been a pure function: inputs in, outputs out. This part introduces the tricks to force the circuit to hold on to a value, and therefore create memory.

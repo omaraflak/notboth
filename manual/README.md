@@ -153,13 +153,22 @@ use `###`: an `h3` is the stage title itself.
 
 ### Cross-references
 
-Write a stage number as plain text -- "the flip-flop from 3.04" -- and the
-build makes it a link to that stage. Nothing is needed in the source, and a
-number with no stage behind it is left alone, so a reference cannot rot into a
-link to an anchor that is not there.
+In the body of a stage, write one as an ordinary markdown link:
 
-The scan goes quiet inside code, listings, diagrams and existing links: a
-number in a program is data, not a reference.
+    the flip-flop from [3.04](/manual.html#s304)
+
+A stage's anchor is `s` followed by its number without the dot, so 3.04 is
+`#s304`. Written this way a reference is part of a sentence and looks like
+every other link in the manual.
+
+The `needs:` line is the exception. It is a list of bare numbers, so the build
+links them for you -- write `needs: 3.04, 1.05` and nothing else. Those come
+out quieter than a link in a sentence, since a rail of forty orange numbers
+would read as forty interruptions.
+
+In `needs:`, `1.xx` means the whole of Part I rather than any one chip in it,
+and links to the part's own heading. Use it where the ALU does: it needs every
+gate in Part I, not a list of six of them.
 
 ### Watch out boxes
 

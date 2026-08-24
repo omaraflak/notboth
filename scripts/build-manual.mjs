@@ -291,21 +291,24 @@ function indent(html, pad = '    ') {
 }
 
 /**
- * Turn every mention of a stage number into a link to that stage.
+ * Turn the stage numbers in a Needs rail into links.
  *
- * Done here rather than in the sources so that writing "see 3.04" is all a
- * stage has to do, and so a cross-reference cannot rot into a link to an
- * anchor that no longer exists -- a number with no stage behind it is simply
- * left as text.
+ * Only the rail: a reference in the body of a stage is written as an ordinary
+ * markdown link, because it is part of a sentence and should look like every
+ * other link in the manual. The rail is a list of bare numbers, so linking
+ * them here saves writing the same URL out forty times.
+ *
+ * `1.xx` means the whole of Part I rather than any one chip in it, and points
+ * at the part's own heading. A number with no stage behind it is left as text
+ * rather than becoming a link to an anchor that is not there.
  *
  * The scan walks tags and text alternately and goes quiet inside <pre>,
- * <code>, <svg> and <a>: a number in a listing is data, a number in a
- * waveform is geometry, and a number already inside a link is spoken for.
+ * <code>, <svg> and <a>.
  */
-function crossLink(html, ids, self) {
-  const parts = html.split(/(<[^>]+>)/);
+function crossLink(html, ids, parts, self) {
+  const chunks = html.split(/(<[^>]+>)/);
   let mute = 0;
-  return parts.map((part) => {
+  return chunks.map((part) => {
     if (part.startsWith('<')) {
       const m = /^<(\/?)(pre|code|svg|a)\b/i.exec(part);
       if (m) {
@@ -315,8 +318,8 @@ function crossLink(html, ids, self) {
       return part;
     }
     if (mute) return part;
-    return part.replace(/\b\d\.\d\d\b/g, (num) => {
-      const id = ids.get(num);
+    return part.replace(/\b(\d)\.(\d\d|xx)\b/g, (num, digit, tail) => {
+      const id = tail === 'xx' ? parts.get(digit) : ids.get(num);
       // Not a stage, or this stage: a link to where you already are is noise.
       if (!id || num === self) return num;
       return `<a class="xref" href="#${id}">${num}</a>`;
@@ -360,16 +363,34 @@ const stageIds = new Map(
   docs.filter((d) => d.meta.num).map((d) => [d.meta.num, idOf(d.meta.num)]),
 );
 
+/**
+ * Part anchors, keyed by the digit their stages carry. A stage that says it
+ * needs `1.xx` means the whole of Part I rather than any one gate in it, so
+ * that reference points at the part's own heading.
+ */
+const partIds = new Map();
+/** The same anchor, looked up by the part file that has to carry it. */
+const partAnchor = new Map();
+docs.forEach((d, i) => {
+  if (d.meta.kind !== 'part') return;
+  const next = docs.slice(i + 1).find((x) => x.meta.num);
+  const digit = next?.meta.num.split('.')[0];
+  if (!digit) return;
+  partIds.set(digit, `p${digit}`);
+  partAnchor.set(d.file, `p${digit}`);
+});
+
 const body = [];
 const toc = [];
 let group = null;
 
 for (const { file, meta, body: text } of docs) {
   if (meta.kind === 'part') {
-    body.push('<div class="part-head">\n'
+    const anchor = partAnchor.get(file);
+    body.push(`<div class="part-head"${anchor ? ` id="${anchor}"` : ''}>\n`
       + `  <div class="roman">${md(meta.roman)}</div>\n  <div>\n`
       + `    <h2>${md(meta.title)}</h2>\n`
-      + indent(crossLink(blocks(text), stageIds, null))
+      + indent(blocks(text))
       + '\n  </div>\n</div>\n<div class="part-rule"></div>');
     group = { roman: meta.roman, title: meta.short ?? meta.title, links: [] };
     toc.push(group);
@@ -379,12 +400,12 @@ for (const { file, meta, body: text } of docs) {
   const id = idOf(meta.num);
   const rail = `<span class="num">${meta.num}</span>`
     + (meta.needs
-      ? `<span class="deps"><b>Needs</b>${crossLink(md(meta.needs), stageIds, meta.num)}</span>`
+      ? `<span class="deps"><b>Needs</b>${crossLink(md(meta.needs), stageIds, partIds, meta.num)}</span>`
       : '');
   body.push(`<article class="stage" id="${id}">\n  <div class="rail">${rail}</div>\n  <div>\n`
     + `    <h3>${md(meta.title)}</h3>\n`
     + (meta.sig ? `    <div class="sig">${md(meta.sig)}</div>\n` : '')
-    + indent(crossLink(blocks(text), stageIds, meta.num))
+    + indent(blocks(text))
     + '\n  </div>\n</article>');
   if (group) {
     // Appendix entries are lettered rather than numbered, and their numbers say

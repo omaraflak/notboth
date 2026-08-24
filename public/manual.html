@@ -1120,7 +1120,7 @@
     </div>
     <div class="toc-part">
       <b><i>III</i>Memory</b>
-      <a href="#s301"><i>3.01</i>The leap into time</a>
+      <a href="#s301"><i>3.01</i>Circular wiring</a>
       <a href="#s302"><i>3.02</i>Set-reset latch</a>
       <a href="#s303"><i>3.03</i>Data latch</a>
       <a href="#s304"><i>3.04</i>Flip-flop</a>
@@ -1151,7 +1151,7 @@
   </div>
 </nav>
 
-    <div class="part-head">
+    <div class="part-head" id="p1">
   <div class="roman">I</div>
   <div>
     <h2>The gates</h2>
@@ -1316,13 +1316,13 @@
   <div>
     <h3>Or16Way</h3>
     <div class="sig">Or16Way(in[16]) → out</div>
-    <p>A gate to output 1 when <em>any</em> one of the input bits is 1.</p>
+    <p>A gate to output <code>1</code> when <em>any</em> one of the input bits is <code>1</code>.</p>
     <p>This is how your machine answers &quot;is this number zero?&quot;, which is the basis of conditional branching.</p>
   </div>
 </article>
 
 <article class="stage" id="s109">
-  <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b><a class="xref" href="#s105">1.05</a>, <a class="xref" href="#s107">1.07</a></span></div>
+  <div class="rail"><span class="num">1.09</span><span class="deps"><b>Needs</b><a class="xref" href="#s107">1.07</a></span></div>
   <div>
     <h3>Mux4Way16 and Mux8Way16</h3>
     <div class="sig">Mux4Way16(a[16], b[16], c[16], d[16], sel[2]) → out[16] · Mux8Way16</div>
@@ -1331,7 +1331,9 @@
     <li>four-way: 2 selector bits and four candidate words.</li>
     <li>eight-way: 3 selector bits and eight candidate words.</li>
     </ul>
+    <blockquote>
     <p>Remember to reuse existing components.</p>
+    </blockquote>
   </div>
 </article>
 
@@ -1345,11 +1347,11 @@
   </div>
 </article>
 
-<div class="part-head">
+<div class="part-head" id="p2">
   <div class="roman">II</div>
   <div>
     <h2>Arithmetic</h2>
-    <p>Six stages that turn logic into mathematics. This Part ends with the single most important chip in the machine, and it is actually less frightening than its reputation.</p>
+    <p>Six stages that turn logic into mathematics. This part ends with one of the most important chip in the machine: the ALU (Arithmetic Logic Unit).</p>
   </div>
 </div>
 <div class="part-rule"></div>
@@ -1359,10 +1361,10 @@
   <div>
     <h3>HalfAdder</h3>
     <div class="sig">HalfAdder(a, b) → sum, carry</div>
-    <p>Gate that adds two bits. There are only four cases: 0+0, 0+1, 1+0, and 1+1. Remember those are binary addition, but it works exactly like decimal additions:</p>
+    <p>Gate that adds two bits. There are only four cases: <code>0+0</code>, <code>0+1</code>, <code>1+0</code>, and <code>1+1</code>. Remember those are binary addition, but it works exactly like decimal additions:</p>
     <ul>
-    <li>In decimal, when you go above 9 you loop back to 0.</li>
-    <li>In binary, when you go above 1 you loop back to 0.</li>
+    <li>In decimal, when you go above <code>9</code> you loop back to <code>0</code>.</li>
+    <li>In binary, when you go above <code>1</code> you loop back to <code>0</code>.</li>
     </ul>
     <p>Therefore, just like in decimal, for two individual digits you will have a resulting <code>sum</code> and a <code>carry</code>.</p>
   </div>
@@ -1373,7 +1375,7 @@
   <div>
     <h3>FullAdder</h3>
     <div class="sig">FullAdder(a, b, c) → sum, carry</div>
-    <p>A gate that adds <em>three</em> bits. This will be useful when we extend the adder over the entire 16-bits space, as we will need to sum two digits + a carry from the previous <em>column</em> (remember how to make an addition on paper?).</p>
+    <p>A gate that adds <em>three</em> bits. This will be useful when we extend the adder over the entire 16-bit space, as we will need to sum two digits plus a carry from the previous sum.</p>
   </div>
 </article>
 
@@ -1382,7 +1384,8 @@
   <div>
     <h3>Add16</h3>
     <div class="sig">Add16(a[16], b[16]) → out[16]</div>
-    <p>Sixteen full adders in a row. This will mimic the extact steps you take when adding two numbers on papers. Now your machine can add two 16-bit numbers, which — using two&#39;s complement in <a class="xref" href="#s205">2.05</a> — means it can also subtract, compare, and count.</p>
+    <p>Sixteen full adders in a row. This will mimic the extact steps you take when adding two numbers on paper.</p>
+    <p>Once your machine can add two 16-bit numbers, it can also (using two&#39;s complement in <a href="/manual.html#s205">2.05</a>) subtract, compare, and count.</p>
     <div class="watch"><b>Watch out</b>Test the carry chain deliberately!</div>
   </div>
 </article>
@@ -1401,9 +1404,8 @@
   <div class="rail"><span class="num">2.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s203">2.03</a>, <a class="xref" href="#s204">2.04</a>, <a class="xref" href="#s107">1.07</a></span></div>
   <div>
     <h3>Negative numbers</h3>
-    <div class="sig">no new chip — a decision</div>
-    <p>This stage builds nothing, it settles a question.</p>
-    <p>You need negative numbers, and you do not want to build a second machine for subtracting. The convention that saves you is <em>two&#39;s complement</em>: negate a number by inverting every bit and adding one. Under that convention <code>a - b</code> is <code>a + (not b)</code>, and the adder you already is enough.</p>
+    <div class="sig">no new chip</div>
+    <p>You need negative numbers, and you do not want to build a second machine for subtracting. The convention that saves you is <em>two&#39;s complement</em>: negate a number by inverting every bit and adding one. Under that convention <code>a - b</code> is <code>a + (not b)</code>, therefore the adder you already have is enough.</p>
     <p>Here is <code>5</code> being negated, and then added back to itself:</p>
           <div class="tt-wrap">
             <table class="tt">
@@ -1413,23 +1415,23 @@
               <tr><td class="l">add one</td><td>1111111111111011</td><td>−5</td></tr>
               <tr><td class="l">add the 5 back</td><td>0000000000000000</td><td>0</td></tr>
             </table>
-          </div><p>The last row carries a 1 off the top end. Since there are only sixteen bits, the seventeenth has nowhere to go and discarding it is exactly what makes the arithmetic wrap round and come out right (i.e. <code>5 + (-5) = 0</code>).</p>
+          </div><p>The last row carries a <code>1</code> off the top end. Since there are only sixteen bits, the seventeenth has nowhere to go and discarding it is exactly what makes the arithmetic wrap round and come out right (i.e. <code>5 + (-5) = 0</code>).</p>
   </div>
 </article>
 
 <article class="stage" id="s206">
-  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b>1.xx, <a class="xref" href="#s203">2.03</a>–<a class="xref" href="#s205">2.05</a></span></div>
+  <div class="rail"><span class="num">2.06</span><span class="deps"><b>Needs</b><a class="xref" href="#p1">1.xx</a>, <a class="xref" href="#s203">2.03</a>–<a class="xref" href="#s205">2.05</a></span></div>
   <div>
     <h3>ALU</h3>
     <div class="sig">ALU(x[16], y[16], zx, nx, zy, ny, f, no) → out[16], zr, ng</div>
     <p>The arithmetic and logic unit: one box that computes any of a couple of dozen useful functions of two numbers, with control bits selecting which: add, subtract, invert, increment, bitwise-and, bitwise-or, pass one input through, produce a constant.</p>
-    <p>Six single-bit controls, acting in this order to compute the output <code>out</code>:</p>
+    <p>Six single-bit controls act in this order to compute <code>out</code>:</p>
     <ul>
     <li><code>zx</code> — replace <code>x</code> with zero.</li>
     <li><code>nx</code> — invert <code>x</code> (applies after <code>zx</code>).</li>
     <li><code>zy</code> — replace <code>y</code> with zero.</li>
     <li><code>ny</code> — invert <code>y</code>, (applies after <code>zy</code>).</li>
-    <li><code>f</code> — the operation: 0 <code>AND</code>s the two pre-processed inputs, 1 <code>ADD</code>s them.</li>
+    <li><code>f</code> — the operation: <code>0</code> should <code>AND</code> the two pre-processed inputs, <code>1</code> should <code>ADD</code> them.</li>
     <li><code>no</code> — invert the answer (<code>NOT</code>) on the way out.</li>
     </ul>
     <p>Two extra outputs matter as much as the number itself:</p>
@@ -1437,7 +1439,7 @@
     <li><code>zr</code> says if the result is zero.</li>
     <li><code>ng</code> says if the result is negative (c.f. two&#39;s complement).</li>
     </ul>
-    <p>Since there are 6 control bits, that&#39;s <code>2^6=64</code> different operations supported! These are some useful ones:</p>
+    <p>Since there are 6 control bits, that&#39;s 2^6=64 different operations supported! These are some useful ones:</p>
           <div class="tt-wrap">
             <table class="tt">
               <tr><th>compute</th><th>zx</th><th>nx</th><th>zy</th><th>ny</th><th>f</th><th>no</th></tr>
@@ -1460,17 +1462,15 @@
               <tr><td class="l"><code>x&amp;y</code></td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td><td class="o">0</td></tr>
               <tr><td class="l"><code>x|y</code></td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">1</td></tr>
             </table>
-          </div><div class="watch"><b>Watch out</b>This is the largest chip so far. Test every control combination you intend to use, with at least one negative operand.</div>
+          </div><div class="watch"><b>Watch out</b>This is the largest chip so far. Test at least the control combinations presented above.</div>
   </div>
 </article>
 
-<div class="part-head">
+<div class="part-head" id="p3">
   <div class="roman">III</div>
   <div>
     <h2>Memory</h2>
-    <p>Everything so far has been a function: inputs in, outputs out, no history.
-    This Part breaks that. It is the conceptually hardest stretch of the whole
-    build, and the most worthwhile.</p>
+    <p>Everything so far has been a pure function: inputs in, outputs out. This part introduces the tricks to force the circuit to hold on to a value, and therefore create memory.</p>
   </div>
 </div>
 <div class="part-rule"></div>
@@ -1478,11 +1478,11 @@
 <article class="stage" id="s301">
   <div class="rail"><span class="num">3.01</span><span class="deps"><b>Needs</b>a clear head</span></div>
   <div>
-    <h3>The leap into time</h3>
-    <div class="sig">no new chip — an idea</div>
+    <h3>Circular wiring</h3>
+    <div class="sig">no new chip</div>
     <p>Every circuit so far is a pure function of its inputs. None of them have <em>states</em> or can remember.</p>
     <p>To get there, the trick is to <strong>connect a gate&#39;s output back to its own input.</strong> A real gate takes time to respond, so the value arriving back is the value from <em>before</em>. A circuit that can see its own past can hold a state.</p>
-    <p>Before you continue, wire a NAND&#39;s output to its own input, switch on, and watch.</p>
+    <p>Before you continue, wire a NAND&#39;s output to its own input, and try to experiment and build intuition for what is happening.</p>
   </div>
 </article>
 
@@ -1493,10 +1493,10 @@
     <div class="sig">SRLatch(set, reset) → q</div>
     <p>The SRLatch is the first circuit you&#39;ll build that remembers:</p>
     <ul>
-    <li>Set <code>set</code> to 1 and the output <code>q</code> will lock in that value. Flipping <code>set</code> again to 0/1 won&#39;t affect <code>q</code>.</li>
-    <li>Set <code>reset</code> to 1 and the output <code>q</code> will be released and back to 0. Flipping <code>reset</code> to 0/1 after that won&#39;t affect <code>q</code>.</li>
+    <li>Set <code>set</code> to <code>1</code> and the output <code>q</code> will lock in that value. Flipping <code>set</code> again to <code>0</code>/<code>1</code> won&#39;t affect <code>q</code>.</li>
+    <li>Set <code>reset</code> to <code>1</code> and the output <code>q</code> will be released and back to <code>0</code>. Flipping <code>reset</code> to <code>0</code>/<code>1</code> after that won&#39;t affect <code>q</code>.</li>
     </ul>
-    <p>You can actually build this from NAND gates or NOR gates. With NOR gates, everything happens as described above. With NAND gates however, the <em><strong>active</strong></em> / <em><strong>trigger</strong></em> state for <code>set</code> and <code>reset</code> is 0 instead of 1 (so you have to set <code>set</code> to 0 to flip <code>q</code> from 0 to 1, and you have to set <code>reset</code> to 0 to flip <code>q</code> from 1 to 0).</p>
+    <p>You can actually build this from NAND gates or NOR gates. With NOR gates, everything happens as described above. With NAND gates however, the <em><strong>active</strong></em> / <em><strong>trigger</strong></em> state for <code>set</code> and <code>reset</code> is <code>0</code> instead of <code>1</code> (so you have to set <code>set</code> to <code>0</code> to flip <code>q</code> from <code>0</code> to <code>1</code>, and you have to set <code>reset</code> to <code>0</code> to flip <code>q</code> from <code>1</code> to <code>0</code>).</p>
     <p>While a circuit with NOR seems more intuitive, you should still go with NAND for performance reasons (NOR is not a primitive, it&#39;s built out of NANDs).</p>
     <p>The SRLatch gate is implemented very simply with <em><strong>two</strong></em> NANDs cross-feeding their outputs into their inputs.</p>
     <p>They, however, have two flaws:</p>
@@ -1522,8 +1522,8 @@
         <text class="wv-note" x="556" y="181" text-anchor="end">contradiction</text>
       </svg>
     </figure><ul>
-    <li>The right-hand end of the picture is the first flaw: we can lower (i.e. set to 0, the active state) both <code>set</code> and <code>reset</code>, in which case it&#39;s not clear what <code>q</code> should be (<code>set</code> is asking for 1, while <code>reset</code> is asking for 0). This is a design flaw.</li>
-    <li>The second flaw is what happens on the way out of that state: release both <code>set</code> and <code>reset</code> at once (i.e. go from 0 to 1 quickly for both inputs) and the two gates are perfectly symmetric with no way to choose. This shows up in the simulation as an <em><strong>oscillation</strong></em>, while real hardware breaks the tie with manufacturing imperfection.</li>
+    <li>The right-hand end of the picture is the first flaw: we can lower (set to <code>0</code>, i.e. the active state) both <code>set</code> and <code>reset</code>, in which case it&#39;s not clear what <code>q</code> should be (<code>set</code> is asking for <code>1</code>, while <code>reset</code> is asking for <code>0</code>). This is a design flaw.</li>
+    <li>The second flaw is what happens on the way out of that state: release both <code>set</code> and <code>reset</code> at once (i.e. go from <code>0</code> to <code>1</code> quickly for both inputs) and the two gates are perfectly symmetric with no way to choose. This shows up in the simulation as an <em><strong>oscillation</strong></em>.</li>
     </ul>
   </div>
 </article>
@@ -1539,7 +1539,7 @@
     <li><code>enable</code> — while it is high the output <code>q</code> follows <code>d</code>; when it drops, <code>q</code> holds on whatever value it had.</li>
     <li><code>q</code> — the stored bit.</li>
     </ul>
-    <p>The first flaw of the previous model automatically disappears since we can&#39;t have contradictory inputs, i.e. asking for a 0 and 1 at the same time.</p>
+    <p>The first flaw of the previous model automatically disappears since we can&#39;t have contradictory inputs, i.e. asking for a <code>0</code> and <code>1</code> at the same time.</p>
     <figure class="wave" role="img" aria-label="Timing diagram for the gated latch">
       <svg viewBox="0 0 564 148" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">d</text>
@@ -1557,7 +1557,7 @@
         <path class="wv-span" d="M466,120 L466,124 L556,124 L556,120"/>
         <text class="wv-note" x="556" y="137" text-anchor="end">holds</text>
       </svg>
-    </figure><p>However, one problem remains: while <code>enable</code> is high the chip is <em>transparent</em> (it let&#39;s the <code>d</code> signal pass through). If you chain multiple DLatches and open the gates (<code>enable</code> set to 1), a value can race down the whole chain in one go instead of moving step-by-step. This is undesirable because the machine relies on a value crossing exactly one storage element per tick (whereas here, how far a value travels depends only on gate delays).</p>
+    </figure><p>However, one problem remains: while <code>enable</code> is high the chip is <em>transparent</em> (it lets the <code>d</code> signal pass through). If you chain multiple DLatches and open the gates (<code>enable</code> set to <code>1</code>), a value can race down the whole chain in one go instead of moving step-by-step. This is undesirable because the machine relies on a value crossing exactly one storage element per clock tick to function properly.</p>
   </div>
 </article>
 
@@ -1591,8 +1591,8 @@
         <text class="wv-tick" x="436" y="130" text-anchor="middle">read</text>
       </svg>
     </figure><p>Read the picture at the dashed lines: <code>d</code> moves seven times, <code>q</code> moves three, always at a <em>rising</em> edge of <code>clk</code> and always to whatever <code>d</code> was at that instant.</p>
-    <p>So the real difference with the <code>DLatch</code> gate is that we write <code>d</code> to <code>q</code> <strong>only</strong> at the rising edge of the clock, and not before or after. So while the clock is up, unlike the <code>DLatch</code>, we won&#39;t write changes in <code>d</code> to <code>q</code>. This fixes the <em>transparency</em> issue of the <code>DLatch</code> and we now have the building block of a <code>Bit</code>!</p>
-    <p>Hint: you only need two <code>DLatch</code> gates to build a <code>Flip-Flop</code>.</p>
+    <p>So the real difference with the DLatch gate is that we write <code>d</code> to <code>q</code> <strong>only</strong> at the rising edge of the clock, and not before or after. So while the clock is up, unlike the DLatch, we won&#39;t write changes in <code>d</code> to <code>q</code>. This fixes the <em>transparency</em> issue of the DLatch and we now have the building block of a Bit!</p>
+    <p>Hint: you only need two DLatch gates to build a Flip-Flop.</p>
     <div class="watch"><b>Watch out</b>Give the clock a period comfortably longer than the deepest path of gates it drives, so the logic has time to settle before the next edge. This holds for tests as well.</div>
   </div>
 </article>
@@ -1602,15 +1602,15 @@
   <div>
     <h3>Bit</h3>
     <div class="sig">Bit(in, load, clk) → out</div>
-    <p>A flip-flop copies the data, whatever it is, every single tick. So if <code>d</code> doesn&#39;t happen to hold what you want to write during a rising edge of the clock, you are in a bad position because it is written to <code>q</code> anyways!</p>
+    <p>A flip-flop copies the data, whatever it is, every single clock tick. So if <code>d</code> doesn&#39;t happen to hold what you want to write during a rising edge of the clock, you are in a bad position because it is written to <code>q</code> anyways!</p>
     <p>What you want is storage that <em>keeps</em> or <em>discards</em> its value only if you ask it to. This is the <code>Bit</code>!</p>
     <ul>
     <li><code>in</code> — the value to store.</li>
-    <li><code>load</code> — 1 will write <code>in</code> to <code>out</code> at the next rising edge of <code>clk</code>, while 0 should hold the value of <code>out</code>.</li>
-    <li><code>clk</code> — same as in <a class="xref" href="#s304">3.04</a>.</li>
-    <li><code>out</code> — same as in <a class="xref" href="#s304">3.04</a>.</li>
+    <li><code>load</code> — <code>1</code> will write <code>in</code> to <code>out</code> at the next rising edge of <code>clk</code>, while <code>0</code> should hold the value of <code>out</code>.</li>
+    <li><code>clk</code> — same as in <a href="/manual.html#s304">3.04</a>.</li>
+    <li><code>out</code> — same as in <a href="/manual.html#s304">3.04</a>.</li>
     </ul>
-    <p>So on each rising edge, store either the new input or the value already held.</p>
+    <p><strong>So on each rising edge, store either the new input or the value already held</strong>.</p>
     <figure class="wave" role="img" aria-label="Timing diagram for a one-bit register">
       <svg viewBox="0 0 564 192" xmlns="http://www.w3.org/2000/svg">
         <text class="wv-lab" x="66" y="24" text-anchor="end">clk</text>
@@ -1637,7 +1637,7 @@
   <div>
     <h3>Register</h3>
     <div class="sig">Register(in[16], load, clk) → out[16]</div>
-    <p>A Register holds on to a <em>word</em>: sixteen <code>Bit</code>s side by side, sharing one <code>load</code> and one <code>clk</code>.</p>
+    <p>A Register holds on to a <em>word</em>: sixteen Bits side by side, sharing one <code>load</code> and one <code>clk</code>.</p>
     <blockquote>
     <p>You now have a way to store variables!</p>
     </blockquote>
@@ -1650,15 +1650,15 @@
   <div>
     <h3>RAM8</h3>
     <div class="sig">RAM8(in[16], load, address[3], clk) → out[16]</div>
-    <p>Eight registers and an address that picks one of them.</p>
+    <p>A circuit that holds 8 registers and an address that picks one of them.</p>
     <ul>
     <li><code>in[16]</code> — data to write on the next rising edge of the clock if <code>load</code> is high.</li>
-    <li><code>load</code> — same as in <a class="xref" href="#s306">3.06</a>.</li>
+    <li><code>load</code> — same as in <a href="/manual.html#s306">3.06</a>.</li>
     <li><code>address[3]</code> — which of the eight registers to write to.</li>
-    <li><code>clk</code> — same as in <a class="xref" href="#s306">3.06</a>.</li>
+    <li><code>clk</code> — same as in <a href="/manual.html#s306">3.06</a>.</li>
     <li><code>out[16]</code> — that register&#39;s content.</li>
     </ul>
-    <p>Build it and the recursion is visible: RAM64 is eight RAM8s addressed by three more bits, RAM512 is eight RAM64s. Only the depth of the address changes.</p>
+    <p>Building bigger RAM is then a matter of iterating: RAM64 is eight RAM8s addressed by three more bits, RAM512 is eight RAM64s, etc.</p>
     <blockquote>
     <p>Then <strong>stop</strong>! Having proved you can build RAM out of NANDs, use the built-in RAM part for the real machine. A register is about ~300 gates, so building a 16kB memory would be over ~2.4M gates!</p>
     </blockquote>
@@ -1672,9 +1672,9 @@
     <div class="sig">PC(in[16], load, inc, reset, clk) → out[16]</div>
     <p>The program counter is a special register that says which instruction to run next in your CPU (by holding on to the instruction address). Four things can happen to it on the rising edge of the clock:</p>
     <ul>
-    <li><code>reset</code> — <code>out</code> becomes 0. What happens when you switch the machine on.</li>
+    <li><code>reset</code> — <code>out</code> becomes <code>0</code>. This is when you switch the machine on.</li>
     <li><code>load</code> — <code>out</code> becomes <code>in</code>. This is how you would <em>jump</em> from one instruction address to another.</li>
-    <li><code>inc</code> — <code>out</code> becomes <code>out + 1</code>. Point to the next instruction, which is what happens on almost every tick a machine ever runs.</li>
+    <li><code>inc</code> — <code>out</code> becomes <code>out+1</code>. Point to the next instruction, which is needed to execute a program.</li>
     <li>None of <code>reset</code>/<code>load</code>/<code>inc</code> are set — <code>out</code> should hold on its value.</li>
     </ul>
     <p>When more than one control bit is set, take them in the order above: <code>reset</code> beats <code>load</code>, and <code>load</code> beats <code>inc</code>. Any consistent order can be made to work, but that one is easy to make sense of:</p>
@@ -1686,11 +1686,11 @@
   </div>
 </article>
 
-<div class="part-head">
+<div class="part-head" id="p4">
   <div class="roman">IV</div>
   <div>
     <h2>The machine</h2>
-    <p>In this Part, we design the CPU instruction set, and build the CPU and the machine around it. If you are unfamiliar with the concepts of instructions and state-machines, I would advise to have a look at my article on <a href="https://omaraflak.com/articles/virtual-machine">Virtual Machines</a>.</p>
+    <p>In this part, we design the CPU instruction set, and build the CPU and the machine around it. If you are unfamiliar with the concepts of instructions and state-machines, I would advise to have a look at my article on <a href="https://omaraflak.com/articles/virtual-machine">Virtual Machines</a>.</p>
   </div>
 </div>
 <div class="part-rule"></div>
@@ -1699,7 +1699,7 @@
   <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b><a class="xref" href="#s306">3.06</a>, <a class="xref" href="#s307">3.07</a>, <a class="xref" href="#s308">3.08</a></span></div>
   <div>
     <h3>Machine registers</h3>
-    <div class="sig">no new chip — the three registers</div>
+    <div class="sig">no new chip</div>
     <p>Our machine will need only three registers to function properly:</p>
     <ul>
     <li><code>A</code> — an address register (<a href="/manual.html#s306">3.06</a>). This register can hold an address pointing to the RAM <em>or</em> a data value directly. The interpretation of <code>A</code>&#39;s content will depend on the instruction using it.</li>
@@ -1713,7 +1713,7 @@
   <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s206">2.06</a>, <a class="xref" href="#s401">4.01</a></span></div>
   <div>
     <h3>Instruction set</h3>
-    <div class="sig">no new chip — the encoding of instructions</div>
+    <div class="sig">no new chip</div>
     <p>We&#39;ll present an instruction set and design ready to implement, but once you understand this it&#39;ll be much easier to implement your own.</p>
     <p>In this design, an instruction is 16 bits and we&#39;ll support two instruction <em>layouts</em>. Those two formats are differentiated by the 15th (most significant) bit of the instruction.</p>
     <h2>instruction[15] = 0</h2>
@@ -1771,7 +1771,7 @@
         <text class="bt-lab" x="229.5" y="56" text-anchor="middle">value</text>
         <rect class="bt-box" x="0" y="15" width="432" height="26"/>
       </svg>
-    </figure><p>When that most significant bit is 0, then we simply write the 15 remaining bits to register <code>A</code> (zero-extended to 16 bits), and nothing else.</p>
+    </figure><p>When that most significant bit is <code>0</code>, then we simply write the 15 remaining bits to register <code>A</code> (zero-extended to 16 bits), and nothing else.</p>
     <blockquote>
     <p>Since we&#39;re left with 15 bits, <code>A</code> can therefore contain values between <code>0</code> and <code>32767</code>.</p>
     </blockquote>
@@ -1836,7 +1836,7 @@
         <text class="bt-lab" x="391.5" y="56" text-anchor="middle">jump</text>
         <rect class="bt-box" x="0" y="15" width="432" height="26"/>
       </svg>
-    </figure><p>When that most significant bit is 1, the instruction will:</p>
+    </figure><p>When that most significant bit is <code>1</code>, the instruction will:</p>
     <ol>
     <li><strong>Compute</strong> something with the ALU.</li>
     <li>(optionally) <strong>Store</strong> the result into one or multiple registers.</li>
@@ -1844,8 +1844,8 @@
     </ol>
     <p>Here&#39;s the format of the instruction:</p>
     <ul>
-    <li><strong>Unused bits</strong>. Bits 13 and 14 have no use in the format, and could be put to 0 or 1.</li>
-    <li><strong>Address.</strong> We said earlier that register <code>A</code> could contain an address (pointing to data in the RAM) <em>or</em> plain data. Bit 12 is set to 1 when the value of <code>A</code> is an address, and set to 0 when the value of <code>A</code> is plain data.</li>
+    <li><strong>Unused bits</strong>. Bits 13 and 14 have no use in the format, and could be put to <code>0</code> or <code>1</code>.</li>
+    <li><strong>Address.</strong> We said earlier that register <code>A</code> could contain an address (pointing to data in the RAM) <em>or</em> plain data. Bit 12 is set to <code>1</code> when the value of <code>A</code> is an address, and set to <code>0</code> when the value of <code>A</code> is plain data.</li>
     <li><strong>Control.</strong> Bits 6-11 are the 6 control bits the ALU uses and they define the performed computation. In order: <code>zx</code>, <code>nx</code>, <code>zy</code>, <code>ny</code>, <code>f</code>, <code>no</code>. The computation is performed on the following inputs: the ALU&#39;s <code>x</code> input is always the content of register <code>D</code>; the ALU&#39;s <code>y</code> input is either the content  of register <code>A</code> when <code>a=0</code> or the content of the RAM data <em>pointed by</em> <code>A</code> when <code>a=1</code>.</li>
     <li><strong>Destination.</strong> Bits 3-4-5 are independent bits each telling whether to write the ALU&#39;s output to <code>A</code>, <code>D</code>, and/or the RAM&#39;s register pointed by <code>A</code>.</li>
     <li><strong>Jump.</strong> Lastly, these are 3 bits each telling whether to load the address in <code>A</code> into the program counter register <code>PC</code>. Remember that the ALU outputs a number but also <code>zr</code> (output is zero) and <code>ng</code> (output is negative). If instruction bit 2 is set, then we should load <code>PC</code> if <code>ng</code> is set. If instruction bit 1 is set, then we should load <code>PC</code> if <code>zr</code> is set. Finally, if instruction bit 0 is set, then we should load <code>PC</code> if neither <code>zr</code> nor <code>ng</code> are set.</li>
@@ -1904,7 +1904,7 @@ RAM[A]=D   1110001100001000</code></pre>
     <h3>Jumps</h3>
     <div class="sig">Jump(zr, ng, j1, j2, j3) → load</div>
     <p>This gate is just to declutter the CPU implementation. It decides whether the program counter <code>PC</code> should load instead of increment.</p>
-    <p>This decision is based on the ALU&#39;s two status outputs and the three gated jump bits from <a class="xref" href="#s402">4.02</a>:</p>
+    <p>This decision is based on the ALU&#39;s two status outputs and the three gated jump bits from <a href="/manual.html#s402">4.02</a>:</p>
     <ul>
     <li>If <code>j3</code> is set, then we should load <code>PC</code> if <code>ng</code> is set.</li>
     <li>If <code>j2</code> is set, then we should load <code>PC</code> if <code>zr</code> is set.</li>
@@ -1914,12 +1914,12 @@ RAM[A]=D   1110001100001000</code></pre>
 </article>
 
 <article class="stage" id="s405">
-  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s206">2.06</a>, 4.xx</span></div>
+  <div class="rail"><span class="num">4.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s206">2.06</a>, <a class="xref" href="#p4">4.xx</a></span></div>
   <div>
     <h3>CPU</h3>
     <div class="sig">CPU(instruction[16], inM[16], reset, clk) → outM[16], writeM, addressM[16], pc[16]</div>
     <p>At last, the CPU! Its circuit holds registers <code>A</code> and <code>D</code>, the <code>ALU</code>, <code>Decode</code>, <code>Jump</code>, and the
-    program counter <code>PC</code>.</p>
+    program counter <code>PC</code> chips.</p>
     <p>Its job is to take an instruction, decode it, execute it, read/write to registers <code>A</code>/<code>D</code> and/or RAM, and increment or jump the program counter <code>PC</code>.</p>
     <p>The inputs are:</p>
     <ul>
@@ -1956,7 +1956,7 @@ RAM[A]=D   1110001100001000</code></pre>
   </div>
 </article>
 
-<div class="part-head">
+<div class="part-head" id="p5">
   <div class="roman">V</div>
   <div>
     <h2>Software</h2>
@@ -1972,7 +1972,7 @@ RAM[A]=D   1110001100001000</code></pre>
     <h3>A program in binary</h3>
     <div class="sig">the instruction set from 4.02 → bits in the ROM, by hand</div>
     <p>Write something tiny directly in machine code — add two numbers and store the
-    result — encode it by hand from the tables in <a class="xref" href="#s402">4.02</a>, load it into the ROM, and
+    result — encode it by hand from the tables in <a href="/manual.html#s402">4.02</a>, load it into the ROM, and
     run it.</p>
     <p>Do this exactly once. It is the moment the hardware stops being a diagram and
     becomes a machine, and it will teach you more about your instruction set in
@@ -1994,7 +1994,7 @@ RAM[A]=D   1110001100001000</code></pre>
     number 47 — a number that changes the moment you insert a line. Everything
     else is optional.</p>
     <p>This is also the first opportunity to write a real test: assemble the program
-    from <a class="xref" href="#s501">5.01</a> and check you get the same bits you produced by hand.</p>
+    from <a href="/manual.html#s501">5.01</a> and check you get the same bits you produced by hand.</p>
   </div>
 </article>
 
