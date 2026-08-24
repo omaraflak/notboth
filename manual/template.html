@@ -746,7 +746,10 @@
       color: var(--spot);
     }
 
-    .stage code {
+    /* Code in a sentence, set as a chip. The `:not(pre)` matters: a <code>
+   inside a <pre> is one inline box spanning every line of the listing, so a
+   border on it is drawn once per line rather than once around the block. */
+    .stage :not(pre) > code {
       font-size: 0.86em;
       background: var(--surface);
       border: 1px solid var(--rule-soft);
