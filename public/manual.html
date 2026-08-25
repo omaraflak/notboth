@@ -1138,16 +1138,6 @@
       <a href="#s405"><i>4.05</i>CPU</a>
       <a href="#s406"><i>4.06</i>Computer</a>
     </div>
-    <div class="toc-part">
-      <b><i>V</i>Software</b>
-      <a href="#s501"><i>5.01</i>A program in binary</a>
-      <a href="#s502"><i>5.02</i>The assembler</a>
-      <a href="#s503"><i>5.03</i>A stack</a>
-      <a href="#s504"><i>5.04</i>An intermediate language</a>
-      <a href="#s505"><i>5.05</i>The compiler</a>
-      <a href="#s506"><i>5.06</i>A runtime</a>
-      <a href="#s507"><i>5.07</i>Primes</a>
-    </div>
   </div>
 </nav>
 
@@ -1959,127 +1949,15 @@ RAM[A]=D   1110001100001000</code></pre>
   </div>
 </article>
 
-<div class="part-head" id="p5">
+<div class="part-head">
   <div class="roman">V</div>
   <div>
     <h2>Software</h2>
-    <p>The hardware is finished and will not change again. Everything from here is
-    built on top of it, in layers, each one making the next one bearable.</p>
+    <p>The hardware is finished and will not change again. Everything from here is built on top of it. In this part we see how we go from binary to a full programming language.</p>
+    <p>COMING SOON.</p>
   </div>
 </div>
 <div class="part-rule"></div>
-
-<article class="stage" id="s501">
-  <div class="rail"><span class="num">5.01</span><span class="deps"><b>Needs</b>4.08</span></div>
-  <div>
-    <h3>A program in binary</h3>
-    <div class="sig">the instruction set from 4.02 → bits in the ROM, by hand</div>
-    <p>Write something tiny directly in machine code — add two numbers and store the
-    result — encode it by hand from the tables in <a href="/manual.html#s402">4.02</a>, load it into the ROM, and
-    run it.</p>
-    <p>Do this exactly once. It is the moment the hardware stops being a diagram and
-    becomes a machine, and it will teach you more about your instruction set in
-    ten minutes than an afternoon of staring at it. It is also the quickest way to
-    see why you want an assembler, which is the point.</p>
-  </div>
-</article>
-
-<article class="stage" id="s502">
-  <div class="rail"><span class="num">5.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s501">5.01</a></span></div>
-  <div>
-    <h3>The assembler</h3>
-    <div class="sig">text → machine code</div>
-    <p>A program that turns readable mnemonics into the bits you just encoded by
-    hand. Write it in whatever language you like; it runs on your own computer,
-    not on the one you built.</p>
-    <p>Two features earn their keep immediately: <strong>symbolic names</strong> for instructions,
-    and <strong>labels</strong> for addresses, so that a jump target is <code>@loop</code> and not the
-    number 47 — a number that changes the moment you insert a line. Everything
-    else is optional.</p>
-    <p>This is also the first opportunity to write a real test: assemble the program
-    from <a href="/manual.html#s501">5.01</a> and check you get the same bits you produced by hand.</p>
-  </div>
-</article>
-
-<article class="stage" id="s503">
-  <div class="rail"><span class="num">5.03</span><span class="deps"><b>Needs</b><a class="xref" href="#s502">5.02</a></span></div>
-  <div>
-    <h3>A stack, and a convention for calling things</h3>
-    <div class="sig">a region of RAM, plus rules → functions that can call functions</div>
-    <p>Functions need somewhere to keep their local variables and their return
-    address, and it must nest — a function can call a function that calls a
-    function. A stack is the structure that does this, and it is not hardware: it
-    is a region of RAM plus a register holding a pointer to the top of it, plus a
-    set of rules everyone agrees to follow.</p>
-    <p>Design the rules deliberately and write them down: who pushes the arguments,
-    who saves what, where the return value lives, who cleans up. This is the
-    bridge between a machine that runs instructions and a machine that runs
-    <em>programs</em>, and almost every hard bug in the rest of the project will be a
-    violation of these rules.</p>
-  </div>
-</article>
-
-<article class="stage" id="s504">
-  <div class="rail"><span class="num">5.04</span><span class="deps"><b>Needs</b><a class="xref" href="#s503">5.03</a></span></div>
-  <div>
-    <h3>An intermediate language</h3>
-    <div class="sig">stack operations → assembly</div>
-    <p>A small stack-based language — push, pop, add, compare, call, return — and a
-    translator from it into your assembly.</p>
-    <p>Skipping this layer is a common way for the project to stall. Compiling a
-    high-level language directly to machine code means every language feature has
-    to be solved in the same breath as every hardware detail, and the two problems
-    tangle. This layer cuts the knot: the compiler above it only has to think
-    about meaning, and this translator only has to think about your CPU. Each half
-    becomes something you can hold in your head.</p>
-  </div>
-</article>
-
-<article class="stage" id="s505">
-  <div class="rail"><span class="num">5.05</span><span class="deps"><b>Needs</b><a class="xref" href="#s504">5.04</a></span></div>
-  <div>
-    <h3>The compiler</h3>
-    <div class="sig">your language → the intermediate language</div>
-    <p>Now design a language you would actually enjoy writing, and compile it down
-    one level. Variables, expressions, <code>if</code>, <code>while</code>, functions, and some way to
-    group data together. That is enough for real programs; resist adding more
-    until you have run something.</p>
-    <p>Because you are targeting the intermediate language rather than the metal,
-    each construct becomes a small, local translation — a <code>while</code> is a couple of
-    labels and a conditional jump, an expression is a walk over its own tree
-    emitting pushes. That keeps each construct small enough to hold in your head.</p>
-  </div>
-</article>
-
-<article class="stage" id="s506">
-  <div class="rail"><span class="num">5.06</span><span class="deps"><b>Needs</b><a class="xref" href="#s505">5.05</a></span></div>
-  <div>
-    <h3>A runtime</h3>
-    <div class="sig">your language → multiply, divide, allocate, draw</div>
-    <p>Your hardware can add. It cannot multiply, divide, allocate memory or draw a
-    line. Those are library functions, written in your own language, and this is
-    the layer people forget to budget for.</p>
-    <p>Multiplication is repeated addition until you make it cleverer. Division is
-    the same in reverse. Memory allocation is bookkeeping over a region of RAM.
-    Each one is a small program, and writing them is the first time you get to
-    <em>use</em> the thing you built rather than build it.</p>
-  </div>
-</article>
-
-<article class="stage" id="s507">
-  <div class="rail"><span class="num">5.07</span><span class="deps"><b>Needs</b><a class="xref" href="#s506">5.06</a></span></div>
-  <div>
-    <h3>Primes</h3>
-    <div class="sig">your language → the primes below a thousand</div>
-    <p>Write a sieve, in your language, and print the primes below a thousand.</p>
-    <p>When it runs, trace what actually happened. A number you typed was compiled to
-    a stack language, translated to assembly, assembled into bits, stored in a ROM
-    you configured, fetched by a counter you designed, decoded by wires you
-    placed, and computed by an arithmetic unit that is, at the bottom, some
-    thousands of copies of a single gate that only knows how to say “not both”.</p>
-    <p>There is no part of that chain you took on trust.</p>
-  </div>
-</article>
 
   </div>
 
