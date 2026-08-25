@@ -45,10 +45,9 @@ export function defaultProps(kind: PrimitiveKind): InstanceProps {
   switch (kind) {
     case 'NAND':   return {};
     case 'CLOCK':  return { period: 16 };
-    case 'TOGGLE': return { name: 'sw', width: 1, value: 0 };
     case 'CONST':  return { width: 1, value: 0 };
-    case 'IN':     return { name: 'in', width: 1 };
-    case 'OUT':    return { name: 'out', width: 1 };
+    case 'IN':     return { name: 'in', width: 1, value: 0, format: 'hex' };
+    case 'OUT':    return { name: 'out', width: 1, format: 'hex' };
     case 'PROBE':  return { name: 'probe', width: 1, format: 'hex' };
     case 'ROM':    return { addrWidth: 8, dataWidth: 16, contents: [] };
     case 'RAM':    return { addrWidth: 8, dataWidth: 16, contents: [] };
@@ -69,8 +68,6 @@ export function primSignature(kind: PrimitiveKind, props: InstanceProps): Signat
       };
     case 'CLOCK':
       return { inputs: [], outputs: [pin('clk', 'clk', 1)] };
-    case 'TOGGLE':
-      return { inputs: [], outputs: [pin('out', asIdentifier(props.name || 'sw', 'sw'), w)] };
     // Named `out`, not named after its value: a pin's name is what the text
     // form writes after the dot, and `const1.0` is not something the parser can
     // read back. The value is on the box already.
@@ -123,7 +120,6 @@ function pin(id: string, name: string, width: number) {
 const NAMES: Record<PrimitiveKind, string> = {
   NAND: 'Nand',
   CLOCK: 'Clock',
-  TOGGLE: 'Toggle',
   CONST: 'Const',
   IN: 'In',
   OUT: 'Out',
@@ -142,7 +138,6 @@ export function primLabel(inst: Instance): string {
   switch (kind) {
     case 'NAND':   return 'Nand';
     case 'CLOCK':  return `Clk/${inst.props.period ?? 16}`;
-    case 'TOGGLE': return inst.props.name || 'sw';
     case 'CONST':  return `${inst.props.value ?? 0}`;
     case 'IN':     return inst.props.name || 'in';
     case 'OUT':    return inst.props.name || 'out';
@@ -164,7 +159,7 @@ export function customLabel(inst: Instance): string | null {
   if (!inst.props.showName) return null;
   if (isPrim(inst.def)) {
     const kind = primKind(inst.def);
-    if (kind === 'IN' || kind === 'OUT' || kind === 'TOGGLE' || kind === 'PROBE') return null;
+    if (kind === 'IN' || kind === 'OUT' || kind === 'PROBE') return null;
   }
   const name = inst.props.name;
   return typeof name === 'string' && name ? name : null;
@@ -172,4 +167,4 @@ export function customLabel(inst: Instance): string | null {
 
 /** Which primitives make sense to offer in the palette, in display order. */
 export const PALETTE_PRIMITIVES: PrimitiveKind[] =
-  ['NAND', 'IN', 'OUT', 'TOGGLE', 'CONST', 'CLOCK', 'PROBE', 'ROM', 'RAM'];
+  ['NAND', 'IN', 'OUT', 'CONST', 'CLOCK', 'PROBE', 'ROM', 'RAM'];

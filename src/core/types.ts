@@ -17,7 +17,6 @@ export type Id = string;
 export type PrimitiveKind =
   | 'NAND'   // the one true gate: 1-bit, no settings, 1 tick of delay
   | 'CLOCK'  // periodic square wave, period measured in simulation ticks
-  | 'TOGGLE' // manual power supply / input switch
   | 'CONST'  // fixed 0 or 1, for tying inputs high or low inside a subcircuit
   | 'IN'     // port marker: declares an input pin of the enclosing component
   | 'OUT'    // port marker: declares an output pin of the enclosing component
@@ -28,7 +27,7 @@ export type PrimitiveKind =
 export const PRIM_PREFIX = 'prim:';
 
 export const PRIMITIVE_KINDS: PrimitiveKind[] = [
-  'NAND', 'CLOCK', 'TOGGLE', 'CONST', 'IN', 'OUT', 'PROBE', 'ROM', 'RAM',
+  'NAND', 'CLOCK', 'CONST', 'IN', 'OUT', 'PROBE', 'ROM', 'RAM',
 ];
 
 export const MAX_WIDTH = 32;
@@ -53,7 +52,11 @@ export interface Signature {
 export interface InstanceProps {
   name?: string;
   width?: number;
-  /** Current value of a TOGGLE, or the fixed value of a CONST. */
+  /**
+   * What an IN port is driving while the circuit runs, or the fixed value of
+   * a CONST. An input port only has a value of its own at the top level: one
+   * level down it is a pin, and whatever contains it drives it instead.
+   */
   value?: number;
   /** CLOCK: full period in ticks (toggles every period/2). */
   period?: number;

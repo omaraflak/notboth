@@ -216,18 +216,12 @@ export class Inspector {
             }),
             h('span', { class: 'row-meta' }, `${at + 1} of ${list.length}`),
           )));
+        fields.push(this.formatField(inst));
+        if (kind === 'IN') fields.push(this.valueField(inst));
         fields.push(h('div', { class: 'hint' },
           'Port markers are this component\'s pins. Bits is how wide the pin is -- 1 for a single '
           + 'signal, 16 for a whole 16-bit bus down one wire. Their order is independent of where '
           + 'they sit, so arranging the schematic never changes the interface.'));
-        break;
-      }
-
-      case 'TOGGLE': {
-        fields.push(this.textField('Name', inst.props.name ?? 'sw',
-          (v) => mutate(() => { inst.props.name = asIdentifier(v, 'sw'); })));
-        fields.push(this.widthField(inst, mutate));
-        fields.push(this.valueField(inst));
         break;
       }
 
@@ -368,19 +362,19 @@ export class Inspector {
     const app = this.app;
     const nl = app.netlist;
     if (!app.powered || !nl || !app.sim) return;
-    const nested = nl.toggles.filter((t) => !t.top);
+    const nested = nl.inputs.filter((t) => !t.top);
     const probes = nl.probes;
     if (!nested.length && !probes.length) return;
 
     const rows: Node[] = [];
     nested.forEach((t) => {
-      const index = nl.toggles.indexOf(t);
+      const index = nl.inputs.indexOf(t);
       const bits = h('div', { style: { display: 'flex', gap: '2px' } });
       for (let b = t.width - 1; b >= 0; b--) {
         const cell = h('button', { class: 'bit' }, String(b));
         cell.addEventListener('click', () => {
           const next = (t.value ^ (1 << b)) >>> 0;
-          app.sim!.setToggle(index, next);
+          app.sim!.setInput(index, next);
           app.emit('tick');
         });
         bits.appendChild(cell);
@@ -444,19 +438,37 @@ export class Inspector {
     }, 1, MAX_WIDTH);
   }
 
-  /** A toggle's value is live state, not an edit, so it bypasses undo. */
+  /** How a port writes its number. An edit, so it goes through undo. */
+  private formatField(inst: Instance): HTMLElement {
+    return this.selectField('Format', (inst.props.format ?? 'hex') as string,
+      [['dec', 'Decimal'], ['hex', 'Hex'], ['bin', 'Binary']],
+      (v) => this.app.mutate(() => { inst.props.format = v as NumberFormat; }));
+  }
+
+  /**
+   * What an input port is driving: a row of bits to click, and a field to type
+   * a number into for the times when clicking sixteen of them is absurd.
+   *
+   * This is live state rather than an edit, so it bypasses undo -- switching a
+   * signal on while watching a circuit run is not something you later want to
+   * step back through one bit at a time.
+   */
   private valueField(inst: Instance): HTMLElement {
     const app = this.app;
     const width = clampWidth(inst.props.width);
-    const wrap = h('div', { style: { display: 'flex', gap: '2px', flexWrap: 'wrap' } });
+    const fmt = () => (inst.props.format ?? 'hex') as NumberFormat;
+    const mask = width >= 32 ? 0xffffffff : ((1 << width) - 1) >>> 0;
+
     const apply = (next: number) => {
-      inst.props.value = next >>> 0;
-      const index = app.netlist?.toggles.findIndex((t) => t.instId === inst.id) ?? -1;
-      if (index >= 0) app.sim?.setToggle(index, next);
+      inst.props.value = (next & mask) >>> 0;
+      const index = app.netlist?.inputs.findIndex((t) => t.instId === inst.id) ?? -1;
+      if (index >= 0) app.sim?.setInput(index, inst.props.value);
       app.persist();
       app.emit('tick');
       sync();
     };
+
+    const wrap = h('div', { style: { display: 'flex', gap: '2px', flexWrap: 'wrap' } });
     const cells: HTMLButtonElement[] = [];
     for (let b = width - 1; b >= 0; b--) {
       const bit = b;
@@ -465,22 +477,36 @@ export class Inspector {
       cells.push(cell);
       wrap.appendChild(cell);
     }
-    const readout = h('span', { class: 'val', style: { marginLeft: '6px' } });
+
+    const text = h('input', { type: 'text', spellcheck: false, style: { minWidth: '0' } });
+    const commit = () => {
+      const v = parseIn(text.value, fmt());
+      if (v === null) { sync(); app.toast('Could not read that number', 'err'); return; }
+      apply(v);
+    };
+    text.addEventListener('change', commit);
+    text.addEventListener('keydown', (e) => { if (e.key === 'Enter') text.blur(); });
+
     const sync = () => {
-      const v = inst.props.value ?? 0;
+      const v = (inst.props.value ?? 0) >>> 0;
       cells.forEach((cell, i) => {
-        const bit = width - 1 - i;
-        const on = (v >>> bit) & 1;
+        const on = (v >>> (width - 1 - i)) & 1;
         cell.classList.toggle('on', !!on);
         cell.textContent = on ? '1' : '0';
       });
-      readout.textContent = width > 1 ? formatValue(v, width, 'hex') : '';
+      if (document.activeElement !== text) text.value = formatValue(v, width, fmt());
     };
     sync();
     this.tickUpdaters.push(sync);
-    return h('div', { class: 'field field-col' },
+
+    const rows: Node[] = [h('div', { class: 'field field-col' },
       h('label', null, 'Value'),
-      h('div', { style: { display: 'flex', alignItems: 'center' } }, wrap, readout));
+      h('div', { style: { display: 'flex', alignItems: 'center' } }, wrap))];
+    if (width > 1) {
+      rows.push(h('div', { class: 'field' },
+        h('label', null, 'Enter'), h('div', { class: 'control' }, text)));
+    }
+    return h('div', null, ...rows);
   }
 
   private rangeField(
@@ -506,4 +532,20 @@ export class Inspector {
       h('div', { class: 'control' }, input),
       h('span', { class: 'row-meta' }, `/${width}`));
   }
+}
+
+/**
+ * Read a number the way the chosen format writes it, so what the field shows
+ * can be typed straight back in. An explicit `0x` or `0b` still wins, because
+ * someone who writes one means it.
+ */
+function parseIn(text: string, format: NumberFormat): number | null {
+  const t = text.trim().toLowerCase().replace(/_/g, '');
+  if (!t) return null;
+  const ok = (n: number) => (Number.isFinite(n) ? n >>> 0 : null);
+  if (t.startsWith('0x')) return /^[0-9a-f]+$/.test(t.slice(2)) ? ok(parseInt(t.slice(2), 16)) : null;
+  if (t.startsWith('0b')) return /^[01]+$/.test(t.slice(2)) ? ok(parseInt(t.slice(2), 2)) : null;
+  if (format === 'bin') return /^[01]+$/.test(t) ? ok(parseInt(t, 2)) : null;
+  if (format === 'hex') return /^[0-9a-f]+$/.test(t) ? ok(parseInt(t, 16)) : null;
+  return /^\d+$/.test(t) ? ok(parseInt(t, 10)) : null;
 }

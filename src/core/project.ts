@@ -96,7 +96,7 @@ export function makeInstance(defId: Id, x: number, y: number, props = {}): Insta
  * Kinds whose `name` prop the rest of the app reads back: the port markers,
  * which become the component's pins, and the two readouts.
  */
-const NAMED_KINDS = new Set<PrimitiveKind>(['IN', 'OUT', 'TOGGLE', 'PROBE']);
+const NAMED_KINDS = new Set<PrimitiveKind>(['IN', 'OUT', 'PROBE']);
 
 function nameOf(inst: Instance): string | null {
   if (!isPrim(inst.def) || !NAMED_KINDS.has(primKind(inst.def))) return null;

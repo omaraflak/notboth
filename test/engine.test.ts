@@ -269,8 +269,8 @@ describe('memory emerges from NAND feedback', () => {
   function srLatch() {
     const b = new Builder();
     // Start with set asserted so the latch has a defined initial state.
-    const sbar = b.prim('TOGGLE', { name: 'sbar', width: 1, value: 0 }, 0);
-    const rbar = b.prim('TOGGLE', { name: 'rbar', width: 1, value: 1 }, 1);
+    const sbar = b.prim('IN', { name: 'sbar', width: 1, value: 0 }, 0);
+    const rbar = b.prim('IN', { name: 'rbar', width: 1, value: 1 }, 1);
     const q = b.prim('NAND', {}, 2);
     const qbar = b.prim('NAND', {}, 3);
     const out = b.prim('OUT', { name: 'q' }, 4);
@@ -290,15 +290,15 @@ describe('memory emerges from NAND feedback', () => {
     expect(sim.settle()).toBe(true);
     expect(sim.readNets(Q)).toBe(1);
 
-    sim.setToggle(S, 1); // release set -- the latch must remember
+    sim.setInput(S, 1); // release set -- the latch must remember
     expect(sim.settle()).toBe(true);
     expect(sim.readNets(Q)).toBe(1);
 
-    sim.setToggle(R, 0); // reset
+    sim.setInput(R, 0); // reset
     expect(sim.settle()).toBe(true);
     expect(sim.readNets(Q)).toBe(0);
 
-    sim.setToggle(R, 1); // release reset -- still remembers
+    sim.setInput(R, 1); // release reset -- still remembers
     expect(sim.settle()).toBe(true);
     expect(sim.readNets(Q)).toBe(0);
   });
@@ -335,8 +335,8 @@ describe('memory emerges from NAND feedback', () => {
     // Both inputs released from an all-zero start: the real circuit resolves
     // this by manufacturing asymmetry, which a perfect simulator lacks.
     const b = new Builder();
-    const sbar = b.prim('TOGGLE', { name: 'sbar', width: 1, value: 1 }, 0);
-    const rbar = b.prim('TOGGLE', { name: 'rbar', width: 1, value: 1 }, 1);
+    const sbar = b.prim('IN', { name: 'sbar', width: 1, value: 1 }, 0);
+    const rbar = b.prim('IN', { name: 'rbar', width: 1, value: 1 }, 1);
     const q = b.prim('NAND', {}, 2);
     const qbar = b.prim('NAND', {}, 3);
     b.wire([sbar, 'out'], [q, 'a']);
@@ -354,8 +354,8 @@ describe('memory emerges from NAND feedback', () => {
    */
   function dff() {
     const b = new Builder();
-    const d = b.prim('TOGGLE', { name: 'd', width: 1, value: 0 }, 0);
-    const clk = b.prim('TOGGLE', { name: 'clk', width: 1, value: 0 }, 1);
+    const d = b.prim('IN', { name: 'd', width: 1, value: 0 }, 0);
+    const clk = b.prim('IN', { name: 'clk', width: 1, value: 0 }, 1);
     const nclk = b.prim('NAND', {}, 2);
     const m1 = b.prim('NAND', {}, 3);
     const m2 = b.prim('NAND', {}, 4);
@@ -399,19 +399,19 @@ describe('memory emerges from NAND feedback', () => {
     expect(nl.gateCount).toBe(9);
 
     const pulse = () => {
-      sim.setToggle(CLK, 1); sim.settle();
-      sim.setToggle(CLK, 0); sim.settle();
+      sim.setInput(CLK, 1); sim.settle();
+      sim.setInput(CLK, 0); sim.settle();
     };
 
     sim.settle();
-    sim.setToggle(D, 1);
+    sim.setInput(D, 1);
     sim.settle();
     expect(sim.readNets(Q)).toBe(0); // nothing happens without a clock edge
 
     pulse();
     expect(sim.readNets(Q)).toBe(1);
 
-    sim.setToggle(D, 0);
+    sim.setInput(D, 0);
     sim.settle();
     expect(sim.readNets(Q)).toBe(1); // holds until the next edge
 
@@ -476,10 +476,10 @@ describe('ROM', () => {
 describe('RAM', () => {
   it('writes on the rising clock edge and reads asynchronously', () => {
     const b = new Builder();
-    const addr = b.prim('TOGGLE', { name: 'addr', width: 4, value: 0 }, 0);
-    const din = b.prim('TOGGLE', { name: 'din', width: 8, value: 0 }, 1);
-    const load = b.prim('TOGGLE', { name: 'load', width: 1, value: 0 }, 2);
-    const clk = b.prim('TOGGLE', { name: 'clk', width: 1, value: 0 }, 3);
+    const addr = b.prim('IN', { name: 'addr', width: 4, value: 0 }, 0);
+    const din = b.prim('IN', { name: 'din', width: 8, value: 0 }, 1);
+    const load = b.prim('IN', { name: 'load', width: 1, value: 0 }, 2);
+    const clk = b.prim('IN', { name: 'clk', width: 1, value: 0 }, 3);
     const ram = b.prim('RAM', { addrWidth: 4, dataWidth: 8 }, 4);
     const out = b.prim('OUT', { name: 'out', width: 8 }, 5);
     b.wire([addr, 'out'], [ram, 'addr']);
@@ -493,30 +493,30 @@ describe('RAM', () => {
     const O = nl.rootOutputs.get(out)!;
 
     const write = (a: number, v: number) => {
-      sim.setToggle(ADDR, a); sim.setToggle(DIN, v); sim.setToggle(LOAD, 1);
-      sim.setToggle(CLK, 0); sim.settle();
-      sim.setToggle(CLK, 1); sim.settle();
-      sim.setToggle(LOAD, 0); sim.settle();
+      sim.setInput(ADDR, a); sim.setInput(DIN, v); sim.setInput(LOAD, 1);
+      sim.setInput(CLK, 0); sim.settle();
+      sim.setInput(CLK, 1); sim.settle();
+      sim.setInput(LOAD, 0); sim.settle();
     };
 
     write(3, 42);
     write(7, 200);
 
-    sim.setToggle(DIN, 0);
-    sim.setToggle(ADDR, 3); sim.settle();
+    sim.setInput(DIN, 0);
+    sim.setInput(ADDR, 3); sim.settle();
     expect(sim.readNets(O)).toBe(42);
-    sim.setToggle(ADDR, 7); sim.settle();
+    sim.setInput(ADDR, 7); sim.settle();
     expect(sim.readNets(O)).toBe(200);
-    sim.setToggle(ADDR, 1); sim.settle();
+    sim.setInput(ADDR, 1); sim.settle();
     expect(sim.readNets(O)).toBe(0);
   });
 
   it('ignores the clock edge when load is low', () => {
     const b = new Builder();
-    const addr = b.prim('TOGGLE', { name: 'addr', width: 4, value: 2 }, 0);
-    const din = b.prim('TOGGLE', { name: 'din', width: 8, value: 99 }, 1);
-    const load = b.prim('TOGGLE', { name: 'load', width: 1, value: 0 }, 2);
-    const clk = b.prim('TOGGLE', { name: 'clk', width: 1, value: 0 }, 3);
+    const addr = b.prim('IN', { name: 'addr', width: 4, value: 2 }, 0);
+    const din = b.prim('IN', { name: 'din', width: 8, value: 99 }, 1);
+    const load = b.prim('IN', { name: 'load', width: 1, value: 0 }, 2);
+    const clk = b.prim('IN', { name: 'clk', width: 1, value: 0 }, 3);
     const ram = b.prim('RAM', { addrWidth: 4, dataWidth: 8 }, 4);
     const out = b.prim('OUT', { name: 'out', width: 8 }, 5);
     b.wire([addr, 'out'], [ram, 'addr']);
@@ -527,22 +527,22 @@ describe('RAM', () => {
 
     const { sim, nl } = b.sim();
     sim.settle();
-    sim.setToggle(3, 1); sim.settle();
+    sim.setInput(3, 1); sim.settle();
     expect(sim.readNets(nl.rootOutputs.get(out)!)).toBe(0);
   });
 });
 
 /* ------------------------------------------------------------------ *
- * Toggles reachable through the hierarchy
+ * Ports through the hierarchy
  * ------------------------------------------------------------------ */
 
 describe('nested signals', () => {
-  it('surfaces toggles and probes buried inside components, by path', () => {
+  it('leaves a buried port to its parent, and lists only the top ones', () => {
     const b = new Builder();
     b.newDef('Inner');
     const innerOut = b.prim('OUT', { name: 'out' }, 2);
-    const sw = b.prim('TOGGLE', { name: 'hidden', width: 1, value: 1 }, 0);
-    b.wire([sw, 'out'], [innerOut, 'in']);
+    const hidden = b.prim('IN', { name: 'hidden', width: 1, value: 1 }, 0);
+    b.wire([hidden, 'out'], [innerOut, 'in']);
 
     b.newDef('Outer');
     const inner = b.use('Inner');
@@ -550,13 +550,33 @@ describe('nested signals', () => {
     b.wire([inner, innerOut], [out, 'in']);
 
     const nl = b.compile('Outer');
-    expect(nl.toggles.length).toBe(1);
-    expect(nl.toggles[0].path).toBe('Inner/hidden');
-    expect(nl.toggles[0].top).toBe(false);
+    // One level down, a port is a pin: whatever contains it drives it, so its
+    // own value stops meaning anything. Outer never wires that pin, so it
+    // reads 0 -- not the 1 the port carries when Inner is the open component.
+    expect(nl.inputs.length).toBe(0);
 
     const sim = new Simulator(nl);
     sim.settle();
-    expect(sim.readNets(nl.rootOutputs.get(out)!)).toBe(1);
+    expect(sim.readNets(nl.rootOutputs.get(out)!)).toBe(0);
+  });
+
+  it('drives a port of the component being edited', () => {
+    const b = new Builder();
+    b.newDef('Inner');
+    const innerOut = b.prim('OUT', { name: 'out' }, 2);
+    const hidden = b.prim('IN', { name: 'hidden', width: 1, value: 1 }, 0);
+    b.wire([hidden, 'out'], [innerOut, 'in']);
+
+    const nl = b.compile('Inner');
+    expect(nl.inputs.length).toBe(1);
+    expect(nl.inputs[0].top).toBe(true);
+
+    const sim = new Simulator(nl);
+    sim.settle();
+    expect(sim.readNets(nl.rootOutputs.get(innerOut)!)).toBe(1);
+    sim.setInput(0, 0);
+    sim.settle();
+    expect(sim.readNets(nl.rootOutputs.get(innerOut)!)).toBe(0);
   });
 });
 

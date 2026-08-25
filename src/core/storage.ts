@@ -37,7 +37,32 @@ export async function saveProject(p: Project): Promise<void> {
 }
 
 export async function loadProject(id: string): Promise<Project | undefined> {
-  return tx<Project | undefined>(STORE, 'readonly', (s) => s.get(id));
+  const p = await tx<Project | undefined>(STORE, 'readonly', (s) => s.get(id));
+  return p && migrate(p);
+}
+
+/**
+ * Bring a stored project up to date.
+ *
+ * Toggles used to be a primitive of their own: a switch you could click, which
+ * drove a net and was not a pin. An input port is the same thing with an
+ * interface attached -- it has no driver inside the circuit either -- so the
+ * two merged, and a stored Toggle becomes the port it was standing in for.
+ *
+ * The one thing this changes is the component's signature: a Toggle was
+ * invisible from outside and a port is not, so a component that had one gains
+ * a pin. That pin is unconnected wherever the component is used, which reads
+ * as 0 -- the same as a Toggle left off, and different from one left on.
+ */
+function migrate(p: Project): Project {
+  for (const def of p.defs) {
+    for (const inst of def.instances) {
+      if (inst.def !== 'prim:TOGGLE') continue;
+      inst.def = 'prim:IN';
+      inst.props.name = inst.props.name || 'sw';
+    }
+  }
+  return p;
 }
 
 export async function listProjects(): Promise<Project[]> {

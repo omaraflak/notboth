@@ -19,7 +19,7 @@ interface Seg { x0: number; y0: number; x1: number; y1: number; net: string; wir
 function labelOf(project: Project, inst: { def: string; props: { name?: string } }): string {
   if (isPrim(inst.def)) {
     const k = primKind(inst.def);
-    return k === 'IN' || k === 'OUT' || k === 'TOGGLE' || k === 'PROBE'
+    return k === 'IN' || k === 'OUT' || k === 'PROBE'
       ? (inst.props.name || k.toLowerCase()) : k;
   }
   return project.defs.find((d) => d.id === inst.def)?.name ?? '?';

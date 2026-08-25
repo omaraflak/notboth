@@ -17,7 +17,12 @@ export interface CompileError {
 
 export interface ClockNode { net: number; period: number; path: string; instId: Id; top: boolean }
 
-export interface ToggleNode {
+/**
+ * A port on the component being edited. It has no driver inside the circuit,
+ * so its value is whatever the editor or a test bench puts there -- which is
+ * why an input port is the thing you click to switch a signal on.
+ */
+export interface InputNode {
   nets: number[]; width: number; value: number;
   path: string; instId: Id; top: boolean;
 }
@@ -50,7 +55,7 @@ export interface Netlist {
   constNets: Int32Array;
   constVals: Uint8Array;
   clocks: ClockNode[];
-  toggles: ToggleNode[];
+  inputs: InputNode[];
   probes: ProbeNode[];
   mems: MemNode[];
   /** Root component's port pins, for test benches and external stimulus. */
@@ -114,7 +119,7 @@ interface Ctx {
   drivers: RawDriver[];
   consts: { net: number; value: number }[];
   clocks: ClockNode[];
-  toggles: ToggleNode[];
+  inputs: InputNode[];
   probes: ProbeNode[];
   mems: MemNode[];
   errors: CompileError[];
@@ -131,7 +136,7 @@ export function compile(project: Project, rootDefId: Id): Netlist {
   const ctx: Ctx = {
     uf: new UnionFind(),
     gates: [], drivers: [], consts: [],
-    clocks: [], toggles: [], probes: [], mems: [],
+    clocks: [], inputs: [], probes: [], mems: [],
     errors: [],
     rootInputs: new Map(), rootOutputs: new Map(), rootPinNets: new Map(),
     aborted: false,
@@ -232,6 +237,10 @@ function flattenDef(
           const nets = alloc(`${inst.id}:${pinId}`, width);
           if (kind === 'IN') {
             ctx.rootInputs.set(inst.id, nets);
+            ctx.inputs.push({
+              nets, width, value: (inst.props.value ?? 0) >>> 0,
+              path: inst.props.name ?? 'in', instId: inst.id, top: isRoot,
+            });
             // A root input is driven externally (test bench or nothing).
             for (const n of nets) ctx.drivers.push({ net: n, what: 'input port', instId: inst.id, defId: def.id });
           } else {
@@ -332,14 +341,6 @@ function registerPrimitive(
     case 'CLOCK': {
       const period = Math.max(2, Math.floor(inst.props.period ?? 16));
       ctx.clocks.push({ net: nets('clk')[0], period, path, instId: inst.id, top });
-      break;
-    }
-    case 'TOGGLE': {
-      const width = clampWidth(inst.props.width);
-      ctx.toggles.push({
-        nets: nets('out'), width, value: (inst.props.value ?? 0) >>> 0,
-        path, instId: inst.id, top,
-      });
       break;
     }
     case 'CONST': {
@@ -445,7 +446,7 @@ function finalize(ctx: Ctx, rootSignature: Signature): Netlist {
   ctx.consts.forEach((c, i) => { constNets[i] = resolve(c.net); constVals[i] = c.value; });
 
   for (const c of ctx.clocks) c.net = resolve(c.net);
-  for (const t of ctx.toggles) t.nets = resolveAll(t.nets);
+  for (const t of ctx.inputs) t.nets = resolveAll(t.nets);
   for (const p of ctx.probes) p.nets = resolveAll(p.nets);
   for (const m of ctx.mems) {
     m.addr = resolveAll(m.addr);
@@ -485,7 +486,7 @@ function finalize(ctx: Ctx, rootSignature: Signature): Netlist {
   return {
     netCount, gateCount, gA, gB, gY,
     constNets, constVals,
-    clocks: ctx.clocks, toggles: ctx.toggles, probes: ctx.probes, mems: ctx.mems,
+    clocks: ctx.clocks, inputs: ctx.inputs, probes: ctx.probes, mems: ctx.mems,
     rootInputs, rootOutputs, rootPinNets,
     fanoutStart, fanout,
     errors: ctx.errors,
@@ -498,7 +499,7 @@ function emptyNetlist(errors: CompileError[]): Netlist {
     netCount: 0, gateCount: 0,
     gA: new Int32Array(0), gB: new Int32Array(0), gY: new Int32Array(0),
     constNets: new Int32Array(0), constVals: new Uint8Array(0),
-    clocks: [], toggles: [], probes: [], mems: [],
+    clocks: [], inputs: [], probes: [], mems: [],
     rootInputs: new Map(), rootOutputs: new Map(), rootPinNets: new Map(),
     fanoutStart: new Int32Array(1), fanout: new Int32Array(0),
     errors, rootSignature: { inputs: [], outputs: [] },

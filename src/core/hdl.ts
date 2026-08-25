@@ -32,10 +32,9 @@ import { PRIMITIVE_KINDS } from './types';
 const PROP_KEYS: Record<PrimitiveKind, string[]> = {
   NAND: [],
   CLOCK: ['period'],
-  TOGGLE: ['width', 'value'],
   CONST: ['width', 'value'],
-  IN: ['width'],
-  OUT: ['width'],
+  IN: ['width', 'value', 'format'],
+  OUT: ['width', 'format'],
   PROBE: ['width', 'format'],
   ROM: ['addrWidth', 'dataWidth'],
   RAM: ['addrWidth', 'dataWidth'],

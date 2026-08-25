@@ -323,7 +323,6 @@ function glyphFor(kind: string): string {
   switch (kind) {
     case 'NAND': return 'chip';
     case 'CLOCK': return 'gauge';
-    case 'TOGGLE': return 'power';
     case 'CONST': return 'zap';
     case 'IN': return 'chevron';
     case 'OUT': return 'chevron';

@@ -530,17 +530,32 @@ export class CanvasView {
     this.app.emit('selection');
   }
 
+  /**
+   * Clicking an input port while the circuit runs drives it. Only a port of
+   * the component being edited can be driven: one level down it is a pin, and
+   * whatever contains it is the thing driving it.
+   *
+   * A single bit flips. Anything wider is a number, so it asks for one.
+   */
   private tryToggle(hit: Placed): boolean {
     const inst = hit.inst;
-    if (!isPrim(inst.def) || primKind(inst.def) !== 'TOGGLE') return false;
+    if (!isPrim(inst.def) || primKind(inst.def) !== 'IN') return false;
+    const index = this.app.netlist?.inputs.findIndex((t) => t.instId === inst.id) ?? -1;
+    if (index < 0) return false;
+
+    // One bit flips under the pointer. Anything wider is a number, and a
+    // number wants the panel: bits to click and a field to type into, both of
+    // which stay on screen while the circuit runs.
     if (clampWidth(inst.props.width) !== 1) return false;
-    const next = inst.props.value ? 0 : 1;
-    inst.props.value = next;
-    const index = this.app.netlist?.toggles.findIndex((t) => t.instId === inst.id) ?? -1;
-    if (index >= 0) this.app.sim?.setToggle(index, next);
+    this.driveInput(inst, index, inst.props.value ? 0 : 1);
+    return true;
+  }
+
+  private driveInput(inst: Instance, index: number, value: number) {
+    inst.props.value = value;
+    this.app.sim?.setInput(index, value);
     this.app.persist();
     this.app.emit('tick', 'selection');
-    return true;
   }
 
   private place(defId: Id, x: number, y: number) {
@@ -856,13 +871,13 @@ export class CanvasView {
 
     let fill = c['box-fill'];
     let accentBar: string | null = null;
-    if (kind === 'IN' || kind === 'OUT') accentBar = c['accent-line'];
-    else if (kind === 'CLOCK') accentBar = c.ok;
+    if (kind === 'IN' || kind === 'OUT') {
+      // A live port wears the hot bar, so a running circuit reads at a glance
+      // without hunting for the wire colours.
+      const on = sim ? this.pinLevel(sim, inst.id, kind === 'IN' ? 'out' : 'in') > 0 : false;
+      accentBar = on ? c['pin-hot'] : c['accent-line'];
+    } else if (kind === 'CLOCK') accentBar = c.ok;
     else if (kind === 'ROM' || kind === 'RAM') accentBar = c['text-faint'];
-    else if (kind === 'TOGGLE') {
-      const on = sim ? this.pinLevel(sim, inst.id, 'out') > 0 : (inst.props.value ?? 0) !== 0;
-      if (on) accentBar = c['pin-hot'];
-    }
 
     ctx.save();
     ctx.beginPath();
@@ -954,7 +969,24 @@ export class CanvasView {
       for (let i = 0; i < nets.length; i++) if (sim.net[nets[i]]) v |= 1 << i;
       return formatValue(v >>> 0, width, inst.props.format ?? 'hex');
     }
-    if (kind === 'TOGGLE' && width > 1) return formatValue(inst.props.value ?? 0, width, 'hex');
+    // A port shows what is on it: an input the value it is driving, an output
+    // whatever has arrived. Both are the question you have while a circuit
+    // runs, and neither was answerable without dropping a probe next to it.
+    if (kind === 'IN' || kind === 'OUT') {
+      const nets = this.netsFor(inst.id, kind === 'IN' ? 'out' : 'in');
+      const show = (v: number) => (width === 1
+        // A single bit is a single bit. "0x1" says the same thing and reads
+        // like a number that happens to be small.
+        ? String(v & 1)
+        : formatValue(v, width, inst.props.format ?? 'hex'));
+      if (sim && nets) {
+        let v = 0;
+        for (let i = 0; i < nets.length; i++) if (sim.net[nets[i]]) v |= 1 << i;
+        return show(v >>> 0);
+      }
+      if (kind === 'IN' && width > 1) return show((inst.props.value ?? 0) >>> 0);
+      return null;
+    }
     if (kind === 'ROM' || kind === 'RAM') {
       const words = 1 << clampWidth(inst.props.addrWidth, 8);
       return `${words} x ${clampWidth(inst.props.dataWidth, 16)}`;

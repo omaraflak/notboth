@@ -98,7 +98,7 @@ function assignLayers(instances: Instance[], wires: Wire[], byId: Map<Id, Instan
     if (visiting.has(id)) return 0;
     visiting.add(id);
     const inst = byId.get(id);
-    const isSource = inst && (kindOf(inst) === 'IN' || kindOf(inst) === 'TOGGLE'
+    const isSource = inst && (kindOf(inst) === 'IN'
       || kindOf(inst) === 'CONST' || kindOf(inst) === 'CLOCK');
     let d = isSource ? 0 : 1;
     for (const from of feeders.get(id) ?? []) d = Math.max(d, depthOf(from) + 1);
@@ -314,7 +314,7 @@ export function arrangeDef(project: Project, def: ComponentDef): number {
 function labelOf(project: Project, inst: Instance): string {
   if (isPrim(inst.def)) {
     const kind = primKind(inst.def);
-    if (kind === 'IN' || kind === 'OUT' || kind === 'TOGGLE' || kind === 'PROBE') {
+    if (kind === 'IN' || kind === 'OUT' || kind === 'PROBE') {
       return inst.props.name || kind.toLowerCase();
     }
     return kind;

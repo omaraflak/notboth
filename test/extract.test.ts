@@ -125,7 +125,7 @@ describe('extractSelection', () => {
 });
 
 describe('naming newly placed markers', () => {
-  const place = (def: ComponentDef, kind: 'IN' | 'OUT' | 'TOGGLE') => {
+  const place = (def: ComponentDef, kind: 'IN' | 'OUT' | 'IN') => {
     const inst = makeInstance(primDefId(kind), 0, 0);
     nameNewInstances(def, [inst]);
     def.instances.push(inst);
@@ -145,7 +145,7 @@ describe('naming newly placed markers', () => {
     const def = p.defs[0];
     expect(place(def, 'IN').props.name).toBe('in');
     expect(place(def, 'OUT').props.name).toBe('out');
-    expect(place(def, 'TOGGLE').props.name).toBe('sw');
+    expect(place(def, 'IN').props.name).toBe('in2');
     expect(place(def, 'OUT').props.name).toBe('out2');
   });
 

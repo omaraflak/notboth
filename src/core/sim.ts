@@ -97,7 +97,7 @@ export class Simulator {
     for (let g = 0; g < nl.gateCount; g++) { this.queue[this.qLen++] = g; this.inQueue[g] = 1; }
 
     for (let i = 0; i < nl.constNets.length; i++) this.net[nl.constNets[i]] = nl.constVals[i];
-    for (const t of nl.toggles) this.writeNets(t.nets, t.value);
+    for (const t of nl.inputs) this.writeNets(t.nets, t.value);
 
     for (let i = 0; i < nl.mems.length; i++) {
       const m = nl.mems[i];
@@ -224,8 +224,8 @@ export class Simulator {
     }
   }
 
-  setToggle(index: number, value: number) {
-    const t = this.nl.toggles[index];
+  setInput(index: number, value: number) {
+    const t = this.nl.inputs[index];
     if (!t) return;
     t.value = value >>> 0;
     this.writeNets(t.nets, t.value);

@@ -59,7 +59,7 @@ function inverterChain(n: number) {
   const project = createProject();
   const def = emptyDef('Chain', null);
   project.defs.push(def);
-  const src = addPrimitive(def, 'TOGGLE', 0, 0, { name: 'in', width: 1, value: 0 });
+  const src = addPrimitive(def, 'IN', 0, 0, { name: 'in', width: 1, value: 0 });
   let prev: Endpoint = { inst: src.id, pin: 'out' };
   for (let i = 0; i < n; i++) {
     const g = addPrimitive(def, 'NAND', i + 1, 0);
@@ -97,7 +97,7 @@ function fanOut(n: number) {
   const project = createProject();
   const def = emptyDef('FanOut', null);
   project.defs.push(def);
-  const src = addPrimitive(def, 'TOGGLE', 0, 0, { name: 'in', width: 1, value: 0 });
+  const src = addPrimitive(def, 'IN', 0, 0, { name: 'in', width: 1, value: 0 });
   const sinks: Id[] = [];
   for (let i = 0; i < n; i++) {
     const g = addPrimitive(def, 'NAND', 2, i);
@@ -156,7 +156,7 @@ function manyInstances(count: number) {
 
   const top = emptyDef('Top', null);
   project.defs.push(top);
-  const src = addPrimitive(top, 'TOGGLE', 0, 0, { name: 'in', width: 1, value: 0 });
+  const src = addPrimitive(top, 'IN', 0, 0, { name: 'in', width: 1, value: 0 });
   for (let i = 0; i < count; i++) {
     const inst = { id: newId('i_'), def: leaf.id, x: 2, y: i, props: {} };
     top.instances.push(inst);
@@ -210,8 +210,8 @@ function shiftRegister(bits: number) {
 
   const top = emptyDef('Shift', null);
   project.defs.push(top);
-  const din = addPrimitive(top, 'TOGGLE', 0, 0, { name: 'din', width: 1, value: 1 });
-  const clock = addPrimitive(top, 'TOGGLE', 0, 1, { name: 'clk', width: 1, value: 0 });
+  const din = addPrimitive(top, 'IN', 0, 0, { name: 'din', width: 1, value: 1 });
+  const clock = addPrimitive(top, 'IN', 0, 1, { name: 'clk', width: 1, value: 0 });
   const out = addPrimitive(top, 'OUT', 99, 99, { name: 'out', width: 1 });
   let prev: Endpoint = { inst: din.id, pin: 'out' };
   for (let i = 0; i < bits; i++) {
@@ -361,7 +361,7 @@ describe('simulator throughput', () => {
     sim.settle(100);
 
     const { ms } = time(() => {
-      sim.setToggle(0, 1);
+      sim.setInput(0, 1);
       sim.step(true);
     });
     note(`fan-out sim one net waking ${sinks.length.toLocaleString()} gates in ${ms.toFixed(1)}ms`);
@@ -390,19 +390,19 @@ describe('simulator throughput', () => {
     // per cycle. Waiting for quiescence would mean waiting for a circuit that
     // is correctly refusing to settle.
     const pulse = () => {
-      sim.setToggle(CLK, 1);
+      sim.setInput(CLK, 1);
       sim.run(60, true);
-      sim.setToggle(CLK, 0);
+      sim.setInput(CLK, 0);
       sim.run(60, true);
     };
 
     // Flush zeros through: this also resolves every latch, front to back.
-    sim.setToggle(DIN, 0);
+    sim.setInput(DIN, 0);
     for (let i = 0; i < BITS + 4; i++) pulse();
     expect(sim.readNets(OUT)).toBe(0);
 
     // Now push a single 1 the whole length of the register.
-    sim.setToggle(DIN, 1);
+    sim.setInput(DIN, 1);
     const { ms } = time(() => {
       for (let i = 0; i < BITS - 1; i++) pulse();
     });
@@ -427,10 +427,10 @@ describe('memory under load', () => {
     const project = createProject();
     const def = emptyDef('BigRam', null);
     project.defs.push(def);
-    const addr = addPrimitive(def, 'TOGGLE', 0, 0, { name: 'addr', width: 16, value: 0 });
-    const din = addPrimitive(def, 'TOGGLE', 0, 1, { name: 'din', width: 16, value: 0 });
-    const load = addPrimitive(def, 'TOGGLE', 0, 2, { name: 'load', width: 1, value: 0 });
-    const clk = addPrimitive(def, 'TOGGLE', 0, 3, { name: 'clk', width: 1, value: 0 });
+    const addr = addPrimitive(def, 'IN', 0, 0, { name: 'addr', width: 16, value: 0 });
+    const din = addPrimitive(def, 'IN', 0, 1, { name: 'din', width: 16, value: 0 });
+    const load = addPrimitive(def, 'IN', 0, 2, { name: 'load', width: 1, value: 0 });
+    const clk = addPrimitive(def, 'IN', 0, 3, { name: 'clk', width: 1, value: 0 });
     const ram = addPrimitive(def, 'RAM', 2, 0, { addrWidth: 16, dataWidth: 16 });
     const out = addPrimitive(def, 'OUT', 4, 9, { name: 'out', width: 16 });
     link(def, { inst: addr.id, pin: 'out' }, { inst: ram.id, pin: 'addr' }, 16);
@@ -446,22 +446,22 @@ describe('memory under load', () => {
 
     const WRITES = 2_000;
     const { ms } = time(() => {
-      sim.setToggle(LOAD, 1);
+      sim.setInput(LOAD, 1);
       for (let i = 0; i < WRITES; i++) {
-        sim.setToggle(ADDR, i * 31 & 0xffff);
-        sim.setToggle(DIN, (i * 2654435761) & 0xffff);
-        sim.setToggle(CLK, 0);
+        sim.setInput(ADDR, i * 31 & 0xffff);
+        sim.setInput(DIN, (i * 2654435761) & 0xffff);
+        sim.setInput(CLK, 0);
         sim.settle(64);
-        sim.setToggle(CLK, 1);
+        sim.setInput(CLK, 1);
         sim.settle(64);
       }
-      sim.setToggle(LOAD, 0);
+      sim.setInput(LOAD, 0);
     });
     note(`memory      ${WRITES.toLocaleString()} clocked writes into a 65,536-word RAM in ${ms.toFixed(0)}ms`);
 
     // Spot-check that everything actually landed where it should have.
     for (const i of [0, 1, 7, 500, 1_999]) {
-      sim.setToggle(ADDR, i * 31 & 0xffff);
+      sim.setInput(ADDR, i * 31 & 0xffff);
       sim.settle(64);
       expect(sim.readNets(O)).toBe((i * 2654435761) & 0xffff);
     }
