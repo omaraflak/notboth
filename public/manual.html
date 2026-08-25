@@ -1131,12 +1131,12 @@
     </div>
     <div class="toc-part">
       <b><i>IV</i>The machine</b>
-      <a href="#s401"><i>4.01</i>Machine registers</a>
-      <a href="#s402"><i>4.02</i>Instruction set</a>
+      <a href="#s401"><i>4.01</i>Registers</a>
+      <a href="#s402"><i>4.02</i>Instructions</a>
       <a href="#s403"><i>4.03</i>Decoder</a>
       <a href="#s404"><i>4.04</i>Jumps</a>
       <a href="#s405"><i>4.05</i>CPU</a>
-      <a href="#s406"><i>4.06</i>The computer</a>
+      <a href="#s406"><i>4.06</i>Computer</a>
     </div>
     <div class="toc-part">
       <b><i>V</i>Software</b>
@@ -1698,7 +1698,7 @@
 <article class="stage" id="s401">
   <div class="rail"><span class="num">4.01</span><span class="deps"><b>Needs</b><a class="xref" href="#s306">3.06</a>, <a class="xref" href="#s307">3.07</a>, <a class="xref" href="#s308">3.08</a></span></div>
   <div>
-    <h3>Machine registers</h3>
+    <h3>Registers</h3>
     <div class="sig">no new chip</div>
     <p>Our machine will need only three registers to function properly:</p>
     <ul>
@@ -1712,7 +1712,7 @@
 <article class="stage" id="s402">
   <div class="rail"><span class="num">4.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s206">2.06</a>, <a class="xref" href="#s401">4.01</a></span></div>
   <div>
-    <h3>Instruction set</h3>
+    <h3>Instructions</h3>
     <div class="sig">no new chip</div>
     <p>We&#39;ll present an instruction set and design ready to implement, but once you understand this it&#39;ll be much easier to implement your own.</p>
     <p>In this design, an instruction is 16 bits and we&#39;ll support two instruction <em>layouts</em>. Those two formats are differentiated by the 15th (most significant) bit of the instruction.</p>
@@ -1930,7 +1930,7 @@ RAM[A]=D   1110001100001000</code></pre>
     </ul>
     <p>The outputs are:</p>
     <ul>
-    <li><code>outM</code>, <code>writeM</code>, <code>addressM</code> — The value <code>outM</code> is be written to the RAM at <code>addressM</code> if <code>writeM=1</code>.</li>
+    <li><code>outM</code>, <code>writeM</code>, <code>addressM</code> — The value <code>outM</code> is to be written to the RAM at <code>addressM</code> if <code>writeM=1</code>.</li>
     <li><code>pc</code> — the value of the <code>PC</code> register after being incremented or loaded, i.e. the address of the next instruction.</li>
     </ul>
     <div class="watch"><b>Watch out</b>Remember to explicitly handle the case where <code>op=0</code>, i.e. load register <code>A</code> with the 15 bit value of the instruction.</div>
@@ -1940,7 +1940,7 @@ RAM[A]=D   1110001100001000</code></pre>
 <article class="stage" id="s406">
   <div class="rail"><span class="num">4.06</span><span class="deps"><b>Needs</b><a class="xref" href="#s307">3.07</a>, 4.06</span></div>
   <div>
-    <h3>The computer</h3>
+    <h3>Computer</h3>
     <div class="sig">Computer(reset, clk) → nothing</div>
     <p>The final computer, three chips: <code>CPU</code>, <code>RAM</code>, <code>ROM</code>.</p>
     <blockquote>
@@ -1949,7 +1949,7 @@ RAM[A]=D   1110001100001000</code></pre>
     <ul>
     <li>The program to execute lives in the <code>ROM</code>.</li>
     <li>The <code>reset</code> bit will set the <code>PC</code> counter inside the <code>CPU</code> to zero. It boots the machine.</li>
-    <li>The CPU outputs that initial <code>pc</code> which it feeds into the <code>ROM</code> to get the value of the instruction.</li>
+    <li>The CPU outputs that initial <code>pc</code> which it feeds into the <code>ROM</code> to get the value of the next instruction.</li>
     <li>The instruction fetched from the <code>ROM</code> simply goes back into the <code>CPU</code> to be executed.</li>
     <li>The <code>RAM</code> is wired to the <code>CPU</code>&#39;s <code>writeM</code>/<code>addressM</code>/<code>outM</code> fields.</li>
     </ul>
