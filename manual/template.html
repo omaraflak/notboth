@@ -14,8 +14,10 @@
     (function () {
       try {
         var saved = localStorage.getItem('nand.manual.theme');
-        if (saved) document.documentElement.dataset.theme = saved;
-      } catch (e) { /* private browsing */ }
+        document.documentElement.dataset.theme = saved || 'light';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
     })();
   </script>
   <link rel="icon"

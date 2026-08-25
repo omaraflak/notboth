@@ -47,8 +47,7 @@ export function onThemeChange(fn: () => void) {
 
 export function initTheme() {
   const saved = localStorage.getItem('nand.theme') as ThemeName | null;
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-  setTheme(saved ?? (prefersDark ? 'dark' : 'light'));
+  setTheme(saved ?? 'light');
 }
 
 /** Blend a wire's user-chosen hue toward the "energised" look. */
