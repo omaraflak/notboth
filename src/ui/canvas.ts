@@ -876,7 +876,11 @@ export class CanvasView {
       // without hunting for the wire colours.
       const on = sim ? this.pinLevel(sim, inst.id, kind === 'IN' ? 'out' : 'in') > 0 : false;
       accentBar = on ? c['pin-hot'] : c['accent-line'];
-    } else if (kind === 'CLOCK') accentBar = c.ok;
+    } else if (kind === 'CLOCK') {
+      // The clock is the one signal you are always watching, so its box says
+      // where it is in the cycle rather than only that it is a clock.
+      accentBar = sim && this.pinLevel(sim, inst.id, 'clk') > 0 ? c['pin-hot'] : c.ok;
+    }
     else if (kind === 'ROM' || kind === 'RAM') accentBar = c['text-faint'];
 
     ctx.save();
@@ -968,6 +972,11 @@ export class CanvasView {
       let v = 0;
       for (let i = 0; i < nets.length; i++) if (sim.net[nets[i]]) v |= 1 << i;
       return formatValue(v >>> 0, width, inst.props.format ?? 'hex');
+    }
+    if (kind === 'CLOCK') {
+      const nets = this.netsFor(inst.id, 'clk');
+      if (!sim || !nets || !nets.length) return null;
+      return sim.net[nets[0]] ? '1' : '0';
     }
     // A port shows what is on it: an input the value it is driving, an output
     // whatever has arrived. Both are the question you have while a circuit
