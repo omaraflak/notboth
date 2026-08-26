@@ -4,7 +4,6 @@ import {
   createFolder, deleteDef, deleteFolder, emptyDef, folderPath,
   signatureOf, uniqueName, usageCount,
 } from '../core/project';
-import { runTests } from '../core/testbench';
 import type { ComponentDef, Folder, Id } from '../core/types';
 import type { App } from './app';
 import { button, clear, h, icon } from './dom';
@@ -203,26 +202,6 @@ export class Library {
       {
         label: 'Edit this component', icon: 'chip',
         onClick: () => { app.armed = null; app.openComponent(def.id); },
-      },
-      'divider',
-      {
-        label: def.tests?.vectors.length ? 'Edit tests' : 'Write tests',
-        icon: 'beaker',
-        onClick: () => { app.openComponent(def.id); app.setMode('tests'); },
-      },
-      {
-        label: def.tests?.vectors.length ? `Run ${def.tests.vectors.length} tests` : 'Run tests',
-        icon: 'check',
-        onClick: () => {
-          const run = runTests(app.project, def.id);
-          if (!run.ran) {
-            app.toast(run.errors.length ? run.errors[0].message : `${def.name} has no tests yet`, 'err');
-          } else if (run.passed === run.total) {
-            app.toast(`${def.name}: all ${run.total} vectors pass`);
-          } else {
-            app.toast(`${def.name}: ${run.total - run.passed} of ${run.total} vectors fail`, 'err');
-          }
-        },
       },
       'divider',
       {
