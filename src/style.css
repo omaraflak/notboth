@@ -472,9 +472,22 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 .row-meta { font-size: 10px; color: var(--text-faint); font-family: var(--mono); }
 .row-glyph { width: 13px; color: var(--text-faint); display: flex; }
 .row.selected .row-glyph { color: var(--accent); }
-.row-more { opacity: 0; width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
+/* Visible without hovering: a menu you cannot see is a menu you do not know
+   is there. Quiet enough not to compete with the row's own name. */
+.row-more { opacity: .55; width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
 .row:hover .row-more { opacity: 1; }
-.row-more:hover { background: var(--bg-active); color: var(--text); }
+.row-more:hover { background: var(--bg-active); color: var(--text); opacity: 1; }
+
+/* Actions that sit in the row itself rather than behind a menu. */
+.row-act {
+  flex: none;
+  width: 20px; height: 20px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim); opacity: .6;
+}
+.row:hover .row-act { opacity: 1; }
+.row-act:hover { background: var(--bg-active); color: var(--text); opacity: 1; }
+.row-act.danger:hover { background: var(--danger-soft); color: var(--danger); }
 .row.folder .row-name { font-weight: 500; }
 .row.err .row-meta { color: var(--danger); }
 

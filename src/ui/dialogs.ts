@@ -17,6 +17,13 @@ interface ModalSpec {
   foot?: (foot: HTMLElement, close: (value?: unknown) => void) => void;
 }
 
+/**
+ * Every open modal, oldest first. A dialog can raise another -- the projects
+ * list raises a name prompt, which raises nothing but could -- and only the
+ * one on top should answer the keyboard.
+ */
+const modalStack: HTMLElement[] = [];
+
 export function openModal(spec: ModalSpec): Promise<unknown> {
   return new Promise((resolve) => {
     const scrim = h('div', { class: 'scrim' });
@@ -29,10 +36,17 @@ export function openModal(spec: ModalSpec): Promise<unknown> {
       if (settled) return;
       settled = true;
       scrim.remove();
+      const at = modalStack.indexOf(scrim);
+      if (at >= 0) modalStack.splice(at, 1);
       document.removeEventListener('keydown', onKey, true);
       resolve(value);
     };
     const onKey = (e: KeyboardEvent) => {
+      // These listeners are on the document in the capture phase, so they fire
+      // in the order the dialogs opened -- the oldest first. Without this, a
+      // prompt raised from another dialog never sees its own Enter: the dialog
+      // underneath takes it and clicks its own primary button instead.
+      if (modalStack[modalStack.length - 1] !== scrim) return;
       if (e.key === 'Escape') { e.stopPropagation(); close(undefined); return; }
       // Enter confirms -- except in a textarea, where it is a newline. This
       // listener runs in the capture phase, so it has to stand aside
@@ -44,6 +58,7 @@ export function openModal(spec: ModalSpec): Promise<unknown> {
       }
     };
     document.addEventListener('keydown', onKey, true);
+    modalStack.push(scrim);
     scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) close(undefined); });
 
     modal.appendChild(h('h2', null, spec.title));
@@ -403,29 +418,32 @@ export function projectsDialog(app: App) {
             await app.switchProject(p);
             close(true);
           });
-          const more = h('button', { class: 'row-more' }, icon('more', 12));
-          more.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const r = more.getBoundingClientRect();
-            contextMenu(r.left, r.bottom + 4, [
-              { label: 'Export JSON', icon: 'download', onClick: () => downloadFile(`${slug(p.name)}.nand.json`, exportProject(p)) },
-              'divider',
-              {
-                label: 'Delete project', icon: 'trash', danger: true,
-                onClick: async () => {
-                  const ok = await confirmDialog('Delete project', `Delete "${p.name}" permanently? This cannot be undone.`, { confirmLabel: 'Delete', danger: true });
-                  if (!ok) return;
-                  await deleteProject(p.id);
-                  if (current) {
-                    const rest = (await listProjects())[0];
-                    if (rest) await app.switchProject(rest);
-                  }
-                  refresh();
-                },
-              },
-            ]);
-          });
-          row.appendChild(more);
+          // Two actions, both on the row. A menu to reach two things is a
+          // click and a guess more than showing them.
+          const act = (name: string, title: string, danger: boolean, run: () => void) => {
+            const b = h('button', { class: `row-act${danger ? ' danger' : ''}`, title }, icon(name, 12));
+            b.addEventListener('click', (e) => { e.stopPropagation(); run(); });
+            return b;
+          };
+          row.appendChild(act('download', 'Export as JSON', false,
+            () => downloadFile(`${slug(p.name)}.nand.json`, exportProject(p))));
+          row.appendChild(act('trash', 'Delete project', true, async () => {
+            const ok = await confirmDialog('Delete project',
+              `Delete "${p.name}" permanently? This cannot be undone.`,
+              { confirmLabel: 'Delete', danger: true });
+            if (!ok) return;
+            // Leave first, delete second. Switching away saves the project
+            // being left -- which is right, an unsaved edit must not vanish
+            // because you changed project -- so deleting before switching
+            // writes the thing straight back, and it takes two goes to remove.
+            if (current) {
+              const rest = (await listProjects()).find((x) => x.id !== p.id)
+                ?? createProject('Untitled');
+              await app.switchProject(rest);
+            }
+            await deleteProject(p.id);
+            refresh();
+          }));
           list.appendChild(row);
         }
         if (!projects.length) list.appendChild(h('div', { class: 'empty-note' }, 'No saved projects yet.'));
