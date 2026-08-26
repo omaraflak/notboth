@@ -302,15 +302,11 @@ export class CanvasView {
 
     const pin = this.hitPin(g);
     if (pin) {
-      if (pin.pin.side === 'out') {
-        this.drag = { kind: 'wire', from: pin, cursor: g };
-      } else {
-        // Dragging off an input detaches whatever feeds it, so a mis-drawn
-        // connection is one gesture away from being redrawn.
-        const def = this.app.openDef;
-        const existing = def.wires.find((w) => w.to.inst === pin.inst.id && w.to.pin === pin.pin.pin.id);
-        if (existing) this.app.mutate(() => removeWires(def, new Set([existing.id])));
-      }
+      // A drag starts at either end. Which end is the source is a property of
+      // the pins, not of the order they were touched, so it is worked out when
+      // the drag lands rather than assumed here -- and touching a pin never
+      // destroys what is already attached to it.
+      this.drag = { kind: 'wire', from: pin, cursor: g };
       this.invalidate();
       return;
     }
@@ -418,7 +414,13 @@ export class CanvasView {
       this.selectInBand(drag);
     } else if (drag.kind === 'wire') {
       const target = this.hitPin(g);
-      if (target && target.pin.side === 'in') this.finishWire(drag.from, target);
+      // One end has to drive and the other has to listen, in that order. Drawn
+      // the other way round, the two ends simply swap.
+      if (target && target.pin.side !== drag.from.pin.side) {
+        const out = drag.from.pin.side === 'out' ? drag.from : target;
+        const into = drag.from.pin.side === 'out' ? target : drag.from;
+        this.finishWire(out, into);
+      }
       this.hoverPin = null;
     }
     this.invalidate();
@@ -599,6 +601,14 @@ export class CanvasView {
       );
     }
     app.mutate(() => {
+      // An input takes one driver. Detaching used to happen when a pin was
+      // pressed, which is why pressing one destroyed what was attached; doing
+      // it here instead means the old wire only goes when a new one arrives to
+      // replace it, and only over the bits the new one actually covers.
+      const clash = def.wires.filter((w) => w.to.inst === to.inst.id
+        && w.to.pin === to.pin.pin.id
+        && w.to.lo <= toBits.hi && w.to.hi >= toBits.lo);
+      if (clash.length) removeWires(def, new Set(clash.map((w) => w.id)));
       connect(
         app.project, def,
         { inst: from.inst.id, pin: from.pin.pin.id, lo: fromBits.lo, hi: fromBits.hi },
@@ -828,7 +838,11 @@ export class CanvasView {
     const p = this.byId.get(this.drag.from.inst.id);
     if (!p) return;
     const start = this.pinPoint(p, this.drag.from.pin);
-    const hovered = this.hoverPin && this.hoverPin.pin.side === 'in' ? this.byId.get(this.hoverPin.inst.id) : null;
+    // The pending wire snaps to whichever pin could receive it, which is any
+    // pin on the other side from the one the drag began on.
+    const from = this.drag.kind === 'wire' ? this.drag.from : null;
+    const usable = this.hoverPin && from && this.hoverPin.pin.side !== from.pin.side;
+    const hovered = usable ? this.byId.get(this.hoverPin!.inst.id) : null;
     const target = hovered ? this.pinPoint(hovered, this.hoverPin!.pin) : this.drag.cursor;
     const path = routeWire(start, target);
 
