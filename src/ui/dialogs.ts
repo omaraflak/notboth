@@ -439,6 +439,55 @@ export function projectsDialog(app: App) {
   });
 }
 
+/**
+ * What the simulation controls do, and what a tick is. The tick is the one
+ * idea in the app that cannot be guessed from the interface, so it gets the
+ * longer half of the dialog.
+ */
+export function simulationHelpDialog() {
+  const controls: [string, string, string][] = [
+    ['power', 'On / Off',
+      'Connects the circuit to electricity. Switching on rebuilds it from scratch, so every stored bit starts at zero.'],
+    ['play', 'Run / Pause',
+      'Lets simulated time (ticks) flow, or holds it still. Pausing changes nothing in the circuit.'],
+    ['step', 'Step',
+      'Advances simulated time by exactly one tick and stops. This is how you watch a signal go through a circuit gate by gate.'],
+    ['reset', 'Reset',
+      'Puts every wire and every stored bit back to zero and restarts the tick count, without switching the power off.'],
+    ['gauge', 'Speed',
+      'How many ticks pass per second of real time.'],
+  ];
+  const ticks: [string, string, string][] = [
+    ['info', 'One tick is one gate delay',
+      'Everything you build is made of NAND gates. A tick is the time a signal takes to cross a NAND gate.'],
+    ['info', 'A clock period is ticks too',
+      'A Clock with a period of 512 spends 256 ticks high and 256 low.'],
+    ['info', 'Memory is the exception',
+      'The built-in RAM and ROM are not built from NANDs, so they cost no ticks of their own.'],
+    ['info', 'Tick count at the bottom',
+      'The status bar shows how many ticks have passed since you switched on the circuit.'],
+  ];
+  openModal({
+    title: 'Running a circuit',
+    wide: true,
+    build: (body) => {
+      const grid = (rows: [string, string, string][]) => {
+        const el = h('div', { class: 'help-grid' });
+        for (const [ico, name, text] of rows) {
+          el.appendChild(h('span', { class: 'help-ico' }, ico ? icon(ico, 14) : null));
+          el.appendChild(h('span', { class: 'help-name' }, name));
+          el.appendChild(h('span', { class: 'help-text' }, text));
+        }
+        return el;
+      };
+      body.appendChild(h('h3', { class: 'help-head' }, 'The controls'));
+      body.appendChild(grid(controls));
+      body.appendChild(h('h3', { class: 'help-head' }, 'What a tick is'));
+      body.appendChild(grid(ticks));
+    },
+  });
+}
+
 export function shortcutsDialog() {
   const rows: [string, string][] = [
     ['Pan', 'Space + drag, middle drag, or two-finger scroll'],
