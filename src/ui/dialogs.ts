@@ -1,4 +1,3 @@
-import { formatValue } from '../core/layout';
 import { clampWidth } from '../core/primitives';
 import { createProject, defSignature, previewReplace, replaceAllUses, usageCount } from '../core/project';
 import { downloadFile, exportProject, importProject, listProjects, pickFile, saveProject, deleteProject } from '../core/storage';
@@ -256,51 +255,7 @@ export function memoryEditor(app: App, inst: Instance, kind: 'ROM' | 'RAM') {
 }
 
 /** Read-only view of what a RAM currently holds, while the machine runs. */
-export function memoryViewer(app: App, inst: Instance) {
-  const index = app.netlist?.mems.findIndex((m) => m.instId === inst.id) ?? -1;
-  const data = index >= 0 ? app.sim?.memSnapshot(index) : undefined;
-  const dataWidth = clampWidth(inst.props.dataWidth, 16);
 
-  openModal({
-    title: 'Memory contents',
-    wide: true,
-    build: (body) => {
-      if (!data) {
-        body.appendChild(h('div', { class: 'hint' }, 'Switch the power on to inspect live memory.'));
-        return;
-      }
-      const pre = h('pre', { style: { fontFamily: 'var(--mono)', fontSize: '11px', lineHeight: '1.6' } });
-      const perRow = 8;
-      const lines: string[] = [];
-      let lastNonZero = 0;
-      for (let i = 0; i < data.length; i++) if (data[i]) lastNonZero = i;
-      const limit = Math.min(data.length, Math.max(64, lastNonZero + 8));
-      for (let a = 0; a < limit; a += perRow) {
-        const cells: string[] = [];
-        for (let i = 0; i < perRow && a + i < limit; i++) {
-          cells.push(formatValue(data[a + i], dataWidth, 'hex').slice(2));
-        }
-        lines.push(a.toString(16).padStart(4, '0') + ':  ' + cells.join(' '));
-      }
-      if (limit < data.length) lines.push(`... ${data.length - limit} more words, all zero`);
-      pre.textContent = lines.join('\n');
-      body.appendChild(pre);
-    },
-  });
-}
-
-/* ------------------------------------------------------------------ *
- * Test benches
- * ------------------------------------------------------------------ */
-
-/* ------------------------------------------------------------------ *
- * Replace and delete
- * ------------------------------------------------------------------ */
-
-/**
- * The direct operation that user-editable component ids would only
- * approximate -- and unlike an id rewrite it can say what will break first.
- */
 export function replaceDialog(app: App, fromId: Id) {
   const from = app.project.defs.find((d) => d.id === fromId);
   if (!from) return;

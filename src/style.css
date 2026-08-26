@@ -495,6 +495,26 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 
 .empty-note { padding: 14px 12px; color: var(--text-faint); font-size: 11px; line-height: 1.5; }
 
+/* A memory's contents, shown in the panel rather than a dialog: the reason to
+   look is to watch it change tick by tick, and a dialog would cover the very
+   controls that advance the clock. */
+.mem-at { font-family: var(--mono); font-size: 11px; color: var(--text); }
+.mem-list {
+  max-height: 190px; overflow-y: auto;
+  margin-top: 6px;
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--bg-sunken);
+}
+.mem-row {
+  display: flex; gap: 8px; justify-content: space-between;
+  padding: 1px 6px;
+  font-family: var(--mono); font-size: 10.5px; line-height: 1.6;
+}
+.mem-addr { color: var(--text-faint); }
+.mem-word { color: var(--text-dim); }
+.mem-row.at { background: var(--warn-soft); }
+.mem-row.at .mem-addr, .mem-row.at .mem-word { color: var(--warn); font-weight: 600; }
+
 /* ---------------- Inspector ---------------- */
 
 .insp-section { border-bottom: 1px solid var(--line); padding: 10px 12px; }

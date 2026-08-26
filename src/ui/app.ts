@@ -75,10 +75,12 @@ export class App {
 
   /* ---------------- events ---------------- */
 
-  on(channel: Channel, fn: () => void) {
+  /** Returns the way to stop listening, for anything that does not outlive the app. */
+  on(channel: Channel, fn: () => void): () => void {
     let set = this.listeners.get(channel);
     if (!set) { set = new Set(); this.listeners.set(channel, set); }
     set.add(fn);
+    return () => { set!.delete(fn); };
   }
 
   emit(...channels: Channel[]) {

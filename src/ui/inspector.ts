@@ -6,7 +6,7 @@ import { asIdentifier, defSignature, movePort, signatureOf, usageCount } from '.
 import type { Instance, NumberFormat, Wire } from '../core/types';
 import type { App } from './app';
 import { button, clear, h, icon } from './dom';
-import { memoryEditor, memoryViewer, parseNumber } from './dialogs';
+import { memoryEditor,  parseNumber } from './dialogs';
 
 const WIRE_COLORS = ['', '#e0483a', '#e08b1f', '#2f9e57', '#2f7fe0', '#8b4fd8', '#c73f8f'];
 
@@ -265,14 +265,7 @@ export class Inspector {
           button(kind === 'ROM' ? 'Edit program' : 'Set initial contents', {
             icon: 'memory', className: 'bordered', onClick: () => memoryEditor(app, inst, kind),
           })));
-        if (kind === 'RAM') {
-          fields.push(h('div', { class: 'field' },
-            button('View live memory', {
-              icon: 'search', className: 'bordered',
-              disabled: !app.powered,
-              onClick: () => memoryViewer(app, inst),
-            })));
-        }
+        fields.push(this.memoryView(inst));
         break;
       }
     }
@@ -436,6 +429,73 @@ export class Inspector {
     return this.numberField('Bits', clampWidth(inst.props.width), (v) => {
       mutate(() => { inst.props.width = clampWidth(v); });
     }, 1, MAX_WIDTH);
+  }
+
+  /**
+   * What a memory holds, inline, while it holds it.
+   *
+   * Inline rather than in a dialog because the question it answers only comes
+   * up while a circuit is running: which word the address lines are pointing
+   * at right now. A modal would cover the very controls you step the clock
+   * with, so watching a memory would mean not being able to advance to the
+   * tick you wanted to watch.
+   */
+  private memoryView(inst: Instance): HTMLElement {
+    const app = this.app;
+    const index = app.netlist?.mems.findIndex((m) => m.instId === inst.id) ?? -1;
+    const mem = index >= 0 ? app.netlist!.mems[index] : undefined;
+    if (!app.powered || !mem || !app.sim) {
+      return h('div', { class: 'hint' }, 'Switch the power on to watch what it holds.');
+    }
+    const dataWidth = clampWidth(inst.props.dataWidth, 16);
+    const addrWidth = clampWidth(inst.props.addrWidth, 8);
+
+    const at = h('div', { class: 'mem-at' });
+    const list = h('div', { class: 'mem-list' });
+
+    // Everything up to the last word written, plus room to watch the next few
+    // arrive. A memory is mostly zeroes and scrolling through them helps no one.
+    const snap = app.sim.memSnapshot(index);
+    let last = 0;
+    if (snap) for (let i = 0; i < snap.length; i++) if (snap[i]) last = i;
+    const limit = Math.min(snap?.length ?? 0, Math.max(32, last + 8));
+
+    const rows: HTMLElement[] = [];
+    for (let a = 0; a < limit; a++) {
+      const row = h('div', { class: 'mem-row' },
+        h('span', { class: 'mem-addr' }, formatValue(a, addrWidth, 'hex')),
+        h('span', { class: 'mem-word' }, ''));
+      rows[a] = row;
+      list.appendChild(row);
+    }
+
+    let shown = -1;
+    const sync = () => {
+      const live = app.sim?.memSnapshot(index);
+      if (!live) return;
+      for (let a = 0; a < limit; a++) {
+        const text = formatValue(live[a], dataWidth, 'hex');
+        const cell = rows[a].lastChild as HTMLElement;
+        if (cell.textContent !== text) cell.textContent = text;
+      }
+      const addr = app.sim!.readNets(mem.addr) >>> 0;
+      const held = addr < live.length ? live[addr] : 0;
+      at.textContent = `${formatValue(addr, addrWidth, 'hex')} \u2192 ${formatValue(held, dataWidth, 'hex')}`;
+      if (addr !== shown) {
+        if (rows[shown]) rows[shown].classList.remove('at');
+        if (rows[addr]) {
+          rows[addr].classList.add('at');
+          rows[addr].scrollIntoView({ block: 'nearest' });
+        }
+        shown = addr;
+      }
+    };
+    sync();
+    this.tickUpdaters.push(sync);
+
+    return h('div', null,
+      h('div', { class: 'field' }, h('label', null, 'Address'), h('div', { class: 'control' }, at)),
+      list);
   }
 
   /** How a port writes its number. An edit, so it goes through undo. */
