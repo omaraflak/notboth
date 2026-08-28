@@ -36,6 +36,15 @@ export function clear(el: HTMLElement) {
   while (el.firstChild) el.removeChild(el.firstChild);
 }
 
+const NS = 'http://www.w3.org/2000/svg';
+
+/* The three filled cells of the truth map, then the hollow one: a rounded
+   square with a rounded square punched out, so the hole is as soft as the
+   corner. A stroked rect cannot do that -- its hole is only as round as
+   `rx - strokeWidth/2`, which collapses to a point at these sizes. */
+const MARK_CELLS = 'M6.1,2.5H11.4A3.6,3.6 0 0 1 15,6.1V11.4A3.6,3.6 0 0 1 11.4,15H6.1A3.6,3.6 0 0 1 2.5,11.4V6.1A3.6,3.6 0 0 1 6.1,2.5ZM20.6,2.5H25.9A3.6,3.6 0 0 1 29.5,6.1V11.4A3.6,3.6 0 0 1 25.9,15H20.6A3.6,3.6 0 0 1 17,11.4V6.1A3.6,3.6 0 0 1 20.6,2.5ZM6.1,17H11.4A3.6,3.6 0 0 1 15,20.6V25.9A3.6,3.6 0 0 1 11.4,29.5H6.1A3.6,3.6 0 0 1 2.5,25.9V20.6A3.6,3.6 0 0 1 6.1,17Z';
+const MARK_HOLLOW = 'M20.6,17H25.9A3.6,3.6 0 0 1 29.5,20.6V25.9A3.6,3.6 0 0 1 25.9,29.5H20.6A3.6,3.6 0 0 1 17,25.9V20.6A3.6,3.6 0 0 1 20.6,17ZM21.77,19.6H24.73A2.17,2.17 0 0 1 26.9,21.77V24.73A2.17,2.17 0 0 1 24.73,26.9H21.77A2.17,2.17 0 0 1 19.6,24.73V21.77A2.17,2.17 0 0 1 21.77,19.6Z';
+
 const PATHS: Record<string, string> = {
   power: 'M12 3v9M6.2 6.2a8 8 0 1 0 11.6 0',
   play: 'M6 4l12 8-12 8z',
@@ -73,7 +82,7 @@ const PATHS: Record<string, string> = {
 };
 
 export function icon(name: keyof typeof PATHS | string, size = 13): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('width', String(size));
   svg.setAttribute('height', String(size));
@@ -82,9 +91,34 @@ export function icon(name: keyof typeof PATHS | string, size = 13): SVGSVGElemen
   svg.setAttribute('stroke-width', '1.8');
   svg.setAttribute('stroke-linecap', 'round');
   svg.setAttribute('stroke-linejoin', 'round');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const path = document.createElementNS(NS, 'path');
   path.setAttribute('d', PATHS[name] ?? PATHS.chip);
   svg.appendChild(path);
+  return svg;
+}
+
+/**
+ * The notboth mark: the NAND truth table laid out as a 2x2 map -- 1, 1, 1, 0.
+ * Three cells filled, and the one case where both inputs are high left hollow.
+ *
+ * Not part of the icon set: those are single stroked paths, and this is two
+ * filled ones, the second punching its own hole with the even-odd rule.
+ */
+export function brandMark(size = 17): SVGSVGElement {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 32 32');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('fill', 'currentColor');
+  svg.setAttribute('aria-hidden', 'true');
+  const add = (d: string, evenOdd = false) => {
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', d);
+    if (evenOdd) path.setAttribute('fill-rule', 'evenodd');
+    svg.appendChild(path);
+  };
+  add(MARK_CELLS);
+  add(MARK_HOLLOW, true);
   return svg;
 }
 

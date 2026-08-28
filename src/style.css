@@ -223,6 +223,14 @@ button { cursor: pointer; background: none; border: none; }
   display: flex; align-items: center; gap: 4px;
 }
 .bar-left .btn { max-width: 100%; }
+/* The mark, not a control: it does not hover, click or take focus. */
+.brand {
+  flex: none;
+  display: flex; align-items: center;
+  padding: 0 5px 0 3px;
+  color: var(--accent);
+}
+.brand svg { display: block; }
 .bar-tabs { flex: none; display: flex; align-items: center; }
 .bar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
 .bar-right { flex: none; display: flex; align-items: center; gap: 4px; }

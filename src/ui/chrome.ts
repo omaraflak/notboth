@@ -1,5 +1,5 @@
 import { SPEEDS, type App, type EditorMode } from './app';
-import { button, clear, h, icon } from './dom';
+import { brandMark, button, clear, h, icon } from './dom';
 import { projectsDialog, promptText, shortcutsDialog, simulationHelpDialog } from './dialogs';
 import { currentTheme, toggleTheme } from './theme';
 
@@ -56,6 +56,10 @@ export class Chrome {
     const app = this.app;
 
     /* ----- left: project and open component ----- */
+
+    // The mark sits ahead of the project, so the bar reads as this site first
+    // and this document second.
+    this.left.appendChild(h('span', { class: 'brand', title: 'notboth' }, brandMark()));
 
     this.projectBtn = button(app.project.name, {
       icon: 'layers', title: 'Projects', className: 'bordered project-name',
