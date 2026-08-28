@@ -111,14 +111,16 @@ export function brandMark(size = 17): SVGSVGElement {
   svg.setAttribute('height', String(size));
   svg.setAttribute('fill', 'currentColor');
   svg.setAttribute('aria-hidden', 'true');
-  const add = (d: string, evenOdd = false) => {
+  const add = (d: string, cls?: string) => {
     const path = document.createElementNS(NS, 'path');
     path.setAttribute('d', d);
-    if (evenOdd) path.setAttribute('fill-rule', 'evenodd');
+    if (cls) { path.setAttribute('class', cls); path.setAttribute('fill-rule', 'evenodd'); }
     svg.appendChild(path);
   };
   add(MARK_CELLS);
-  add(MARK_HOLLOW, true);
+  // The odd one out is coloured from the stylesheet, so the palette stays in
+  // one file rather than being half in the markup.
+  add(MARK_HOLLOW, 'mark-zero');
   return svg;
 }
 

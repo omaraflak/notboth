@@ -38,6 +38,8 @@
 
   /* The manual's own ink, so the link reads as belonging to it. */
   --manual-ink:    #c2490b;
+  --manual-solid:  #c2490b;
+  --manual-on:     #ffffff;
   --manual-soft:   #fdf0e8;
   --manual-line:   #f2d2be;
   --manual-hover:  #fbe4d5;
@@ -119,6 +121,8 @@
   --warn-soft:     #33270f;
 
   --manual-ink:    #ff9a5c;
+  --manual-solid:  #c2490b;
+  --manual-on:     #ffffff;
   --manual-soft:   #2a1710;
   --manual-line:   #4a2a18;
   --manual-hover:  #351c12;
@@ -224,13 +228,16 @@ button { cursor: pointer; background: none; border: none; }
 }
 .bar-left .btn { max-width: 100%; }
 /* The mark, not a control: it does not hover, click or take focus. */
+/* The manual's palette: the three answers in ink, and the one that is
+   different in the manual's orange -- which is the whole idea of the mark. */
 .brand {
   flex: none;
   display: flex; align-items: center;
   padding: 0 5px 0 3px;
-  color: var(--accent);
+  color: var(--text);
 }
 .brand svg { display: block; }
+.brand .mark-zero { fill: var(--manual-ink); }
 .bar-tabs { flex: none; display: flex; align-items: center; }
 .bar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
 .bar-right { flex: none; display: flex; align-items: center; gap: 4px; }
@@ -511,20 +518,24 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 
 /* Pinned to the bottom of the library: always reachable, never in the way. */
 .side-foot { border-top: 1px solid var(--line); padding: 7px; }
+/* Solid rather than tinted: it is the only door out of the editor, and a pale
+   pill on a pale panel was reading as a disabled row. */
 .manual-link {
   display: flex; align-items: center; gap: 8px;
-  width: 100%; height: 30px; padding: 0 10px;
+  width: 100%; height: 34px; padding: 0 11px;
   border-radius: var(--radius);
-  border: 1px solid var(--manual-line);
-  background: var(--manual-soft);
-  color: var(--manual-ink);
-  font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em;
-  transition: background .1s ease, border-color .1s ease;
+  border: 1px solid transparent;
+  background: var(--manual-solid);
+  color: var(--manual-on);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  box-shadow: var(--shadow-1);
+  transition: filter .1s ease, box-shadow .1s ease, transform .1s ease;
 }
-.manual-link:hover { background: var(--manual-hover); border-color: var(--manual-ink); }
-.manual-link:focus-visible { outline: 2px solid var(--manual-ink); outline-offset: 1px; }
+.manual-link:hover { filter: brightness(1.09); box-shadow: var(--shadow-2); }
+.manual-link:active { transform: translateY(1px); box-shadow: var(--shadow-1); }
+.manual-link:focus-visible { outline: 2px solid var(--manual-solid); outline-offset: 2px; }
 .manual-link .grow { flex: 1; text-align: left; }
-.manual-link .out { opacity: .55; display: flex; }
+.manual-link .out { opacity: .8; display: flex; }
 
 .tree-group { margin-bottom: 2px; }
 .tree-label {
