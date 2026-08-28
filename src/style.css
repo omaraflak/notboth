@@ -250,12 +250,26 @@ button { cursor: pointer; background: none; border: none; }
   min-height: 0;
 }
 
-.canvas-wrap { grid-area: canvas; position: relative; background: var(--canvas-bg); min-width: 0; }
+/* min-height matters as much as min-width: a grid item's automatic minimum is
+   its content's min-content size, and the canvas element carries an intrinsic
+   height of its backing store. Without this the middle row cannot shrink, so
+   on a short screen the footers and the status bar are pushed off the bottom
+   of a page that does not scroll. */
+.canvas-wrap {
+  grid-area: canvas; position: relative;
+  background: var(--canvas-bg);
+  min-width: 0; min-height: 0;
+  /* The canvas is sized in JS from this box, so for one frame after a resize
+     it can still be the old size. Clip rather than let it paint over the
+     status bar. */
+  overflow: hidden;
+}
 canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
 .inspector {
   grid-area: insp;
   width: var(--inspector-w);
+  min-height: 0;
   background: var(--bg-panel);
   border-left: 1px solid var(--line);
   overflow: hidden;
@@ -504,6 +518,7 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 /* ---------------- Sidebar ---------------- */
 
 .side-head {
+  flex: none;
   display: flex; align-items: center; gap: 4px;
   padding: 8px 8px 6px 10px;
   border-bottom: 1px solid var(--line);
@@ -512,12 +527,12 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
   font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: var(--text-faint); flex: 1;
 }
-.side-search { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.side-search { flex: none; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .side-search input { height: 24px; font-size: 11.5px; }
 .side-scroll { flex: 1; overflow-y: auto; padding: 4px 0 12px; }
 
 /* Pinned to the bottom of the library: always reachable, never in the way. */
-.side-foot { border-top: 1px solid var(--line); padding: 7px; }
+.side-foot { flex: none; border-top: 1px solid var(--line); padding: 7px; }
 /* Solid rather than tinted: it is the only door out of the editor, and a pale
    pill on a pale panel was reading as a disabled row. */
 .manual-link {
