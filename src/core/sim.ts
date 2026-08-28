@@ -25,6 +25,12 @@ export class Simulator {
   /** RAM/ROM contents, one array per memory node. */
   private memData: Int32Array[] = [];
   private memPrevClk: Uint8Array;
+  /**
+   * Bumped whenever a word actually changes. A screen repaints on this rather
+   * than every frame: 12,288 pixels are not worth redrawing to show the same
+   * picture, and most frames change nothing.
+   */
+  private memRev: Int32Array;
   private memDirty: Uint8Array;
   private dirtyMems: number[] = [];
   private memFanoutStart: Int32Array;
@@ -50,6 +56,7 @@ export class Simulator {
     this.chgVal = new Uint8Array(chgCap);
 
     this.memPrevClk = new Uint8Array(nl.mems.length);
+    this.memRev = new Int32Array(nl.mems.length);
     this.memDirty = new Uint8Array(nl.mems.length);
     for (const m of nl.mems) {
       const words = 1 << m.addrWidth;
@@ -63,7 +70,7 @@ export class Simulator {
     const inputsOf = (i: number): number[] => {
       const m = nl.mems[i];
       const list = [...m.addr];
-      if (m.kind === 'RAM') { list.push(...m.din, m.load, m.clk); }
+      if (m.kind !== 'ROM') { list.push(...m.din, m.load, m.clk); }
       return list.filter((n) => n >= 0);
     };
     for (let i = 0; i < nl.mems.length; i++) for (const n of inputsOf(i)) counts[n]++;
@@ -105,6 +112,7 @@ export class Simulator {
       this.memData[i].fill(0);
       for (let a = 0; a < Math.min(words, m.contents.length); a++) this.memData[i][a] = m.contents[a] | 0;
       this.memPrevClk[i] = 0;
+      this.memRev[i]++;
     }
     this.clockPhase.fill(0);
     this.memDirty.fill(1);
@@ -136,10 +144,12 @@ export class Simulator {
         this.memDirty[mi] = 0;
         const m = nl.mems[mi];
         const data = this.memData[mi];
-        if (m.kind === 'RAM') {
+        if (m.kind !== 'ROM') {
           const clk = net[m.clk];
           if (clk === 1 && this.memPrevClk[mi] === 0 && net[m.load] === 1) {
-            data[this.readNets(m.addr)] = this.readNets(m.din) | 0;
+            const at = this.readNets(m.addr);
+            const word = this.readNets(m.din) | 0;
+            if (data[at] !== word) { data[at] = word; this.memRev[mi]++; }
           }
           this.memPrevClk[mi] = clk;
         }
@@ -231,6 +241,11 @@ export class Simulator {
     this.writeNets(t.nets, t.value);
   }
 
+  /** Changes to a memory's contents, for callers that cache a rendering. */
+  memRevision(index: number): number {
+    return this.memRev[index] ?? 0;
+  }
+
   memWord(index: number, addr: number): number {
     return this.memData[index]?.[addr] ?? 0;
   }
@@ -241,6 +256,7 @@ export class Simulator {
     if (!data) return;
     data.fill(0);
     for (let i = 0; i < Math.min(data.length, words.length); i++) data[i] = words[i] | 0;
+    this.memRev[index]++;
     if (!this.memDirty[index]) { this.memDirty[index] = 1; this.dirtyMems.push(index); }
   }
 

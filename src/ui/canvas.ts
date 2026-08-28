@@ -4,7 +4,7 @@ import {
   type BoxLayout, type Measure, type PinLayout, type RoutePlan, type WireGeom,
 } from '../core/layout';
 import { arrangeDef } from '../core/autolayout';
-import { clampWidth, customLabel, isPrim, primKind, primLabel } from '../core/primitives';
+import { clampWidth, customLabel, isPrim, primKind, primLabel, screenSize, viewportCells } from '../core/primitives';
 import {
   connect, defSignature, makeInstance, nameNewInstances, nextFreeBits, removeInstances, removeWires,
   wouldRecurse,
@@ -22,7 +22,14 @@ interface Placed {
 
 interface PinHit { inst: Instance; pin: PinLayout }
 
-interface Simulatorish { net: Uint8Array }
+interface Simulatorish {
+  net: Uint8Array;
+  memSnapshot?(index: number): Int32Array | undefined;
+  memRevision?(index: number): number;
+}
+
+/** One cached screen bitmap, rebuilt only when its memory changes. */
+interface ScreenCache { el: HTMLCanvasElement; img: ImageData; rev: number }
 
 type Drag =
   | { kind: 'none' }
@@ -30,6 +37,9 @@ type Drag =
   | { kind: 'move'; sx: number; sy: number; origin: Map<Id, Point>; moved: boolean }
   | { kind: 'band'; x0: number; y0: number; x1: number; y1: number; additive: boolean }
   | { kind: 'wire'; from: PinHit; cursor: Point };
+
+/** Room above a screen's pixels for the box's own name. */
+const SCREEN_TITLE = 17;
 
 const MONO = 'ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace';
 
@@ -46,6 +56,8 @@ export class CanvasView {
 
   private placed: Placed[] = [];
   private byId = new Map<Id, Placed>();
+  /** Rendered screen contents, keyed by instance. */
+  private screens = new Map<Id, ScreenCache>();
   private routes: RoutePlan = { paths: new Map(), junctions: [] };
   private placedStale = true;
   private drag: Drag = { kind: 'none' };
@@ -179,7 +191,7 @@ export class CanvasView {
     this.placed = def.instances.map((inst) => {
       const sig = defSignature(app.project, inst.def, inst.props);
       const name = isPrim(inst.def) ? primLabel(inst) : (nameOfDef(app, inst.def) ?? '?');
-      return { inst, sig, box: layoutBox(sig, name, this.measure, customLabel(inst)) };
+      return { inst, sig, box: layoutBox(sig, name, this.measure, customLabel(inst), viewportCells(inst)) };
     });
     this.byId = new Map(this.placed.map((p) => [p.inst.id, p]));
     this.planRouting();
@@ -895,7 +907,7 @@ export class CanvasView {
       // where it is in the cycle rather than only that it is a clock.
       accentBar = sim && this.pinLevel(sim, inst.id, 'clk') > 0 ? c['pin-hot'] : c.ok;
     }
-    else if (kind === 'ROM' || kind === 'RAM') accentBar = c['text-faint'];
+    else if (kind === 'ROM' || kind === 'RAM' || kind === 'SCREEN') accentBar = c['text-faint'];
 
     ctx.save();
     ctx.beginPath();
@@ -920,12 +932,25 @@ export class CanvasView {
       ctx.restore();
     }
 
+    if (kind === 'SCREEN') this.paintScreen(ctx, c, inst, x, y, w, h, sim);
+
     // The name sits centred; pin labels hug the edges. The box was sized to
     // fit both, so they can never collide.
     const valueText = this.boxValue(inst, kind, sim);
     const label = customLabel(inst);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    if (kind === 'SCREEN') {
+      // The picture owns the middle of the box, so the name moves up into the
+      // strip reserved for it. And a box with a screen in it is obviously a
+      // screen -- if the author named this one, that name is the useful half.
+      ctx.font = label ? PIN_FONT : NAME_FONT;
+      ctx.fillStyle = label ? c.accent : c['box-text'];
+      ctx.fillText(label ?? name, x + w / 2, y + SCREEN_TITLE / 2 + 1);
+      ctx.restore();
+      this.paintPins(ctx, c, p, name, sim);
+      return;
+    }
     let cy = y + h / 2 - (valueText ? 6 : 0) + (label ? 5 : 0);
     if (label) {
       // The name the author gave this part, above the type it is. Both are
@@ -943,6 +968,16 @@ export class CanvasView {
       ctx.fillText(valueText, x + w / 2, cy + 13);
     }
 
+    ctx.restore();
+    this.paintPins(ctx, c, p, name, sim);
+  }
+
+  private paintPins(
+    ctx: CanvasRenderingContext2D, c: Record<string, string>,
+    p: Placed, name: string, sim: Simulatorish | null,
+  ) {
+    const { inst, box } = p;
+    ctx.save();
     ctx.font = PIN_FONT;
     ctx.textBaseline = 'middle';
     for (const pin of box.pins) {
@@ -974,6 +1009,74 @@ export class CanvasView {
         ctx.fillText(pin.pin.name, pin.side === 'in' ? px + 7 : px - 7, py);
       }
     }
+    ctx.restore();
+  }
+
+  /**
+   * A screen's contents, drawn 1:1 inside its box. Repainting 12,288 pixels
+   * every frame to show an unchanged picture would be pure waste, so the
+   * bitmap is cached and only rebuilt when the simulator says a word moved.
+   */
+  private paintScreen(
+    ctx: CanvasRenderingContext2D, c: Record<string, string>,
+    inst: Instance, x: number, y: number, w: number, h: number,
+    sim: Simulatorish | null,
+  ) {
+    const { w: pw, h: ph } = screenSize(inst.props);
+    const sx = Math.round(x + (w - pw) / 2);
+    const sy = Math.round(y + SCREEN_TITLE + (h - SCREEN_TITLE - ph) / 2);
+
+    const index = this.app.netlist?.mems.findIndex((m) => m.instId === inst.id) ?? -1;
+    const live = sim && index >= 0 ? sim.memSnapshot?.(index) : undefined;
+
+    if (!live) {
+      // Powered down, so there is nothing to show. An empty frame says that
+      // more honestly than a black rectangle, which is a picture.
+      ctx.save();
+      ctx.strokeStyle = c['box-stroke'];
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx - 0.5, sy - 0.5, pw + 1, ph + 1);
+      ctx.restore();
+      return;
+    }
+
+    const rev = sim!.memRevision?.(index) ?? 0;
+    let cached = this.screens.get(inst.id);
+    if (!cached || cached.el.width !== pw || cached.el.height !== ph) {
+      const el = document.createElement('canvas');
+      el.width = pw; el.height = ph;
+      cached = { el, rev: -1, img: el.getContext('2d')!.createImageData(pw, ph) };
+      this.screens.set(inst.id, cached);
+    }
+    if (cached.rev !== rev) {
+      const px = cached.img.data;
+      const n = Math.min(pw * ph, live.length);
+      for (let i = 0; i < n; i++) {
+        const word = live[i];
+        // 5-5-5, bit 15 unused: red 14..10, green 9..5, blue 4..0. Each
+        // channel widens from 5 bits to 8 by repeating its top bits, so 31
+        // reaches a true 255 rather than stopping at 248.
+        const r = (word >> 10) & 31, g = (word >> 5) & 31, b = word & 31;
+        const o = i << 2;
+        px[o] = (r << 3) | (r >> 2);
+        px[o + 1] = (g << 3) | (g >> 2);
+        px[o + 2] = (b << 3) | (b >> 2);
+        px[o + 3] = 255;
+      }
+      cached.el.getContext('2d')!.putImageData(cached.img, 0, 0);
+      cached.rev = rev;
+    }
+
+    ctx.save();
+    // Pixels are pixels: never blur them, however far in the view is zoomed.
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(cached.el, sx, sy, pw, ph);
+    // Outside the image, never on it: a border centred on the edge covers
+    // pixel row and column zero, and a lit pixel 0 has to be visible.
+    ctx.strokeStyle = c['box-stroke'];
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - 0.5, sy - 0.5, pw + 1, ph + 1);
     ctx.restore();
   }
 

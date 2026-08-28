@@ -116,6 +116,23 @@ describe('reading a component in from text', () => {
     expect(truthTable(p, typed)).toEqual(before);
   });
 
+  it('caps bus widths but not counts', () => {
+    const p = project();
+    const d = def(p, 'Timings');
+    expect(applyText(p, d, `
+      clk : Clock(period = 512)
+      big : Const(width = 64, value = 3)
+      scr : SCREEN(pxWidth = 128, pxHeight = 96)
+    `)).toEqual([]);
+    const props = (name: string) => d.instances.find((i) => i.props.name === name)!.props;
+    // A period and a pixel count are counts, and survive intact...
+    expect(props('clk').period).toBe(512);
+    expect(props('scr').pxWidth).toBe(128);
+    expect(props('scr').pxHeight).toBe(96);
+    // ...while a bus width is still capped at what a bus can be.
+    expect(props('big').width).toBe(32);
+  });
+
   it('accepts a component built out of other components', () => {
     const p = project();
     handBuiltNot(p);

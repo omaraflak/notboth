@@ -1,3 +1,4 @@
+import { GRID } from './layout';
 import {
   PRIM_PREFIX, MAX_WIDTH,
   type Id, type Instance, type InstanceProps, type PrimitiveKind, type Signature,
@@ -51,7 +52,48 @@ export function defaultProps(kind: PrimitiveKind): InstanceProps {
     case 'PROBE':  return { name: 'probe', width: 1, format: 'hex' };
     case 'ROM':    return { addrWidth: 8, dataWidth: 16, contents: [] };
     case 'RAM':    return { addrWidth: 8, dataWidth: 16, contents: [] };
+    case 'SCREEN': return { pxWidth: 128, pxHeight: 96 };
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Screen geometry
+ *
+ * One 16-bit word per pixel, so the address a program writes to *is* the
+ * pixel: `addr = y * pxWidth + x`. Nothing packs, nothing is masked, and the
+ * whole colour fits in the 15 bits an A-instruction can carry.
+ * ------------------------------------------------------------------ */
+
+export function screenSize(props: InstanceProps): { w: number; h: number } {
+  const w = Math.min(1024, Math.max(1, Math.floor(Number(props.pxWidth ?? 128)) || 128));
+  const h = Math.min(1024, Math.max(1, Math.floor(Number(props.pxHeight ?? 96)) || 96));
+  return { w, h };
+}
+
+export function screenWords(props: InstanceProps): number {
+  const { w, h } = screenSize(props);
+  return w * h;
+}
+
+/**
+ * Derived, never configured: a screen whose memory disagreed with its pixels
+ * would be a bug the author has to find rather than one the app can prevent.
+ */
+export function screenAddrWidth(props: InstanceProps): number {
+  const words = screenWords(props);
+  let bits = 1;
+  while ((1 << bits) < words && bits < 20) bits++;
+  return bits;
+}
+
+/**
+ * The area a part reserves inside its box for something painted, in grid
+ * cells. Only a screen has one; everything else is text and pins.
+ */
+export function viewportCells(inst: Instance): { w: number; h: number } | null {
+  if (!isPrim(inst.def) || primKind(inst.def) !== 'SCREEN') return null;
+  const { w, h } = screenSize(inst.props);
+  return { w: Math.ceil(w / GRID), h: Math.ceil(h / GRID) };
 }
 
 /**
@@ -103,6 +145,18 @@ export function primSignature(kind: PrimitiveKind, props: InstanceProps): Signat
         outputs: [pin('out', 'out', dw)],
       };
     }
+    // Deliberately the same pins as RAM, in the same order. A screen is a RAM
+    // you can see, so anything you know about wiring one wires the other.
+    case 'SCREEN':
+      return {
+        inputs: [
+          pin('addr', 'addr', screenAddrWidth(props)),
+          pin('in', 'in', 16),
+          pin('load', 'load', 1),
+          pin('clk', 'clk', 1),
+        ],
+        outputs: [pin('out', 'out', 16)],
+      };
   }
 }
 
@@ -126,6 +180,7 @@ const NAMES: Record<PrimitiveKind, string> = {
   PROBE: 'Probe',
   ROM: 'ROM',
   RAM: 'RAM',
+  SCREEN: 'Screen',
 };
 
 export function primName(kind: PrimitiveKind): string {
@@ -144,6 +199,7 @@ export function primLabel(inst: Instance): string {
     case 'PROBE':  return inst.props.name || 'probe';
     case 'ROM':    return 'ROM';
     case 'RAM':    return 'RAM';
+    case 'SCREEN': return 'Screen';
   }
 }
 
@@ -167,4 +223,4 @@ export function customLabel(inst: Instance): string | null {
 
 /** Which primitives make sense to offer in the palette, in display order. */
 export const PALETTE_PRIMITIVES: PrimitiveKind[] =
-  ['NAND', 'IN', 'OUT', 'CONST', 'CLOCK', 'PROBE', 'ROM', 'RAM'];
+  ['NAND', 'IN', 'OUT', 'CONST', 'CLOCK', 'PROBE', 'ROM', 'RAM', 'SCREEN'];

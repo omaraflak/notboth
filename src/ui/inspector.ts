@@ -1,7 +1,9 @@
 import { formatValue } from '../core/layout';
 import { labelsFor, renameInstance } from '../core/hdl';
 import { MAX_WIDTH } from '../core/types';
-import { clampWidth, isPrim, primKind, primName } from '../core/primitives';
+import {
+  clampWidth, isPrim, primKind, primName, screenAddrWidth, screenSize, screenWords,
+} from '../core/primitives';
 import { asIdentifier, defSignature, movePort, signatureOf, usageCount } from '../core/project';
 import type { Instance, NumberFormat, Wire } from '../core/types';
 import type { App } from './app';
@@ -266,6 +268,21 @@ export class Inspector {
             icon: 'memory', className: 'bordered', onClick: () => memoryEditor(app, inst, kind),
           })));
         fields.push(this.memoryView(inst));
+        break;
+      }
+
+      case 'SCREEN': {
+        fields.push(...this.labelFields(inst));
+        const px = screenSize(inst.props);
+        fields.push(this.numberField('Width', px.w, (v) => mutate(() => { inst.props.pxWidth = v; }), 1, 1024));
+        fields.push(this.numberField('Height', px.h, (v) => mutate(() => { inst.props.pxHeight = v; }), 1, 1024));
+        const words = screenWords(inst.props);
+        const aw = screenAddrWidth(inst.props);
+        fields.push(h('div', { class: 'hint' },
+          `${px.w} x ${px.h} pixels, one 16-bit word each: ${words.toLocaleString()} words, `
+          + `so ${aw} address bits. Write to \`y * ${px.w} + x\` to light pixel (x, y). `
+          + 'Colour is 5-5-5 -- red in bits 14..10, green 9..5, blue 4..0, and bit 15 unused '
+          + 'so every colour fits in the 15 bits an A-instruction carries.'));
         break;
       }
     }

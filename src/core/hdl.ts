@@ -38,7 +38,22 @@ const PROP_KEYS: Record<PrimitiveKind, string[]> = {
   PROBE: ['width', 'format'],
   ROM: ['addrWidth', 'dataWidth'],
   RAM: ['addrWidth', 'dataWidth'],
+  SCREEN: ['pxWidth', 'pxHeight'],
 };
+
+/**
+ * Bus widths are the only props capped at MAX_WIDTH. A clock period, or a
+ * screen's size in pixels, is a count and not a width -- clamping those to 32
+ * silently turned `period = 512` into `period = 32`, which is the kind of bug
+ * you debug in the circuit rather than in the text you wrote.
+ */
+const WIDTH_PROPS = new Set(['width', 'dataWidth', 'addrWidth']);
+
+function numericProp(key: string, n: number): number {
+  if (key === 'value') return n >>> 0;
+  if (WIDTH_PROPS.has(key)) return clampWidth(n, n);
+  return Math.max(0, Math.floor(n));
+}
 
 const PORT_KINDS = new Set(['IN', 'OUT']);
 
@@ -539,7 +554,7 @@ export function fromText(project: Project, source: string, target: ComponentDef)
           if (key === 'format') { props[key] = value; continue; }
           const n = parseNumber(value);
           if (n === null) { fail(st.line, `${key} needs a number, not "${value}"`); continue; }
-          props[key] = key === 'value' ? n >>> 0 : clampWidth(n, n);
+          props[key] = numericProp(key, n);
           continue;
         }
         if (!inputNames.has(key)) {

@@ -1,4 +1,4 @@
-import { isPrim, clampWidth, primKind, primSignature } from './primitives';
+import { isPrim, clampWidth, primKind, primSignature, screenAddrWidth } from './primitives';
 import { defSignature, pinOf, signatureOf } from './project';
 import type {
   ComponentDef, Id, Instance, NumberFormat, Project, Signature,
@@ -33,7 +33,8 @@ export interface ProbeNode {
 }
 
 export interface MemNode {
-  kind: 'ROM' | 'RAM';
+  /** ROM is read-only; RAM and SCREEN latch on the rising clock edge. */
+  kind: 'ROM' | 'RAM' | 'SCREEN';
   addr: number[];
   data: number[];          // output bits
   din: number[];           // RAM only
@@ -358,9 +359,13 @@ function registerPrimitive(
       break;
     }
     case 'ROM':
-    case 'RAM': {
-      const addrWidth = clampWidth(inst.props.addrWidth, 8);
-      const dataWidth = clampWidth(inst.props.dataWidth, 16);
+    case 'RAM':
+    case 'SCREEN': {
+      // A screen sizes its own memory from its pixels, so there is no address
+      // width to get wrong -- and no initial contents: it boots black.
+      const isScreen = kind === 'SCREEN';
+      const addrWidth = isScreen ? screenAddrWidth(inst.props) : clampWidth(inst.props.addrWidth, 8);
+      const dataWidth = isScreen ? 16 : clampWidth(inst.props.dataWidth, 16);
       if (addrWidth > 20) {
         ctx.errors.push({
           message: `${kind} address width ${addrWidth} exceeds the ${MAX_MEM_WORDS.toLocaleString()}-word limit`,
@@ -368,15 +373,16 @@ function registerPrimitive(
         });
         return;
       }
+      const writable = kind !== 'ROM';
       ctx.mems.push({
         kind,
         addr: nets('addr'),
         data: nets(kind === 'ROM' ? 'data' : 'out'),
-        din: kind === 'RAM' ? nets('in') : [],
-        load: kind === 'RAM' ? nets('load')[0] : -1,
-        clk: kind === 'RAM' ? nets('clk')[0] : -1,
+        din: writable ? nets('in') : [],
+        load: writable ? nets('load')[0] : -1,
+        clk: writable ? nets('clk')[0] : -1,
         addrWidth, dataWidth,
-        contents: inst.props.contents ?? [],
+        contents: isScreen ? [] : (inst.props.contents ?? []),
         path, instId: inst.id, top,
       });
       break;

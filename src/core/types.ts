@@ -22,12 +22,13 @@ export type PrimitiveKind =
   | 'OUT'    // port marker: declares an output pin of the enclosing component
   | 'PROBE'  // readout
   | 'ROM'    // combinational lookup, holds the program
-  | 'RAM';   // async read, synchronous write on the rising edge of clk
+  | 'RAM'    // async read, synchronous write on the rising edge of clk
+  | 'SCREEN'; // a RAM you can see: one 16-bit word per pixel, painted live
 
 export const PRIM_PREFIX = 'prim:';
 
 export const PRIMITIVE_KINDS: PrimitiveKind[] = [
-  'NAND', 'CLOCK', 'CONST', 'IN', 'OUT', 'PROBE', 'ROM', 'RAM',
+  'NAND', 'CLOCK', 'CONST', 'IN', 'OUT', 'PROBE', 'ROM', 'RAM', 'SCREEN',
 ];
 
 export const MAX_WIDTH = 32;
@@ -64,6 +65,12 @@ export interface InstanceProps {
   dataWidth?: number;
   /** ROM/RAM initial contents, indexed by address. */
   contents?: number[];
+  /**
+   * SCREEN size in pixels. Not `width`/`height`: `width` already means how
+   * many bits wide a bus is, and a screen has both kinds of width.
+   */
+  pxWidth?: number;
+  pxHeight?: number;
   format?: NumberFormat;
   /**
    * Draw this part's label on its box. Off by default: a label is identity in

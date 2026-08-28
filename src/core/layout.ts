@@ -46,9 +46,11 @@ export function layoutBox(
   name: string,
   measure: Measure = approxMeasure,
   label?: string | null,
+  /** Area the box must reserve for something painted inside it, in cells. */
+  viewport?: { w: number; h: number } | null,
 ): BoxLayout {
   const rows = Math.max(sig.inputs.length, sig.outputs.length, 1);
-  const h = rows + 1;
+  const h = Math.max(rows + 1, viewport ? viewport.h + 2 : 0);
 
   // A single-purpose primitive is named by its box; labelling its one pin as
   // well is noise, so it is neither measured nor painted.
@@ -66,7 +68,10 @@ export function layoutBox(
   const nameW = Math.max(measure(name, NAME_FONT), label ? measure(label, PIN_FONT) : 0);
 
   const needed = maxIn + maxOut + nameW + PAD_PX * 4;
-  const w = Math.max(MIN_W, Math.ceil(needed / GRID));
+  // The viewport sits between the pin labels, so it adds to their width
+  // rather than competing with it.
+  const withView = viewport ? maxIn + maxOut + viewport.w * GRID + PAD_PX * 4 : 0;
+  const w = Math.max(MIN_W, Math.ceil(Math.max(needed, withView) / GRID));
 
   const pins: PinLayout[] = [];
   sig.inputs.forEach((pin, i) => pins.push({ pin, side: 'in', index: i, x: 0, y: i + 1 }));
