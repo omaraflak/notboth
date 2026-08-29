@@ -2411,11 +2411,12 @@ JUMP_TABLE = {
       <div class="asm-panes">
         <div class="asm-pane">
           <span class="asm-label">Assembly</span>
-          <textarea class="asm-in" spellcheck="false" rows="27">@i
+          <textarea class="asm-in" spellcheck="false" rows="29">// RAM[i]=0
+@i
 M=0
 
 (LOOP)
-// RAM[i] = i
+// RAM[i]=i
 @i
 D=M
 A=M
@@ -2425,12 +2426,13 @@ M=D
 @i
 M=M+1
 
-// if (i&lt;10) goto LOOP
+// D=10-i
 @10
 D=A
 @i
 D=D-M
 
+// if (D&gt;0) goto LOOP
 @LOOP
 D;JGT
 
