@@ -44,14 +44,14 @@ export function asIdentifier(name: string, fallback = 'x'): string {
 
 export function defaultProps(kind: PrimitiveKind): InstanceProps {
   switch (kind) {
-    case 'NAND':   return {};
-    case 'CLOCK':  return { period: 16 };
-    case 'CONST':  return { width: 1, value: 0 };
-    case 'IN':     return { name: 'in', width: 1, value: 0, format: 'hex' };
-    case 'OUT':    return { name: 'out', width: 1, format: 'hex' };
-    case 'PROBE':  return { name: 'probe', width: 1, format: 'hex' };
-    case 'ROM':    return { addrWidth: 8, dataWidth: 16, contents: [] };
-    case 'RAM':    return { addrWidth: 8, dataWidth: 16, contents: [] };
+    case 'NAND': return {};
+    case 'CLOCK': return { period: 16 };
+    case 'CONST': return { width: 1, value: 0 };
+    case 'IN': return { name: 'in', width: 1, value: 0, format: 'hex' };
+    case 'OUT': return { name: 'out', width: 1, format: 'hex' };
+    case 'PROBE': return { name: 'probe', width: 1, format: 'hex' };
+    case 'ROM': return { addrWidth: 8, dataWidth: 16, contents: [] };
+    case 'RAM': return { addrWidth: 8, dataWidth: 16, contents: [] };
     case 'SCREEN': return { pxWidth: 128, pxHeight: 96 };
   }
 }
@@ -61,7 +61,7 @@ export function defaultProps(kind: PrimitiveKind): InstanceProps {
  *
  * One 16-bit word per pixel, so the address a program writes to *is* the
  * pixel: `addr = y * pxWidth + x`. Nothing packs, nothing is masked, and the
- * whole colour fits in the 15 bits an A-instruction can carry.
+ * whole colour fits in the 15 bits.
  * ------------------------------------------------------------------ */
 
 export function screenSize(props: InstanceProps): { w: number; h: number } {
@@ -191,14 +191,14 @@ export function primName(kind: PrimitiveKind): string {
 export function primLabel(inst: Instance): string {
   const kind = primKind(inst.def);
   switch (kind) {
-    case 'NAND':   return 'Nand';
-    case 'CLOCK':  return `Clk/${inst.props.period ?? 16}`;
-    case 'CONST':  return `${inst.props.value ?? 0}`;
-    case 'IN':     return inst.props.name || 'in';
-    case 'OUT':    return inst.props.name || 'out';
-    case 'PROBE':  return inst.props.name || 'probe';
-    case 'ROM':    return 'ROM';
-    case 'RAM':    return 'RAM';
+    case 'NAND': return 'Nand';
+    case 'CLOCK': return `Clk/${inst.props.period ?? 16}`;
+    case 'CONST': return `${inst.props.value ?? 0}`;
+    case 'IN': return inst.props.name || 'in';
+    case 'OUT': return inst.props.name || 'out';
+    case 'PROBE': return inst.props.name || 'probe';
+    case 'ROM': return 'ROM';
+    case 'RAM': return 'RAM';
     case 'SCREEN': return 'Screen';
   }
 }

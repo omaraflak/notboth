@@ -2,6 +2,7 @@ __pycache__
 node_modules
 dist
 .DS_Store
+python/
 
 # Local tooling, not part of the project
 .claude
