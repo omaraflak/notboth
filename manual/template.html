@@ -759,6 +759,145 @@
       color: var(--ink);
     }
 
+    /* The assembler, live. Two panes side by side on a wide screen and
+       stacked on a narrow one, sharing the listing's monospace so what you
+       type and what comes out read as the same kind of thing. */
+    .asm {
+      margin: 1.4rem 0;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .asm-panes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .asm-pane {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .asm-pane + .asm-pane {
+      border-left: 1px solid var(--rule);
+    }
+
+    .asm-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--rule-soft);
+      font-family: var(--sans);
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+
+    .asm-count {
+      text-transform: none;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .asm-in,
+    .asm-out {
+      /* Both fill their pane, so the two sides stay the same height however
+         long the program is. */
+      flex: 1;
+      margin: 0;
+      padding: 0.7rem 0.75rem;
+      min-height: 12rem;
+      border: 0;
+      background: none;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--ink-2);
+      white-space: pre;
+      overflow: auto;
+      resize: vertical;
+    }
+
+    .asm-in:focus {
+      outline: 0;
+      background: var(--tint);
+    }
+
+    .asm-out {
+      resize: none;
+      color: var(--ink);
+    }
+
+    .asm-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-top: 1px solid var(--rule);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+    }
+
+    .asm-fmts {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .asm-fmt {
+      padding: 0.2rem 0.6rem;
+      border: 0;
+      background: none;
+      cursor: pointer;
+      font: inherit;
+      color: var(--ink-3);
+    }
+
+    .asm-fmt + .asm-fmt {
+      border-left: 1px solid var(--rule);
+    }
+
+    .asm-fmt.is-on {
+      background: var(--tint);
+      color: var(--spot);
+    }
+
+    .asm-msg {
+      flex: 1;
+      margin: 0;
+      color: var(--ink-3);
+    }
+
+    .asm-msg.is-bad {
+      color: var(--spot-deep);
+    }
+
+    .asm-copy {
+      padding: 0.25rem 0.7rem;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: none;
+      cursor: pointer;
+      font: inherit;
+      color: var(--ink-2);
+    }
+
+    .asm-copy:hover {
+      border-color: var(--spot);
+      color: var(--spot);
+    }
+
+    @media (max-width: 52rem) {
+      .asm-panes { grid-template-columns: 1fr; }
+      .asm-pane + .asm-pane { border-left: 0; border-top: 1px solid var(--rule); }
+    }
+
     .watch {
       max-width: var(--measure);
       margin: 1.3rem 0 0;
@@ -1073,6 +1212,135 @@
       });
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sync);
       sync();
+    })();
+  </script>
+
+  <script>
+    /* The same assembler as the Python listing above, line for line: the same
+       three tables, the same two passes, the same symbol allocation from 16.
+       If the two ever disagree, this one is wrong. */
+    (function () {
+      var boxes = document.querySelectorAll('.asm');
+      if (!boxes.length) return;
+
+      var COMP = {
+        '0': '0101010', '1': '0111111', '-1': '0111010',
+        'D': '0001100', 'A': '0110000', '!D': '0001101', '!A': '0110001',
+        '-D': '0001111', '-A': '0110011', 'D+1': '0011111', 'A+1': '0110111',
+        'D-1': '0001110', 'A-1': '0110010', 'D+A': '0000010', 'D-A': '0010011',
+        'A-D': '0000111', 'D&A': '0000000', 'D|A': '0010101',
+        'M': '1110000', '!M': '1110001', '-M': '1110011', 'M+1': '1110111',
+        'M-1': '1110010', 'D+M': '1000010', 'D-M': '1010011', 'M-D': '1000111',
+        'D&M': '1000000', 'D|M': '1010101'
+      };
+      var DEST = { '': '000', 'M': '001', 'D': '010', 'MD': '011', 'A': '100', 'AM': '101', 'AD': '110', 'AMD': '111' };
+      var JUMP = { '': '000', 'JGT': '001', 'JEQ': '010', 'JGE': '011', 'JLT': '100', 'JNE': '101', 'JLE': '110', 'JMP': '111' };
+
+      function fail(line, message) {
+        var e = new Error(message);
+        e.line = line;
+        throw e;
+      }
+
+      function assembleLine(line, at) {
+        if (line.charAt(0) === '@') {
+          var val = Number(line.slice(1).trim());
+          if (!Number.isInteger(val)) fail(at, 'not a number: ' + line);
+          if (val < 0 || val > 0x7FFF) fail(at, 'A-instruction out of range (0-32767): ' + val);
+          return val;
+        }
+        var dest = '', jump = '', rest = line;
+        var eq = rest.indexOf('=');
+        if (eq >= 0) { dest = rest.slice(0, eq).trim(); rest = rest.slice(eq + 1); }
+        var sc = rest.indexOf(';');
+        if (sc >= 0) { jump = rest.slice(sc + 1).trim().toUpperCase(); rest = rest.slice(0, sc); }
+        var comp = rest.trim();
+        if (!(comp in COMP)) fail(at, 'unknown computation: ' + (comp || '(nothing)'));
+        if (!(dest in DEST)) fail(at, 'unknown destination: ' + dest);
+        if (!(jump in JUMP)) fail(at, 'unknown jump: ' + jump);
+        return parseInt('111' + COMP[comp] + DEST[dest] + JUMP[jump], 2);
+      }
+
+      function assemble(source) {
+        var symbols = { SCREEN: 22768 };
+        for (var i = 0; i < 16; i++) symbols['R' + i] = i;
+
+        var lines = [], rom = 0;
+        source.split('\n').forEach(function (raw, index) {
+          var line = raw.split('//')[0].trim();
+          if (!line) return;
+          if (line.charAt(0) === '(' && line.charAt(line.length - 1) === ')') {
+            var label = line.slice(1, -1).trim();
+            if (!label) fail(index + 1, 'empty label');
+            symbols[label] = rom;
+          } else {
+            lines.push({ text: line, at: index + 1 });
+            rom++;
+          }
+        });
+
+        var next = 16;
+        return lines.map(function (entry) {
+          var text = entry.text;
+          if (text.charAt(0) === '@') {
+            var symbol = text.slice(1).trim();
+            if (!/^\d+$/.test(symbol)) {
+              if (!(symbol in symbols)) { symbols[symbol] = next; next++; }
+              text = '@' + symbols[symbol];
+            }
+          }
+          return assembleLine(text, entry.at);
+        });
+      }
+
+      function show(word, format) {
+        if (format === 'bin') return '0b' + word.toString(2).padStart(16, '0');
+        return '0x' + word.toString(16).toUpperCase().padStart(4, '0');
+      }
+
+      boxes.forEach(function (box) {
+        var input = box.querySelector('.asm-in');
+        var output = box.querySelector('.asm-out');
+        var count = box.querySelector('.asm-count');
+        var message = box.querySelector('.asm-msg');
+        var copy = box.querySelector('.asm-copy');
+        var format = 'hex';
+
+        function run() {
+          var words;
+          try {
+            words = assemble(input.value);
+          } catch (e) {
+            output.textContent = '';
+            count.textContent = '';
+            message.textContent = 'Line ' + e.line + ': ' + e.message;
+            message.classList.add('is-bad');
+            return;
+          }
+          output.textContent = words.map(function (w) { return show(w, format); }).join('\n');
+          count.textContent = words.length + (words.length === 1 ? ' word' : ' words');
+          message.textContent = 'Paste into the ROM: one word per line.';
+          message.classList.remove('is-bad');
+        }
+
+        input.addEventListener('input', run);
+        box.querySelectorAll('.asm-fmt').forEach(function (button) {
+          button.addEventListener('click', function () {
+            format = button.dataset.fmt;
+            box.querySelectorAll('.asm-fmt').forEach(function (b) { b.classList.toggle('is-on', b === button); });
+            run();
+          });
+        });
+        copy.addEventListener('click', function () {
+          if (!output.textContent) return;
+          navigator.clipboard.writeText(output.textContent).then(function () {
+            var was = copy.textContent;
+            copy.textContent = 'Copied';
+            setTimeout(function () { copy.textContent = was; }, 1200);
+          });
+        });
+        run();
+      });
     })();
   </script>
 </body>

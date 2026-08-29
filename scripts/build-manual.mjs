@@ -252,6 +252,38 @@ function md(text) {
 }
 
 /**
+ * The assembler, as something you can type into rather than only read.
+ *
+ * The page it lives on prints the Python source; this is the same two passes
+ * in the browser, so a reader can turn assembly into words for the ROM without
+ * leaving the manual. The fence body becomes the starting program.
+ */
+function assembler(body) {
+  const initial = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const rows = Math.max(10, body.split('\n').length + 1);
+  return `<div class="asm">
+  <div class="asm-panes">
+    <div class="asm-pane">
+      <span class="asm-label">Assembly</span>
+      <textarea class="asm-in" spellcheck="false" rows="${rows}">${initial}</textarea>
+    </div>
+    <div class="asm-pane">
+      <span class="asm-label">For the ROM <span class="asm-count"></span></span>
+      <pre class="asm-out" tabindex="0"></pre>
+    </div>
+  </div>
+  <div class="asm-bar">
+    <div class="asm-fmts">
+      <button type="button" class="asm-fmt is-on" data-fmt="hex">Hex</button>
+      <button type="button" class="asm-fmt" data-fmt="bin">Binary</button>
+    </div>
+    <p class="asm-msg" role="status"></p>
+    <button type="button" class="asm-copy">Copy</button>
+  </div>
+</div>`;
+}
+
+/**
  * Block markdown. Anything the manual needs and markdown does not have is
  * lifted out first and put back after, so marked only ever sees prose.
  */
@@ -259,8 +291,8 @@ function blocks(text) {
   const held = [];
   const keep = (html) => `<!--HOLD:${held.push(html) - 1}-->`;
   let t = text;
-  const custom = { wave, truth, bits };
-  t = t.replace(/^```(wave|truth|bits)\n([\s\S]*?)\n```$/gm,
+  const custom = { wave, truth, bits, assembler };
+  t = t.replace(/^```(wave|truth|bits|assembler)\n([\s\S]*?)\n```$/gm,
     (_, kind, body) => keep(custom[kind](body)));
   t = t.replace(/^```latex\n([\s\S]*?)\n```$/gm, (_, body) => keep(latex(body)));
   // Any other fence that names a language. A bare fence is left to marked, so
