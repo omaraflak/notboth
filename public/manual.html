@@ -2406,33 +2406,37 @@ JUMP_TABLE = {
 
     <span class="hljs-built_in">print</span>(<span class="hljs-string">f&#x27;Wrote <span class="hljs-subst">{<span class="hljs-built_in">len</span>(program)}</span> bytes to program.bin&#x27;</span>)</code></pre><h2>Try it</h2>
     <p>Type assembly on the left and the words for the ROM appear on the right. Select the ROM chip in your circuit, open the program editor in the right panel, and paste them in.</p>
-    <p>This assembly code shows the code of the while loop in section <a href="/manual.html#s407">4.07</a></p>
+    <p>This assembly code shows the code of the while loop in section <a href="/manual.html#s407">4.07</a>.</p>
     <div class="asm">
       <div class="asm-panes">
         <div class="asm-pane">
           <span class="asm-label">Assembly</span>
-          <textarea class="asm-in" spellcheck="false" rows="23">// RAM[0] = 1, then count up while it is below 10
-    @1
-    D=A
-    @0
-    M=D
-    
-    (LOOP)
-    @0
-    M=M+1
-    
-    // stop when RAM[0] reaches 10
-    @10
-    D=A
-    @0
-    D=D-M
-    
-    @LOOP
-    D;JGT
-    
-    (END)
-    @END
-    0;JMP</textarea>
+          <textarea class="asm-in" spellcheck="false" rows="27">@i
+M=0
+
+(LOOP)
+// RAM[i] = i
+@i
+D=M
+A=M
+M=D
+
+// i++
+@i
+M=M+1
+
+// if (i&lt;10) goto LOOP
+@10
+D=A
+@i
+D=D-M
+
+@LOOP
+D;JGT
+
+(END)
+@END
+0;JMP</textarea>
         </div>
         <div class="asm-pane">
           <span class="asm-label">For the ROM <span class="asm-count"></span></span>

@@ -308,16 +308,17 @@ function blocks(text) {
 
 /**
  * Indent generated markup so the page source stays readable -- but not inside
- * a <pre>, where the whitespace is the content. A listing lines its columns up
- * with spaces, and four more on every line but the first is exactly enough to
- * ruin that.
+ * a <pre> or a <textarea>, where the whitespace is the content. A listing
+ * lines its columns up with spaces, and four more on every line but the first
+ * is exactly enough to ruin that; in a textarea it is text the reader has to
+ * delete before their program will assemble.
  */
 function indent(html, pad = '    ') {
-  let inPre = false;
+  let verbatim = false;
   return html.split('\n').map((line) => {
-    const out = inPre ? line : pad + line;
-    if (/<pre[\s>]/.test(line)) inPre = true;
-    if (/<\/pre>/.test(line)) inPre = false;
+    const out = verbatim ? line : pad + line;
+    if (/<(pre|textarea)[\s>]/.test(line)) verbatim = true;
+    if (/<\/(pre|textarea)>/.test(line)) verbatim = false;
     return out;
   }).join('\n');
 }
