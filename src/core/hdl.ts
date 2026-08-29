@@ -50,7 +50,10 @@ const PROP_KEYS: Record<PrimitiveKind, string[]> = {
 const WIDTH_PROPS = new Set(['width', 'dataWidth', 'addrWidth']);
 
 function numericProp(key: string, n: number): number {
-  if (key === 'value') return n >>> 0;
+  // A value keeps its sign: a CONST of -1 is a real thing to write, and the
+  // bits it drives are its two's complement. Unsigning it here would round
+  // trip `-1` back out as 4294967295.
+  if (key === 'value') return Math.trunc(n);
   if (WIDTH_PROPS.has(key)) return clampWidth(n, n);
   return Math.max(0, Math.floor(n));
 }
@@ -415,13 +418,15 @@ function parseRef(text: string): Ref | null {
 }
 
 function parseNumber(text: string): number | null {
-  const t = text.trim().toLowerCase();
+  let t = text.trim().toLowerCase();
+  const neg = t.startsWith('-');
+  if (neg || t.startsWith('+')) t = t.slice(1);
   let n: number;
   if (t.startsWith('0x')) n = parseInt(t.slice(2), 16);
   else if (t.startsWith('0b')) n = parseInt(t.slice(2), 2);
   else if (/^\d+$/.test(t)) n = parseInt(t, 10);
   else return null;
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? (neg ? -n : n) : null;
 }
 
 /** Split on commas, which is safe because no value can contain one. */

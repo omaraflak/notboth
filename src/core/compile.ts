@@ -346,6 +346,9 @@ function registerPrimitive(
     }
     case 'CONST': {
       const width = clampWidth(inst.props.width);
+      // `>>> 0` reinterprets a negative as its 32-bit two's complement, and
+      // taking the low `width` bits of that is exactly the two's complement in
+      // `width` bits. So -1 drives every wire high whatever the width is.
       const value = (inst.props.value ?? 0) >>> 0;
       const out = nets('out');
       for (let i = 0; i < width; i++) ctx.consts.push({ net: out[i], value: (value >>> i) & 1 });

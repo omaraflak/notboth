@@ -8,7 +8,7 @@ import { asIdentifier, defSignature, movePort, signatureOf, usageCount } from '.
 import type { Instance, NumberFormat, Wire } from '../core/types';
 import type { App } from './app';
 import { button, clear, h, icon } from './dom';
-import { memoryEditor,  parseNumber } from './dialogs';
+import { memoryEditor, parseNumber } from './dialogs';
 
 const WIRE_COLORS = ['', '#e0483a', '#e08b1f', '#2f9e57', '#2f7fe0', '#8b4fd8', '#c73f8f'];
 
@@ -23,7 +23,7 @@ export class Inspector {
     private app: App,
     host: HTMLElement,
     private onExtract: () => void,
-    private onArrange: () => void = () => {},
+    private onArrange: () => void = () => { },
   ) {
     this.body = h('div', { class: 'insp-body' });
     this.foot = h('div', { class: 'insp-foot' });
@@ -227,11 +227,21 @@ export class Inspector {
         break;
       }
 
-      case 'CONST':
+      case 'CONST': {
         fields.push(...this.labelFields(inst));
         fields.push(this.widthField(inst, mutate));
-        fields.push(this.numberField('Value', inst.props.value ?? 0, (v) => mutate(() => { inst.props.value = v; })));
+        const w = clampWidth(inst.props.width);
+        // Either sign is accepted: -1 and 0xFFFF name the same 16 wires, and
+        // which one you write depends on what the number means to you.
+        const low = -(2 ** (w - 1));
+        const high = 2 ** w - 1;
+        fields.push(this.numberField('Value', inst.props.value ?? 0,
+          (v) => mutate(() => { inst.props.value = v; }), low, high));
+        fields.push(h('div', { class: 'hint' },
+          `${low} to ${high}. A negative is stored as its two's complement across `
+          + `${w} bit${w === 1 ? '' : 's'}, so -1 drives every wire high.`));
         break;
+      }
 
       case 'CLOCK': {
         fields.push(...this.labelFields(inst));
@@ -282,7 +292,7 @@ export class Inspector {
           `${px.w} x ${px.h} pixels, one 16-bit word each: ${words.toLocaleString()} words, `
           + `so ${aw} address bits. Write to \`y * ${px.w} + x\` to light pixel (x, y). `
           + 'Colour is 5-5-5 -- red in bits 14..10, green 9..5, blue 4..0, and bit 15 unused '
-          + 'so every colour fits in the 15 bits an A-instruction carries.'));
+          + 'so every colour fits in the 15 bits.'));
         break;
       }
     }
