@@ -2,7 +2,8 @@ import { formatValue } from '../core/layout';
 import { labelsFor, renameInstance } from '../core/hdl';
 import { MAX_WIDTH } from '../core/types';
 import {
-  clampWidth, isPrim, primKind, primName, screenAddrWidth, screenSize, screenWords,
+  clampWidth, fittedAddrWidth, isPrim, primKind, primName, screenAddrWidth, screenSize,
+  screenWords,
 } from '../core/primitives';
 import { asIdentifier, defSignature, movePort, signatureOf, usageCount } from '../core/project';
 import type { Instance, NumberFormat, Wire } from '../core/types';
@@ -287,10 +288,15 @@ export class Inspector {
         fields.push(this.numberField('Width', px.w, (v) => mutate(() => { inst.props.pxWidth = v; }), 1, 1024));
         fields.push(this.numberField('Height', px.h, (v) => mutate(() => { inst.props.pxHeight = v; }), 1, 1024));
         const words = screenWords(inst.props);
-        const aw = screenAddrWidth(inst.props);
+        const fitted = fittedAddrWidth(inst.props);
+        fields.push(this.numberField('Address', screenAddrWidth(inst.props),
+          (v) => mutate(() => { inst.props.addrWidth = clampWidth(v, fitted); }), 1, 20));
         fields.push(h('div', { class: 'hint' },
           `${px.w} x ${px.h} pixels, one 16-bit word each: ${words.toLocaleString()} words, `
-          + `so ${aw} address bits. Write to \`y * ${px.w} + x\` to light pixel (x, y). `
+          + `which ${fitted} address bits reach. Widen it to wire a whole address bus straight `
+          + 'in and let something upstream decide which addresses land here. The picture is '
+          + 'always the first '
+          + `${words.toLocaleString()} words. Write to \`y * ${px.w} + x\` to light pixel (x, y). `
           + 'Colour is 5-5-5 -- red in bits 14..10, green 9..5, blue 4..0, and bit 15 unused '
           + 'so every colour fits in the 15 bits.'));
         break;

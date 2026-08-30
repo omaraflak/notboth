@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Builder } from './helpers';
-import { screenAddrWidth, screenSize, screenWords } from '../src/core/primitives';
+import {
+  fittedAddrWidth, screenAddrWidth, screenSize, screenWords,
+} from '../src/core/primitives';
 
 describe('screen geometry', () => {
   it('derives its memory from its pixels', () => {
@@ -9,6 +11,52 @@ describe('screen geometry', () => {
     expect(screenAddrWidth({ pxWidth: 16, pxHeight: 16 })).toBe(8);   // 256 words exactly
     expect(screenAddrWidth({ pxWidth: 4, pxHeight: 4 })).toBe(4);
     expect(screenSize({}).w).toBe(128);
+  });
+});
+
+describe('the screen address width', () => {
+  it('fits the pixels unless it is set', () => {
+    expect(screenAddrWidth({ pxWidth: 100, pxHeight: 100 })).toBe(14);      // 10,000 words
+    expect(fittedAddrWidth({ pxWidth: 100, pxHeight: 100 })).toBe(14);
+    // set it and the screen takes that many bits, so a whole bus wires in
+    expect(screenAddrWidth({ pxWidth: 100, pxHeight: 100, addrWidth: 16 })).toBe(16);
+    expect(screenAddrWidth({ pxWidth: 16, pxHeight: 16, addrWidth: 16 })).toBe(16);
+    // the pixels are unchanged by it
+    expect(screenWords({ pxWidth: 100, pxHeight: 100, addrWidth: 16 })).toBe(10000);
+  });
+
+  it('widens the pin and the memory to match', () => {
+    const b = new Builder('Main');
+    const addr = b.prim('IN', { name: 'a', width: 16 });
+    const scr = b.prim('SCREEN', { pxWidth: 100, pxHeight: 100, addrWidth: 16 });
+    b.wire([addr, 'out'], [scr, 'addr']);          // all 16 bits, no slicing
+    const nl = b.compile();
+    expect(nl.errors).toEqual([]);
+    expect(nl.mems[0].addrWidth).toBe(16);
+    expect(nl.mems[0].addr.length).toBe(16);
+  });
+
+  it('reaches a word a 14-bit address could not', () => {
+    const b = new Builder('Main');
+    const addr = b.prim('IN', { name: 'a', width: 16 });
+    const din = b.prim('IN', { name: 'd', width: 16 });
+    const load = b.prim('IN', { name: 'l', width: 1 });
+    const clk = b.prim('IN', { name: 'c', width: 1 });
+    const scr = b.prim('SCREEN', { pxWidth: 100, pxHeight: 100, addrWidth: 16 });
+    b.wire([addr, 'out'], [scr, 'addr']);
+    b.wire([din, 'out'], [scr, 'in']);
+    b.wire([load, 'out'], [scr, 'load']);
+    b.wire([clk, 'out'], [scr, 'clk']);
+    const { sim, nl } = b.sim();
+    const idx = (n: string) => nl.inputs.findIndex((t) => t.path === n);
+    sim.setInput(idx('a'), 22768);
+    sim.setInput(idx('d'), 0x7c00);
+    sim.setInput(idx('l'), 1);
+    sim.setInput(idx('c'), 0);
+    sim.settle(2000, true);
+    sim.setInput(idx('c'), 1);
+    sim.settle(2000, true);
+    expect(sim.memWord(0, 22768)).toBe(0x7c00);
   });
 });
 

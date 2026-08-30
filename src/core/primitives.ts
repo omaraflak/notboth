@@ -75,15 +75,24 @@ export function screenWords(props: InstanceProps): number {
   return w * h;
 }
 
-/**
- * Derived, never configured: a screen whose memory disagreed with its pixels
- * would be a bug the author has to find rather than one the app can prevent.
- */
-export function screenAddrWidth(props: InstanceProps): number {
+/** The narrowest address that can reach every pixel. */
+export function fittedAddrWidth(props: InstanceProps): number {
   const words = screenWords(props);
   let bits = 1;
   while ((1 << bits) < words && bits < 20) bits++;
   return bits;
+}
+
+/**
+ * How wide the screen's address pin is. It defaults to whatever the pixels
+ * need, so a screen you drop on the grid is the right size without being told.
+ * Set it and the screen takes that many bits instead, which is how you wire a
+ * whole address bus straight into it and let something upstream decide which
+ * addresses land here.
+ */
+export function screenAddrWidth(props: InstanceProps): number {
+  if (props.addrWidth === undefined) return fittedAddrWidth(props);
+  return clampWidth(props.addrWidth, fittedAddrWidth(props));
 }
 
 /**

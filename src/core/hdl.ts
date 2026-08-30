@@ -38,7 +38,7 @@ const PROP_KEYS: Record<PrimitiveKind, string[]> = {
   PROBE: ['width', 'format'],
   ROM: ['addrWidth', 'dataWidth'],
   RAM: ['addrWidth', 'dataWidth'],
-  SCREEN: ['pxWidth', 'pxHeight'],
+  SCREEN: ['pxWidth', 'pxHeight', 'addrWidth'],
 };
 
 /**
