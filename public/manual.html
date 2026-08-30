@@ -12,8 +12,8 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
   <noscript>
     <style>
-      .fold.is-folded > pre.code { max-height: none; overflow-x: auto; }
-      .fold-toggle { display: none; }
+      .fold .fold-full { display: block; }
+      .fold .fold-peek, .fold-toggle { display: none; }
     </style>
   </noscript>
 
@@ -676,39 +676,43 @@
       margin: 1.2rem 0;
     }
 
-    .fold > pre.code {
+    .fold pre.code {
       margin: 0;
+      /* Room for the button in both states, so opening one does not shift the
+         code sideways. */
       padding-right: 6rem;
     }
 
-    .fold.is-folded > pre.code {
-      /* The padding above, then exactly one line box. Any more and the tops
-         of the second line show through under the first. `em` here is the
-         pre's own font size, so this follows the listing rather than a
-         number copied from it. */
-      max-height: calc(1.6em + 0.75rem);
-      overflow: hidden;
+    .fold.is-folded .fold-full,
+    .fold:not(.is-folded) .fold-peek {
+      display: none;
+    }
+
+    /* The first line of a folded listing reads as a label for it, not as code
+       you are meant to follow, so it sits a shade back from full ink. */
+    .fold-peek code {
+      color: var(--ink-3);
     }
 
     .fold-toggle {
       position: absolute;
-      top: 0.4rem;
-      right: 0.4rem;
+      top: 0.55rem;
+      right: 0.55rem;
       z-index: 1;
-      padding: 0.15rem 0.5rem;
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      background: var(--surface);
+      padding: 0.08rem 0.4rem;
+      border: 0;
+      border-radius: 2px;
+      background: var(--tint);
       cursor: pointer;
       font-family: var(--sans);
-      font-size: 0.66rem;
-      letter-spacing: 0.04em;
-      color: var(--ink-3);
+      font-size: 0.62rem;
+      letter-spacing: 0.03em;
+      color: var(--spot-deep);
     }
 
     .fold-toggle:hover {
-      border-color: var(--spot);
-      color: var(--spot);
+      background: var(--spot);
+      color: var(--surface);
     }
 
     pre code {
@@ -2308,181 +2312,7 @@ D;JGT
 M=5
 </code></pre>
     <p>So here, <code>i</code> might take for example the address <code>17</code> for the rest of the execution; and you just refer to it as <code>i</code>, instead of <code>17</code>.</p>
-    <p>--</p>
-    <p>Here&#39;s a python implementation that will take assembly code and produce the corresponding binary code for our machine:</p>
-    <div class="fold is-folded"><button type="button" class="fold-toggle" aria-expanded="false">173 lines</button><pre class="code"><code class="lang-python"><span class="hljs-comment"># Assembler implemented in Python.</span>
-<span class="hljs-keyword">import</span> os
-<span class="hljs-keyword">import</span> sys
-
-COMP_TABLE = {
-    <span class="hljs-comment"># a=0 (Register A)</span>
-    <span class="hljs-string">&quot;0&quot;</span>:   <span class="hljs-string">&quot;0101010&quot;</span>,
-    <span class="hljs-string">&quot;1&quot;</span>:   <span class="hljs-string">&quot;0111111&quot;</span>,
-    <span class="hljs-string">&quot;-1&quot;</span>:  <span class="hljs-string">&quot;0111010&quot;</span>,
-    <span class="hljs-string">&quot;D&quot;</span>:   <span class="hljs-string">&quot;0001100&quot;</span>,
-    <span class="hljs-string">&quot;A&quot;</span>:   <span class="hljs-string">&quot;0110000&quot;</span>,
-    <span class="hljs-string">&quot;!D&quot;</span>:  <span class="hljs-string">&quot;0001101&quot;</span>,
-    <span class="hljs-string">&quot;!A&quot;</span>:  <span class="hljs-string">&quot;0110001&quot;</span>,
-    <span class="hljs-string">&quot;-D&quot;</span>:  <span class="hljs-string">&quot;0001111&quot;</span>,
-    <span class="hljs-string">&quot;-A&quot;</span>:  <span class="hljs-string">&quot;0110011&quot;</span>,
-    <span class="hljs-string">&quot;D+1&quot;</span>: <span class="hljs-string">&quot;0011111&quot;</span>,
-    <span class="hljs-string">&quot;A+1&quot;</span>: <span class="hljs-string">&quot;0110111&quot;</span>,
-    <span class="hljs-string">&quot;D-1&quot;</span>: <span class="hljs-string">&quot;0001110&quot;</span>,
-    <span class="hljs-string">&quot;A-1&quot;</span>: <span class="hljs-string">&quot;0110010&quot;</span>,
-    <span class="hljs-string">&quot;D+A&quot;</span>: <span class="hljs-string">&quot;0000010&quot;</span>,
-    <span class="hljs-string">&quot;D-A&quot;</span>: <span class="hljs-string">&quot;0010011&quot;</span>,
-    <span class="hljs-string">&quot;A-D&quot;</span>: <span class="hljs-string">&quot;0000111&quot;</span>,
-    <span class="hljs-string">&quot;D&amp;A&quot;</span>: <span class="hljs-string">&quot;0000000&quot;</span>,
-    <span class="hljs-string">&quot;D|A&quot;</span>: <span class="hljs-string">&quot;0010101&quot;</span>,
-    <span class="hljs-comment"># a=1 (Memory M[A])</span>
-    <span class="hljs-string">&quot;M&quot;</span>:   <span class="hljs-string">&quot;1110000&quot;</span>,
-    <span class="hljs-string">&quot;!M&quot;</span>:  <span class="hljs-string">&quot;1110001&quot;</span>,
-    <span class="hljs-string">&quot;-M&quot;</span>:  <span class="hljs-string">&quot;1110011&quot;</span>,
-    <span class="hljs-string">&quot;M+1&quot;</span>: <span class="hljs-string">&quot;1110111&quot;</span>,
-    <span class="hljs-string">&quot;M-1&quot;</span>: <span class="hljs-string">&quot;1110010&quot;</span>,
-    <span class="hljs-string">&quot;D+M&quot;</span>: <span class="hljs-string">&quot;1000010&quot;</span>,
-    <span class="hljs-string">&quot;D-M&quot;</span>: <span class="hljs-string">&quot;1010011&quot;</span>,
-    <span class="hljs-string">&quot;M-D&quot;</span>: <span class="hljs-string">&quot;1000111&quot;</span>,
-    <span class="hljs-string">&quot;D&amp;M&quot;</span>: <span class="hljs-string">&quot;1000000&quot;</span>,
-    <span class="hljs-string">&quot;D|M&quot;</span>: <span class="hljs-string">&quot;1010101&quot;</span>,
-}
-
-DEST_TABLE = {
-    <span class="hljs-literal">None</span>:  <span class="hljs-string">&quot;000&quot;</span>,
-    <span class="hljs-string">&quot;&quot;</span>:    <span class="hljs-string">&quot;000&quot;</span>,
-    <span class="hljs-string">&quot;M&quot;</span>:   <span class="hljs-string">&quot;001&quot;</span>,
-    <span class="hljs-string">&quot;D&quot;</span>:   <span class="hljs-string">&quot;010&quot;</span>,
-    <span class="hljs-string">&quot;DM&quot;</span>:  <span class="hljs-string">&quot;011&quot;</span>,
-    <span class="hljs-string">&quot;A&quot;</span>:   <span class="hljs-string">&quot;100&quot;</span>,
-    <span class="hljs-string">&quot;AM&quot;</span>:  <span class="hljs-string">&quot;101&quot;</span>,
-    <span class="hljs-string">&quot;AD&quot;</span>:  <span class="hljs-string">&quot;110&quot;</span>,
-    <span class="hljs-string">&quot;ADM&quot;</span>: <span class="hljs-string">&quot;111&quot;</span>,
-}
-
-JUMP_TABLE = {
-    <span class="hljs-literal">None</span>:  <span class="hljs-string">&quot;000&quot;</span>,
-    <span class="hljs-string">&quot;&quot;</span>:    <span class="hljs-string">&quot;000&quot;</span>,
-    <span class="hljs-string">&quot;JGT&quot;</span>: <span class="hljs-string">&quot;001&quot;</span>,
-    <span class="hljs-string">&quot;JEQ&quot;</span>: <span class="hljs-string">&quot;010&quot;</span>,
-    <span class="hljs-string">&quot;JGE&quot;</span>: <span class="hljs-string">&quot;011&quot;</span>,
-    <span class="hljs-string">&quot;JLT&quot;</span>: <span class="hljs-string">&quot;100&quot;</span>,
-    <span class="hljs-string">&quot;JNE&quot;</span>: <span class="hljs-string">&quot;101&quot;</span>,
-    <span class="hljs-string">&quot;JLE&quot;</span>: <span class="hljs-string">&quot;110&quot;</span>,
-    <span class="hljs-string">&quot;JMP&quot;</span>: <span class="hljs-string">&quot;111&quot;</span>,
-}
-
-
-<span class="hljs-keyword">def</span> <span class="hljs-title function_">assemble_line</span>(<span class="hljs-params">line: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">bytes</span>:
-    <span class="hljs-comment"># Strip comments and surrounding whitespace</span>
-    line = line.split(<span class="hljs-string">&quot;//&quot;</span>)[<span class="hljs-number">0</span>].strip()
-    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> line:
-        <span class="hljs-keyword">return</span> <span class="hljs-string">b&quot;&quot;</span>
-
-    <span class="hljs-comment"># A-instruction: @value</span>
-    <span class="hljs-keyword">if</span> line.startswith(<span class="hljs-string">&quot;@&quot;</span>):
-        val_str = line[<span class="hljs-number">1</span>:].strip()
-        val = <span class="hljs-built_in">int</span>(val_str)
-        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> (<span class="hljs-number">0</span> &lt;= val &lt;= <span class="hljs-number">0x7FFF</span>):
-            <span class="hljs-keyword">raise</span> ValueError(
-                <span class="hljs-string">f&quot;A-instruction value out of range (0-32767): <span class="hljs-subst">{val}</span>&quot;</span>)
-        <span class="hljs-keyword">return</span> val.to_bytes(<span class="hljs-number">2</span>, byteorder=<span class="hljs-string">&quot;big&quot;</span>)
-
-    <span class="hljs-comment"># C-instruction: [dest=]comp[;jump]</span>
-    dest, comp, jump = <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;&quot;</span>
-    rest = line
-
-    <span class="hljs-keyword">if</span> <span class="hljs-string">&quot;=&quot;</span> <span class="hljs-keyword">in</span> rest:
-        dest, rest = rest.split(<span class="hljs-string">&quot;=&quot;</span>, <span class="hljs-number">1</span>)
-        dest = dest.strip()
-
-    <span class="hljs-keyword">if</span> <span class="hljs-string">&quot;;&quot;</span> <span class="hljs-keyword">in</span> rest:
-        comp, jump = rest.split(<span class="hljs-string">&quot;;&quot;</span>, <span class="hljs-number">1</span>)
-        comp = comp.strip()
-        jump = jump.strip().upper()
-    <span class="hljs-keyword">else</span>:
-        comp = rest.strip()
-
-    <span class="hljs-keyword">if</span> comp <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> COMP_TABLE:
-        <span class="hljs-keyword">raise</span> ValueError(
-            <span class="hljs-string">f&quot;Unknown computation in C-instruction: &#x27;<span class="hljs-subst">{comp}</span>&#x27; from &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
-    <span class="hljs-keyword">if</span> dest <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> DEST_TABLE:
-        <span class="hljs-keyword">raise</span> ValueError(
-            <span class="hljs-string">f&quot;Unknown dest in C-instruction: &#x27;<span class="hljs-subst">{dest}</span>&#x27; from &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
-    <span class="hljs-keyword">if</span> jump <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> JUMP_TABLE:
-        <span class="hljs-keyword">raise</span> ValueError(
-            <span class="hljs-string">f&quot;Unknown jump in C-instruction: &#x27;<span class="hljs-subst">{jump}</span>&#x27; from &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
-
-    comp_bits = COMP_TABLE[comp]
-    dest_bits = DEST_TABLE[dest]
-    jump_bits = JUMP_TABLE[jump]
-
-    bit_string = <span class="hljs-string">f&quot;111<span class="hljs-subst">{comp_bits}</span><span class="hljs-subst">{dest_bits}</span><span class="hljs-subst">{jump_bits}</span>&quot;</span>
-    <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(bit_string, <span class="hljs-number">2</span>).to_bytes(<span class="hljs-number">2</span>, byteorder=<span class="hljs-string">&quot;big&quot;</span>)
-
-
-<span class="hljs-keyword">def</span> <span class="hljs-title function_">assemble</span>(<span class="hljs-params">code: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">list</span>[<span class="hljs-built_in">bytes</span>]:
-    <span class="hljs-string">&quot;&quot;&quot;
-    Two-pass assembler supporting labels (LABEL) and variables (@var).
-    &quot;&quot;&quot;</span>
-    symbol_table = {
-        **{<span class="hljs-string">f&quot;R<span class="hljs-subst">{i}</span>&quot;</span>: i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">16</span>)},
-        <span class="hljs-string">&quot;SCREEN&quot;</span>: <span class="hljs-number">22768</span>
-    }
-
-    <span class="hljs-comment"># First pass: clean comments and extract label definitions (LABEL)</span>
-    lines: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>] = []
-    rom_address = <span class="hljs-number">0</span>
-
-    <span class="hljs-keyword">for</span> raw_line <span class="hljs-keyword">in</span> code.splitlines():
-        line = raw_line.split(<span class="hljs-string">&quot;//&quot;</span>)[<span class="hljs-number">0</span>].strip()
-        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> line:
-            <span class="hljs-keyword">continue</span>
-
-        <span class="hljs-keyword">if</span> line.startswith(<span class="hljs-string">&quot;(&quot;</span>) <span class="hljs-keyword">and</span> line.endswith(<span class="hljs-string">&quot;)&quot;</span>):
-            label = line[<span class="hljs-number">1</span>:-<span class="hljs-number">1</span>].strip()
-            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> label:
-                <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">f&quot;Empty label declaration: &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
-            symbol_table[label] = rom_address
-        <span class="hljs-keyword">else</span>:
-            lines.append(line)
-            rom_address += <span class="hljs-number">1</span>
-
-    <span class="hljs-comment"># Second pass: resolve variables (@symbol) and generate binary instructions</span>
-    next_var_address = <span class="hljs-number">16</span>
-    instructions: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">bytes</span>] = []
-
-    <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> lines:
-        <span class="hljs-keyword">if</span> line.startswith(<span class="hljs-string">&quot;@&quot;</span>):
-            symbol = line[<span class="hljs-number">1</span>:].strip()
-            <span class="hljs-keyword">if</span> symbol.isdigit():
-                val = <span class="hljs-built_in">int</span>(symbol)
-            <span class="hljs-keyword">else</span>:
-                <span class="hljs-keyword">if</span> symbol <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> symbol_table:
-                    symbol_table[symbol] = next_var_address
-                    next_var_address += <span class="hljs-number">1</span>
-                val = symbol_table[symbol]
-            line = <span class="hljs-string">f&quot;@<span class="hljs-subst">{val}</span>&quot;</span>
-
-        ins = assemble_line(line)
-        <span class="hljs-keyword">if</span> ins:
-            instructions.append(ins)
-
-    <span class="hljs-keyword">return</span> instructions
-
-
-<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:
-    filename, output = sys.argv[<span class="hljs-number">1</span>:]
-
-    <span class="hljs-keyword">if</span> os.path.exists(filename):
-        <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(filename, <span class="hljs-string">&quot;r&quot;</span>) <span class="hljs-keyword">as</span> f:
-            source = f.read()
-
-    program = assemble(source)
-    string = <span class="hljs-string">&quot;\n&quot;</span>.join([<span class="hljs-string">&quot;0x&quot;</span> + ins.<span class="hljs-built_in">hex</span>() <span class="hljs-keyword">for</span> ins <span class="hljs-keyword">in</span> program])
-    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(output, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> out:
-        out.write(string)
-
-    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&#x27;Wrote <span class="hljs-subst">{<span class="hljs-built_in">len</span>(program)}</span> bytes to program.bin&#x27;</span>)</code></pre></div><h2>Try it</h2>
+    <h2>Try it</h2>
     <p>Type assembly on the left and the words for the ROM appear on the right. Select the ROM chip in your circuit, open the program editor in the right panel, and paste them in.</p>
     <p>This assembly code shows the code of the while loop in section <a href="/manual.html#s407">4.07</a>.</p>
     <div class="asm">
@@ -2531,7 +2361,181 @@ D;JGT
         <p class="asm-msg" role="status"></p>
         <button type="button" class="asm-copy">Copy</button>
       </div>
-    </div>
+    </div><h2>Assembler code in Python</h2>
+    <p>Here&#39;s a python implementation that will take assembly code and produce the corresponding binary code for our machine. Try to implement yourself, and come back for the result!</p>
+    <div class="fold is-folded"><button type="button" class="fold-toggle" aria-expanded="false">173 lines</button><pre class="code fold-peek"><code class="lang-python"><span class="hljs-comment"># Assembler implemented in Python.</span></code></pre><div class="fold-full"><pre class="code"><code class="lang-python"><span class="hljs-comment"># Assembler implemented in Python.</span>
+    <span class="hljs-keyword">import</span> os
+    <span class="hljs-keyword">import</span> sys
+    
+    COMP_TABLE = {
+        <span class="hljs-comment"># a=0 (Register A)</span>
+        <span class="hljs-string">&quot;0&quot;</span>:   <span class="hljs-string">&quot;0101010&quot;</span>,
+        <span class="hljs-string">&quot;1&quot;</span>:   <span class="hljs-string">&quot;0111111&quot;</span>,
+        <span class="hljs-string">&quot;-1&quot;</span>:  <span class="hljs-string">&quot;0111010&quot;</span>,
+        <span class="hljs-string">&quot;D&quot;</span>:   <span class="hljs-string">&quot;0001100&quot;</span>,
+        <span class="hljs-string">&quot;A&quot;</span>:   <span class="hljs-string">&quot;0110000&quot;</span>,
+        <span class="hljs-string">&quot;!D&quot;</span>:  <span class="hljs-string">&quot;0001101&quot;</span>,
+        <span class="hljs-string">&quot;!A&quot;</span>:  <span class="hljs-string">&quot;0110001&quot;</span>,
+        <span class="hljs-string">&quot;-D&quot;</span>:  <span class="hljs-string">&quot;0001111&quot;</span>,
+        <span class="hljs-string">&quot;-A&quot;</span>:  <span class="hljs-string">&quot;0110011&quot;</span>,
+        <span class="hljs-string">&quot;D+1&quot;</span>: <span class="hljs-string">&quot;0011111&quot;</span>,
+        <span class="hljs-string">&quot;A+1&quot;</span>: <span class="hljs-string">&quot;0110111&quot;</span>,
+        <span class="hljs-string">&quot;D-1&quot;</span>: <span class="hljs-string">&quot;0001110&quot;</span>,
+        <span class="hljs-string">&quot;A-1&quot;</span>: <span class="hljs-string">&quot;0110010&quot;</span>,
+        <span class="hljs-string">&quot;D+A&quot;</span>: <span class="hljs-string">&quot;0000010&quot;</span>,
+        <span class="hljs-string">&quot;D-A&quot;</span>: <span class="hljs-string">&quot;0010011&quot;</span>,
+        <span class="hljs-string">&quot;A-D&quot;</span>: <span class="hljs-string">&quot;0000111&quot;</span>,
+        <span class="hljs-string">&quot;D&amp;A&quot;</span>: <span class="hljs-string">&quot;0000000&quot;</span>,
+        <span class="hljs-string">&quot;D|A&quot;</span>: <span class="hljs-string">&quot;0010101&quot;</span>,
+        <span class="hljs-comment"># a=1 (Memory M[A])</span>
+        <span class="hljs-string">&quot;M&quot;</span>:   <span class="hljs-string">&quot;1110000&quot;</span>,
+        <span class="hljs-string">&quot;!M&quot;</span>:  <span class="hljs-string">&quot;1110001&quot;</span>,
+        <span class="hljs-string">&quot;-M&quot;</span>:  <span class="hljs-string">&quot;1110011&quot;</span>,
+        <span class="hljs-string">&quot;M+1&quot;</span>: <span class="hljs-string">&quot;1110111&quot;</span>,
+        <span class="hljs-string">&quot;M-1&quot;</span>: <span class="hljs-string">&quot;1110010&quot;</span>,
+        <span class="hljs-string">&quot;D+M&quot;</span>: <span class="hljs-string">&quot;1000010&quot;</span>,
+        <span class="hljs-string">&quot;D-M&quot;</span>: <span class="hljs-string">&quot;1010011&quot;</span>,
+        <span class="hljs-string">&quot;M-D&quot;</span>: <span class="hljs-string">&quot;1000111&quot;</span>,
+        <span class="hljs-string">&quot;D&amp;M&quot;</span>: <span class="hljs-string">&quot;1000000&quot;</span>,
+        <span class="hljs-string">&quot;D|M&quot;</span>: <span class="hljs-string">&quot;1010101&quot;</span>,
+    }
+    
+    DEST_TABLE = {
+        <span class="hljs-literal">None</span>:  <span class="hljs-string">&quot;000&quot;</span>,
+        <span class="hljs-string">&quot;&quot;</span>:    <span class="hljs-string">&quot;000&quot;</span>,
+        <span class="hljs-string">&quot;M&quot;</span>:   <span class="hljs-string">&quot;001&quot;</span>,
+        <span class="hljs-string">&quot;D&quot;</span>:   <span class="hljs-string">&quot;010&quot;</span>,
+        <span class="hljs-string">&quot;DM&quot;</span>:  <span class="hljs-string">&quot;011&quot;</span>,
+        <span class="hljs-string">&quot;A&quot;</span>:   <span class="hljs-string">&quot;100&quot;</span>,
+        <span class="hljs-string">&quot;AM&quot;</span>:  <span class="hljs-string">&quot;101&quot;</span>,
+        <span class="hljs-string">&quot;AD&quot;</span>:  <span class="hljs-string">&quot;110&quot;</span>,
+        <span class="hljs-string">&quot;ADM&quot;</span>: <span class="hljs-string">&quot;111&quot;</span>,
+    }
+    
+    JUMP_TABLE = {
+        <span class="hljs-literal">None</span>:  <span class="hljs-string">&quot;000&quot;</span>,
+        <span class="hljs-string">&quot;&quot;</span>:    <span class="hljs-string">&quot;000&quot;</span>,
+        <span class="hljs-string">&quot;JGT&quot;</span>: <span class="hljs-string">&quot;001&quot;</span>,
+        <span class="hljs-string">&quot;JEQ&quot;</span>: <span class="hljs-string">&quot;010&quot;</span>,
+        <span class="hljs-string">&quot;JGE&quot;</span>: <span class="hljs-string">&quot;011&quot;</span>,
+        <span class="hljs-string">&quot;JLT&quot;</span>: <span class="hljs-string">&quot;100&quot;</span>,
+        <span class="hljs-string">&quot;JNE&quot;</span>: <span class="hljs-string">&quot;101&quot;</span>,
+        <span class="hljs-string">&quot;JLE&quot;</span>: <span class="hljs-string">&quot;110&quot;</span>,
+        <span class="hljs-string">&quot;JMP&quot;</span>: <span class="hljs-string">&quot;111&quot;</span>,
+    }
+    
+    
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">assemble_line</span>(<span class="hljs-params">line: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">bytes</span>:
+        <span class="hljs-comment"># Strip comments and surrounding whitespace</span>
+        line = line.split(<span class="hljs-string">&quot;//&quot;</span>)[<span class="hljs-number">0</span>].strip()
+        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> line:
+            <span class="hljs-keyword">return</span> <span class="hljs-string">b&quot;&quot;</span>
+    
+        <span class="hljs-comment"># A-instruction: @value</span>
+        <span class="hljs-keyword">if</span> line.startswith(<span class="hljs-string">&quot;@&quot;</span>):
+            val_str = line[<span class="hljs-number">1</span>:].strip()
+            val = <span class="hljs-built_in">int</span>(val_str)
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> (<span class="hljs-number">0</span> &lt;= val &lt;= <span class="hljs-number">0x7FFF</span>):
+                <span class="hljs-keyword">raise</span> ValueError(
+                    <span class="hljs-string">f&quot;A-instruction value out of range (0-32767): <span class="hljs-subst">{val}</span>&quot;</span>)
+            <span class="hljs-keyword">return</span> val.to_bytes(<span class="hljs-number">2</span>, byteorder=<span class="hljs-string">&quot;big&quot;</span>)
+    
+        <span class="hljs-comment"># C-instruction: [dest=]comp[;jump]</span>
+        dest, comp, jump = <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;&quot;</span>
+        rest = line
+    
+        <span class="hljs-keyword">if</span> <span class="hljs-string">&quot;=&quot;</span> <span class="hljs-keyword">in</span> rest:
+            dest, rest = rest.split(<span class="hljs-string">&quot;=&quot;</span>, <span class="hljs-number">1</span>)
+            dest = dest.strip()
+    
+        <span class="hljs-keyword">if</span> <span class="hljs-string">&quot;;&quot;</span> <span class="hljs-keyword">in</span> rest:
+            comp, jump = rest.split(<span class="hljs-string">&quot;;&quot;</span>, <span class="hljs-number">1</span>)
+            comp = comp.strip()
+            jump = jump.strip().upper()
+        <span class="hljs-keyword">else</span>:
+            comp = rest.strip()
+    
+        <span class="hljs-keyword">if</span> comp <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> COMP_TABLE:
+            <span class="hljs-keyword">raise</span> ValueError(
+                <span class="hljs-string">f&quot;Unknown computation in C-instruction: &#x27;<span class="hljs-subst">{comp}</span>&#x27; from &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
+        <span class="hljs-keyword">if</span> dest <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> DEST_TABLE:
+            <span class="hljs-keyword">raise</span> ValueError(
+                <span class="hljs-string">f&quot;Unknown dest in C-instruction: &#x27;<span class="hljs-subst">{dest}</span>&#x27; from &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
+        <span class="hljs-keyword">if</span> jump <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> JUMP_TABLE:
+            <span class="hljs-keyword">raise</span> ValueError(
+                <span class="hljs-string">f&quot;Unknown jump in C-instruction: &#x27;<span class="hljs-subst">{jump}</span>&#x27; from &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
+    
+        comp_bits = COMP_TABLE[comp]
+        dest_bits = DEST_TABLE[dest]
+        jump_bits = JUMP_TABLE[jump]
+    
+        bit_string = <span class="hljs-string">f&quot;111<span class="hljs-subst">{comp_bits}</span><span class="hljs-subst">{dest_bits}</span><span class="hljs-subst">{jump_bits}</span>&quot;</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>(bit_string, <span class="hljs-number">2</span>).to_bytes(<span class="hljs-number">2</span>, byteorder=<span class="hljs-string">&quot;big&quot;</span>)
+    
+    
+    <span class="hljs-keyword">def</span> <span class="hljs-title function_">assemble</span>(<span class="hljs-params">code: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">list</span>[<span class="hljs-built_in">bytes</span>]:
+        <span class="hljs-string">&quot;&quot;&quot;
+        Two-pass assembler supporting labels (LABEL) and variables (@var).
+        &quot;&quot;&quot;</span>
+        symbol_table = {
+            **{<span class="hljs-string">f&quot;R<span class="hljs-subst">{i}</span>&quot;</span>: i <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">16</span>)},
+            <span class="hljs-string">&quot;SCREEN&quot;</span>: <span class="hljs-number">22768</span>
+        }
+    
+        <span class="hljs-comment"># First pass: clean comments and extract label definitions (LABEL)</span>
+        lines: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>] = []
+        rom_address = <span class="hljs-number">0</span>
+    
+        <span class="hljs-keyword">for</span> raw_line <span class="hljs-keyword">in</span> code.splitlines():
+            line = raw_line.split(<span class="hljs-string">&quot;//&quot;</span>)[<span class="hljs-number">0</span>].strip()
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> line:
+                <span class="hljs-keyword">continue</span>
+    
+            <span class="hljs-keyword">if</span> line.startswith(<span class="hljs-string">&quot;(&quot;</span>) <span class="hljs-keyword">and</span> line.endswith(<span class="hljs-string">&quot;)&quot;</span>):
+                label = line[<span class="hljs-number">1</span>:-<span class="hljs-number">1</span>].strip()
+                <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> label:
+                    <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">f&quot;Empty label declaration: &#x27;<span class="hljs-subst">{line}</span>&#x27;&quot;</span>)
+                symbol_table[label] = rom_address
+            <span class="hljs-keyword">else</span>:
+                lines.append(line)
+                rom_address += <span class="hljs-number">1</span>
+    
+        <span class="hljs-comment"># Second pass: resolve variables (@symbol) and generate binary instructions</span>
+        next_var_address = <span class="hljs-number">16</span>
+        instructions: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">bytes</span>] = []
+    
+        <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> lines:
+            <span class="hljs-keyword">if</span> line.startswith(<span class="hljs-string">&quot;@&quot;</span>):
+                symbol = line[<span class="hljs-number">1</span>:].strip()
+                <span class="hljs-keyword">if</span> symbol.isdigit():
+                    val = <span class="hljs-built_in">int</span>(symbol)
+                <span class="hljs-keyword">else</span>:
+                    <span class="hljs-keyword">if</span> symbol <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> symbol_table:
+                        symbol_table[symbol] = next_var_address
+                        next_var_address += <span class="hljs-number">1</span>
+                    val = symbol_table[symbol]
+                line = <span class="hljs-string">f&quot;@<span class="hljs-subst">{val}</span>&quot;</span>
+    
+            ins = assemble_line(line)
+            <span class="hljs-keyword">if</span> ins:
+                instructions.append(ins)
+    
+        <span class="hljs-keyword">return</span> instructions
+    
+    
+    <span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:
+        filename, output = sys.argv[<span class="hljs-number">1</span>:]
+    
+        <span class="hljs-keyword">if</span> os.path.exists(filename):
+            <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(filename, <span class="hljs-string">&quot;r&quot;</span>) <span class="hljs-keyword">as</span> f:
+                source = f.read()
+    
+        program = assemble(source)
+        string = <span class="hljs-string">&quot;\n&quot;</span>.join([<span class="hljs-string">&quot;0x&quot;</span> + ins.<span class="hljs-built_in">hex</span>() <span class="hljs-keyword">for</span> ins <span class="hljs-keyword">in</span> program])
+        <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(output, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> out:
+            out.write(string)
+    
+        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&#x27;Wrote <span class="hljs-subst">{<span class="hljs-built_in">len</span>(program)}</span> bytes to program.bin&#x27;</span>)</code></pre></div></div>
   </div>
 </article>
 

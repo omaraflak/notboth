@@ -220,14 +220,21 @@ function code(lang, body, fold = false) {
   const html = hljs.highlight(body, { language: lang, ignoreIllegals: true }).value;
   const pre = `<pre class="code"><code class="lang-${lang}">${html}</code></pre>`;
   if (!fold) return pre;
-  // Folded blocks show their first line and a button. The fold is in the
-  // markup rather than applied by script, so a long listing never flashes at
-  // full height on load; a <noscript> rule in the head undoes it for a reader
-  // whose browser would otherwise leave them with no way to open it.
-  const lines = body.split('\n').length;
+  // A folded block ships the first line as a block of its own rather than the
+  // whole listing clipped to one line's height. Clipping cannot work: any
+  // padding below the line is inside the clip, so the tops of the second line
+  // show through it, and removing the padding leaves the line sitting on the
+  // floor. Two elements, one shown at a time, and each is a normal code block.
+  const lines = body.split('\n');
+  const first = lines.find((l) => l.trim()) ?? '';
+  const peek = hljs.highlight(first, { language: lang, ignoreIllegals: true }).value;
+  // Folded in the markup, not on load, so a long listing never flashes at full
+  // height; a <noscript> rule in the head undoes it for a reader whose browser
+  // would otherwise leave them with no way to open it.
   return `<div class="fold is-folded">`
-    + `<button type="button" class="fold-toggle" aria-expanded="false">${lines} lines</button>`
-    + `${pre}</div>`;
+    + `<button type="button" class="fold-toggle" aria-expanded="false">${lines.length} lines</button>`
+    + `<pre class="code fold-peek"><code class="lang-${lang}">${peek}</code></pre>`
+    + `<div class="fold-full">${pre}</div></div>`;
 }
 
 /**
