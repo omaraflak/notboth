@@ -213,12 +213,21 @@ function truth(bodyText) {
  * the page ships no script and no highlighter. An unknown language is a build
  * error: silently emitting unhighlighted code hides a typo in the fence.
  */
-function code(lang, body) {
+function code(lang, body, fold = false) {
   if (!hljs.getLanguage(lang)) {
     throw new Error(`code: no highlighter for "${lang}"`);
   }
   const html = hljs.highlight(body, { language: lang, ignoreIllegals: true }).value;
-  return `<pre class="code"><code class="lang-${lang}">${html}</code></pre>`;
+  const pre = `<pre class="code"><code class="lang-${lang}">${html}</code></pre>`;
+  if (!fold) return pre;
+  // Folded blocks show their first line and a button. The fold is in the
+  // markup rather than applied by script, so a long listing never flashes at
+  // full height on load; a <noscript> rule in the head undoes it for a reader
+  // whose browser would otherwise leave them with no way to open it.
+  const lines = body.split('\n').length;
+  return `<div class="fold is-folded">`
+    + `<button type="button" class="fold-toggle" aria-expanded="false">${lines} lines</button>`
+    + `${pre}</div>`;
 }
 
 /**
@@ -297,8 +306,11 @@ function blocks(text) {
   t = t.replace(/^```latex\n([\s\S]*?)\n```$/gm, (_, body) => keep(latex(body)));
   // Any other fence that names a language. A bare fence is left to marked, so
   // the layouts and listings that are not code in any language stay plain.
-  t = t.replace(/^```([A-Za-z][\w+#-]*)\n([\s\S]*?)\n```$/gm,
-    (_, lang, body) => keep(code(lang, body)));
+  // A fence may add `collapse` after the language to ship folded: for a
+  // listing that is worth having on the page but too long to read through on
+  // the way past.
+  t = t.replace(/^```([A-Za-z][\w+#-]*)([^\n]*)\n([\s\S]*?)\n```$/gm,
+    (_, lang, rest, body) => keep(code(lang, body, /\bcollapse\b/.test(rest))));
   t = t.replace(/^::: watch\n([\s\S]*?)\n:::$/gm,
     (_, body) => keep(`<div class="watch"><b>Watch out</b>${md(body.replace(/\n/g, ' '))}</div>`));
   let html = marked.parse(t);

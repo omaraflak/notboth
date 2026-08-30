@@ -10,6 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+  <noscript>
+    <style>
+      .fold.is-folded > pre.code { max-height: none; overflow-x: auto; }
+      .fold-toggle { display: none; }
+    </style>
+  </noscript>
+
   <script>
     (function () {
       try {
@@ -658,6 +665,50 @@
       font-size: 0.78rem;
       line-height: 1.6;
       color: var(--ink-2);
+    }
+
+    /* A listing worth keeping on the page but not worth reading on the way
+       past: folded to its first line, with the button that opens it sitting
+       over the top right. The pre keeps room for the button in both states,
+       so opening one does not shift the code sideways. */
+    .fold {
+      position: relative;
+      margin: 1.2rem 0;
+    }
+
+    .fold > pre.code {
+      margin: 0;
+      padding-right: 6rem;
+    }
+
+    .fold.is-folded > pre.code {
+      /* The padding above, then exactly one line box. Any more and the tops
+         of the second line show through under the first. `em` here is the
+         pre's own font size, so this follows the listing rather than a
+         number copied from it. */
+      max-height: calc(1.6em + 0.75rem);
+      overflow: hidden;
+    }
+
+    .fold-toggle {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      z-index: 1;
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: var(--surface);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+      color: var(--ink-3);
+    }
+
+    .fold-toggle:hover {
+      border-color: var(--spot);
+      color: var(--spot);
     }
 
     pre code {
@@ -1340,6 +1391,20 @@
           });
         });
         run();
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      document.querySelectorAll('.fold').forEach(function (fold) {
+        var button = fold.querySelector('.fold-toggle');
+        var label = button.textContent;
+        button.addEventListener('click', function () {
+          var folded = fold.classList.toggle('is-folded');
+          button.setAttribute('aria-expanded', String(!folded));
+          button.textContent = folded ? label : 'Collapse';
+        });
       });
     })();
   </script>

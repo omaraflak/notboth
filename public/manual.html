@@ -10,6 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+  <noscript>
+    <style>
+      .fold.is-folded > pre.code { max-height: none; overflow-x: auto; }
+      .fold-toggle { display: none; }
+    </style>
+  </noscript>
+
   <script>
     (function () {
       try {
@@ -658,6 +665,50 @@
       font-size: 0.78rem;
       line-height: 1.6;
       color: var(--ink-2);
+    }
+
+    /* A listing worth keeping on the page but not worth reading on the way
+       past: folded to its first line, with the button that opens it sitting
+       over the top right. The pre keeps room for the button in both states,
+       so opening one does not shift the code sideways. */
+    .fold {
+      position: relative;
+      margin: 1.2rem 0;
+    }
+
+    .fold > pre.code {
+      margin: 0;
+      padding-right: 6rem;
+    }
+
+    .fold.is-folded > pre.code {
+      /* The padding above, then exactly one line box. Any more and the tops
+         of the second line show through under the first. `em` here is the
+         pre's own font size, so this follows the listing rather than a
+         number copied from it. */
+      max-height: calc(1.6em + 0.75rem);
+      overflow: hidden;
+    }
+
+    .fold-toggle {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      z-index: 1;
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: var(--surface);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+      color: var(--ink-3);
+    }
+
+    .fold-toggle:hover {
+      border-color: var(--spot);
+      color: var(--spot);
     }
 
     pre code {
@@ -2177,21 +2228,45 @@ while (i&lt;10) {
   <div>
     <h3>Assembly</h3>
     <div class="sig">no new chip</div>
-    <p>Right now, you can program this machine in binary. It&#39;s doable, but really tedious. So the immediate next step like a dictionnary from strings to binary, we call this <strong>Assembly</strong>.</p>
+    <p>Right now, you can program this machine in binary. It&#39;s doable, but really tedious. The immediate next step is not a fully fleched out programming language, but it&#39;s just about building strings that map to the binary (1:1), like labeling system. This is <strong>Assembly</strong>.</p>
     <p>Here are a few samples of the result we want.</p>
-    <h2>Load register &#39;A&#39; with a value of 5</h2>
-    <pre><code>@5
+    <h2>instruction[15]=0</h2>
+    <p>Remember that when the most significant bit of the instruction <code>0</code>, we load the next 15 bits into register <code>A</code>. We will use <code>@</code> to represent this instruction:</p>
+    <pre><code>@42
 </code></pre>
+    <p>This loads number <code>42</code> into register <code>A</code>.</p>
+    <h2>instruction[15]=1</h2>
+    <p>When the most significant bit of the instruction <code>1</code>, the ALU performs a computation between <code>D</code> and one of <code>A</code> or <code>M=RAM[A]</code>, then optionally saves the result into any of <code>A</code>, <code>D</code>, and <code>M</code>, then optionally jumps the PC counter to the address in <code>A</code> based on the result on the result of the computation (<code>positive</code>, <code>negative</code>, or <code>zero</code>, or any combination of those). Therefore, the full syntax will be:</p>
+    <pre><code>result=compute;jmp
+</code></pre>
+    <p>With <code>result=</code> and <code>;jmp</code> being optional, i.e. destination bits and jump bits set to <code>0</code>.</p>
+    <ul>
+    <li><code>result=</code> can be one of: <code>A=</code>, <code>D=</code>, <code>M=</code>, <code>AD=</code>, <code>AM=</code>, <code>DM=</code>, <code>ADM=</code>.</li>
+    <li><code>compute</code> can be one of the computations from <a href="manual.html#s206">2.06</a> where <code>x=D</code> and <code>y=D</code> or <code>y=M</code>.</li>
+    <li><code>jmp</code> can be of one of: <code>JGT</code>, <code>JGE</code>, <code>JLT</code>, <code>JLE</code>, <code>JEQ</code>, <code>JNE</code>, <code>JMP</code> (<code>&gt;0</code>, <code>&gt;=0</code>, <code>&lt;0</code>, <code>&lt;=0</code>, <code>==0</code>, <code>!=0</code>, <code>1</code>).</li>
+    </ul>
+    <p>Finally, we will support two additional features to make our life easier:</p>
+    <ul>
+    <li><p><em><strong>labels</strong></em>: placing a label in the middle of the code, e.g. <code>(MY_LABEL)</code>, like an anchor we can jump to. The assembler will automatically count the instructions and replace jumps to labels with the proper addresses.</p>
+    </li>
+    <li><p><em><strong>variables</strong></em>: instead of allocating memory in the RAM by numbers (addresses) we can use strings, e.g. <code>@i</code>, and the assembler will automatically assign an address of the RAM to that string and replace the variable in the code by its address. If the assembler sees another variable, e.g. <code>@j</code>, it will simply assign it to the next available address.</p>
+    </li>
+    </ul>
+    <p>Examples:</p>
     <h2>Load a value in the RAM</h2>
-    <pre><code>// D=10
+    <pre><code>// A=10
 @10
+// D=A=10
 D=A
 
-// RAM[5]=10
+// A=5
 @5
+// RAM[5]=D=10
 M=D
 </code></pre>
-    <p><code>M</code> will point to <code>RAM[A]</code>. So you need to load <code>A</code> with the value you want, in this case <code>5</code>.</p>
+    <blockquote>
+    <p><code>M</code> points to <code>RAM[A]</code>, whatever <code>A</code> is. So you need to load <code>A</code> with the address you want when using memory, in this case <code>5</code>.</p>
+    </blockquote>
     <h2>Arithmetic on registers</h2>
     <pre><code>// D=10
 @10
@@ -2205,10 +2280,13 @@ D=D+A
 </code></pre>
     <h2>Labels &amp; Jumps</h2>
     <p>A jump instruction always jumps to the address in <code>A</code>:</p>
-    <pre><code>@MY_LABEL
+    <pre><code>// A=MY_LABEL (address of MY_LABEL)
+@MY_LABEL
+
+// compute 0 (compute is not optional, the ALU always goes through a computation), then jumps unconditionnaly to A=MY_LABEL
 0;JMP
 
-// RAM[A]=A=1 &lt;-- this will be skipped (jumped over)
+// RAM[1]=1 &lt;-- this will be skipped (jumped over)
 @1
 M=A
 
@@ -2232,11 +2310,12 @@ M=5
     <p>So here, <code>i</code> might take for example the address <code>17</code> for the rest of the execution; and you just refer to it as <code>i</code>, instead of <code>17</code>.</p>
     <p>--</p>
     <p>Here&#39;s a python implementation that will take assembly code and produce the corresponding binary code for our machine:</p>
-    <pre class="code"><code class="lang-python"><span class="hljs-keyword">import</span> os
+    <div class="fold is-folded"><button type="button" class="fold-toggle" aria-expanded="false">173 lines</button><pre class="code"><code class="lang-python"><span class="hljs-comment"># Assembler implemented in Python.</span>
+<span class="hljs-keyword">import</span> os
 <span class="hljs-keyword">import</span> sys
 
 COMP_TABLE = {
-    <span class="hljs-comment"># a=0 (A-register)</span>
+    <span class="hljs-comment"># a=0 (Register A)</span>
     <span class="hljs-string">&quot;0&quot;</span>:   <span class="hljs-string">&quot;0101010&quot;</span>,
     <span class="hljs-string">&quot;1&quot;</span>:   <span class="hljs-string">&quot;0111111&quot;</span>,
     <span class="hljs-string">&quot;-1&quot;</span>:  <span class="hljs-string">&quot;0111010&quot;</span>,
@@ -2273,11 +2352,11 @@ DEST_TABLE = {
     <span class="hljs-string">&quot;&quot;</span>:    <span class="hljs-string">&quot;000&quot;</span>,
     <span class="hljs-string">&quot;M&quot;</span>:   <span class="hljs-string">&quot;001&quot;</span>,
     <span class="hljs-string">&quot;D&quot;</span>:   <span class="hljs-string">&quot;010&quot;</span>,
-    <span class="hljs-string">&quot;MD&quot;</span>:  <span class="hljs-string">&quot;011&quot;</span>,
+    <span class="hljs-string">&quot;DM&quot;</span>:  <span class="hljs-string">&quot;011&quot;</span>,
     <span class="hljs-string">&quot;A&quot;</span>:   <span class="hljs-string">&quot;100&quot;</span>,
     <span class="hljs-string">&quot;AM&quot;</span>:  <span class="hljs-string">&quot;101&quot;</span>,
     <span class="hljs-string">&quot;AD&quot;</span>:  <span class="hljs-string">&quot;110&quot;</span>,
-    <span class="hljs-string">&quot;AMD&quot;</span>: <span class="hljs-string">&quot;111&quot;</span>,
+    <span class="hljs-string">&quot;ADM&quot;</span>: <span class="hljs-string">&quot;111&quot;</span>,
 }
 
 JUMP_TABLE = {
@@ -2403,7 +2482,7 @@ JUMP_TABLE = {
     <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(output, <span class="hljs-string">&#x27;w&#x27;</span>) <span class="hljs-keyword">as</span> out:
         out.write(string)
 
-    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&#x27;Wrote <span class="hljs-subst">{<span class="hljs-built_in">len</span>(program)}</span> bytes to program.bin&#x27;</span>)</code></pre><h2>Try it</h2>
+    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&#x27;Wrote <span class="hljs-subst">{<span class="hljs-built_in">len</span>(program)}</span> bytes to program.bin&#x27;</span>)</code></pre></div><h2>Try it</h2>
     <p>Type assembly on the left and the words for the ROM appear on the right. Select the ROM chip in your circuit, open the program editor in the right panel, and paste them in.</p>
     <p>This assembly code shows the code of the while loop in section <a href="/manual.html#s407">4.07</a>.</p>
     <div class="asm">
@@ -2608,6 +2687,20 @@ D;JGT
           });
         });
         run();
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      document.querySelectorAll('.fold').forEach(function (fold) {
+        var button = fold.querySelector('.fold-toggle');
+        var label = button.textContent;
+        button.addEventListener('click', function () {
+          var folded = fold.classList.toggle('is-folded');
+          button.setAttribute('aria-expanded', String(!folded));
+          button.textContent = folded ? label : 'Collapse';
+        });
       });
     })();
   </script>
