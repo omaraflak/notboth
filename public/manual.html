@@ -1303,6 +1303,7 @@
     <div class="toc-part">
       <b><i>V</i>Software</b>
       <a href="#s501"><i>5.01</i>Assembly</a>
+      <a href="#s502"><i>5.02</i>Usual constructs</a>
     </div>
   </div>
 </nav>
@@ -2553,6 +2554,91 @@ JUMP_TABLE = {
         out.write(string)
 
     <span class="hljs-built_in">print</span>(<span class="hljs-string">f&#x27;Wrote <span class="hljs-subst">{<span class="hljs-built_in">len</span>(program)}</span> bytes to program.bin&#x27;</span>)</code></pre></div></div>
+  </div>
+</article>
+
+<article class="stage" id="s502">
+  <div class="rail"><span class="num">5.02</span><span class="deps"><b>Needs</b><a class="xref" href="#s501">5.01</a></span></div>
+  <div>
+    <h3>Usual constructs</h3>
+    <div class="sig">no new chip</div>
+    <p>We now have an assembler, this is a huge step! We could stop here and program using assembler, in fact this is what people used to do at some point in time. But how do we go from this, to a more modern programming language?</p>
+    <p>First, we need to see how to build some usual programming constructs we know of: <code>if</code>-conditions, <code>while</code>-loops, and functions.</p>
+    <h2>Conditions</h2>
+    <p>A condition is nothing else but a jump! Think about it:</p>
+    <pre><code>if (condition) {
+    // do this
+}
+</code></pre>
+    <p>This translates to evaluting the condition, and jumping <strong>over</strong> the <code>if</code> body if the condition is <code>false</code>.</p>
+    <blockquote>
+    <p>We don&#39;t need to support booleans directly, we do this with numbers, subtraction, and comparison:</p>
+    <ul>
+    <li><code>a==b</code> is <code>a-b==0</code></li>
+    <li><code>a&lt;b</code> is <code>a-b&lt;0</code></li>
+    <li><code>a&gt;b</code> is <code>a-b&gt;0</code></li>
+    <li>etc.</li>
+    </ul>
+    </blockquote>
+    <pre><code>// evaluate condition and put result in D
+// ...
+
+// jump over the body if the condition is false:
+@END
+D;JLE
+
+// if-condition body here
+
+(END)
+</code></pre>
+    <h2>Loops</h2>
+    <p>Similarily, a <code>while</code>-loop is also a jump:</p>
+    <pre><code>(LOOP)
+
+// while-loop body here
+
+// evaluate condition and result in D
+// ...
+
+// jump back to the beginning of the loop if the condition is true
+@LOOP
+D;JGE
+</code></pre>
+    <h2>Functions</h2>
+    <p>Functions are just addresses in the code where we jump to, they perform computation, optionally write a result back into some register, then jump back to the caller:</p>
+    <pre><code>// set R0 to END_CALL (return address)
+@END_CALL
+D=A
+@R0
+M=D
+
+// R1=7
+@7
+D=A
+@R1
+M=D
+
+// call MY_FUNCTION
+@MY_FUNCTION
+0;JMP
+(END_CALL)
+
+// any code here...
+
+// a function that does R2=R1+10, and jumps back to R0
+(MY_FUNCTION)
+@10
+D=A
+
+@R1
+D=M+D
+
+@R2
+M=D
+
+@R0
+0;JMP
+</code></pre>
   </div>
 </article>
 
