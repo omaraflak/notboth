@@ -2247,25 +2247,25 @@ while (i&lt;10) {
     <div class="sig">no new chip</div>
     <p>Right now, you can program this machine in binary. It&#39;s doable, but really tedious. The immediate next step is not a fully fleshed out programming language, but it&#39;s about building string instructions that map to the binary instructions (1:1), much like a labeling system. This is <strong>Assembly</strong>.</p>
     <h2>instruction[15]=0</h2>
-    <p>Remember that when the most significant bit of the instruction <code>0</code>, we load the next 15 bits into register <code>A</code>. We will use <code>@</code> to represent this instruction:</p>
+    <p>Remember that when the most significant bit of the instruction is <code>0</code>, we load the next 15 bits into register <code>A</code>. We will use <code>@</code> to represent this operation:</p>
     <pre><code>@42
 </code></pre>
     <p>This loads number <code>42</code> into register <code>A</code>.</p>
     <h2>instruction[15]=1</h2>
-    <p>When the most significant bit of the instruction <code>1</code>, the ALU performs a computation between <code>D</code> and one of <code>A</code> or <code>M=RAM[A]</code>, then optionally saves the result into any of <code>A</code>, <code>D</code>, and <code>M</code>, then optionally jumps the PC counter to the address in <code>A</code> based on the result on the result of the computation (<code>positive</code>, <code>negative</code>, or <code>zero</code>, or any combination of those). Therefore, the full syntax will be:</p>
+    <p>When the most significant bit of the instruction is <code>1</code>, the ALU performs a computation between <code>D</code> and one of <code>A</code> or <code>M=RAM[A]</code>, then optionally saves the result into any of <code>A</code>, <code>D</code>, and <code>M</code>, then optionally jumps the PC register to the address in <code>A</code> based on the result of the computation (<code>positive</code>, <code>negative</code>, or <code>zero</code>, or any combination of those). Therefore, the full syntax will be:</p>
     <pre><code>result=compute;jmp
 </code></pre>
     <p>With <code>result=</code> and <code>;jmp</code> being optional, i.e. destination bits and jump bits set to <code>0</code>.</p>
     <ul>
     <li><code>result=</code> can be one of: <code>A=</code>, <code>D=</code>, <code>M=</code>, <code>AD=</code>, <code>AM=</code>, <code>DM=</code>, <code>ADM=</code>.</li>
     <li><code>compute</code> can be one of the computations from <a href="manual.html#s206">2.06</a> where <code>x=D</code> and <code>y=D</code> or <code>y=M</code>.</li>
-    <li><code>jmp</code> can be of one of: <code>JGT</code>, <code>JGE</code>, <code>JLT</code>, <code>JLE</code>, <code>JEQ</code>, <code>JNE</code>, <code>JMP</code> (<code>&gt;0</code>, <code>&gt;=0</code>, <code>&lt;0</code>, <code>&lt;=0</code>, <code>==0</code>, <code>!=0</code>, <code>1</code>).</li>
+    <li><code>jmp</code> can be of one: <code>JGT</code>, <code>JGE</code>, <code>JLT</code>, <code>JLE</code>, <code>JEQ</code>, <code>JNE</code>, <code>JMP</code> (<code>&gt;0</code>, <code>&gt;=0</code>, <code>&lt;0</code>, <code>&lt;=0</code>, <code>==0</code>, <code>!=0</code>, <code>1</code>).</li>
     </ul>
     <p>Finally, we will support two additional features to make our life easier:</p>
     <ul>
-    <li><p><em><strong>labels</strong></em>: placing a label in the middle of the code, e.g. <code>(MY_LABEL)</code>, like an anchor we can jump to. The assembler will automatically count the instructions and replace jumps to labels with the proper addresses.</p>
-    </li>
     <li><p><em><strong>variables</strong></em>: instead of allocating memory in the RAM by numbers (addresses) we can use strings, e.g. <code>@i</code>, and the assembler will automatically assign an address of the RAM to that string and replace the variable in the code by its address. If the assembler sees another variable, e.g. <code>@j</code>, it will simply assign it to the next available address.</p>
+    </li>
+    <li><p><em><strong>labels</strong></em>: placing a label in the middle of the code, e.g. <code>(MY_LABEL)</code>, like an anchor we can jump to. The assembler will automatically count the instructions and replace jumps to labels with the proper addresses. When a label is declared, it becomes another entry in the table of variables we keep; so we can jump to a label by loading it in register <code>A</code>, i.e. <code>@MY_LABEL</code>.</p>
     </li>
     </ul>
     <p>Examples:</p>
@@ -2325,8 +2325,7 @@ M=5
 </code></pre>
     <p>So here, <code>i</code> might take for example the address <code>17</code> for the rest of the execution; and you just refer to it as <code>i</code>, instead of <code>17</code>.</p>
     <h2>Try it</h2>
-    <p>Type assembly on the left and the words for the ROM appear on the right. Select the ROM chip in your circuit, open the program editor in the right panel, and paste them in.</p>
-    <p>This assembly code shows the code of the while loop in section <a href="/manual.html#s407">4.07</a>.</p>
+    <p>Here&#39;s an embedded assembler, you can type assembly and get back the instructions to put in your ROM chip.</p>
     <div class="asm">
       <div class="asm-panes">
         <div class="asm-pane">
@@ -2374,10 +2373,13 @@ D;JGT
         <button type="button" class="asm-copy">Copy</button>
       </div>
     </div><blockquote>
+    <p>This assembly snippet shows the code of the while loop in section <a href="/manual.html#s407">4.07</a>.</p>
+    </blockquote>
+    <blockquote>
     <p>As you can see, assembly is a literal 1:1 mapping between string instruction and binary instruction (e.g. 16 on each side).</p>
     </blockquote>
     <h2>Assembler code in Python</h2>
-    <p>Here&#39;s a python implementation that will take assembly code and produce the corresponding binary code for our machine. Try to implement yourself, and come back for the result!</p>
+    <p>Here&#39;s a python implementation of that same assembler. Try to implement it yourself, and come back for the result!</p>
     <div class="fold is-folded"><button type="button" class="fold-toggle" aria-expanded="false">173 lines</button><pre class="code fold-peek"><code class="lang-python"><span class="hljs-comment"># Expand to see assembler implementation.</span></code></pre><div class="fold-full"><pre class="code"><code class="lang-python"><span class="hljs-comment"># Expand to see assembler implementation.</span>
 <span class="hljs-keyword">import</span> os
 <span class="hljs-keyword">import</span> sys
