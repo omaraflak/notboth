@@ -2228,7 +2228,7 @@ while (i&lt;10) {
     <li>...</li>
     <li><code>32767</code> -&gt; pixel <code>9999</code></li>
     </ul>
-    <p>However, this is not yet set up. So you&#39;d have to Mux/DMux the address coming out of the CPU and route it to either the RAM if it&#39;s below <code>22768</code> or to the screen otherwise.</p>
+    <p>However, this is not yet set up. So you&#39;d have to Mux/DMux the address coming out of the CPU and route it to either the RAM if it&#39;s below <code>22768</code> or to the screen otherwise. One such signature could be <code>ScreenRouter(load, address[16]) -&gt; screen[16], ram[16], loadScreen, loadRam</code>.</p>
   </div>
 </article>
 
