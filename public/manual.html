@@ -2253,13 +2253,13 @@ while (i&lt;10) {
     <p>This loads number <code>42</code> into register <code>A</code>.</p>
     <h2>instruction[15]=1</h2>
     <p>When the most significant bit of the instruction is <code>1</code>, the ALU performs a computation between <code>D</code> and one of <code>A</code> or <code>M=RAM[A]</code>, then optionally saves the result into any of <code>A</code>, <code>D</code>, and <code>M</code>, then optionally jumps the PC register to the address in <code>A</code> based on the result of the computation (<code>positive</code>, <code>negative</code>, or <code>zero</code>, or any combination of those). Therefore, the full syntax will be:</p>
-    <pre><code>result=compute;jmp
+    <pre><code>destination=compute;jump
 </code></pre>
-    <p>With <code>result=</code> and <code>;jmp</code> being optional, i.e. destination bits and jump bits set to <code>0</code>.</p>
+    <p>With <code>destination=</code> and <code>;jump</code> being optional, i.e. destination bits and jump bits set to <code>0</code>.</p>
     <ul>
-    <li><code>result=</code> can be one of: <code>A=</code>, <code>D=</code>, <code>M=</code>, <code>AD=</code>, <code>AM=</code>, <code>DM=</code>, <code>ADM=</code>.</li>
+    <li><code>destination=</code> can be one of: <code>A=</code>, <code>D=</code>, <code>M=</code>, <code>AD=</code>, <code>AM=</code>, <code>DM=</code>, <code>ADM=</code>.</li>
     <li><code>compute</code> can be one of the computations from <a href="manual.html#s206">2.06</a> where <code>x=D</code> and <code>y=D</code> or <code>y=M</code>.</li>
-    <li><code>jmp</code> can be of one: <code>JGT</code>, <code>JGE</code>, <code>JLT</code>, <code>JLE</code>, <code>JEQ</code>, <code>JNE</code>, <code>JMP</code> (<code>&gt;0</code>, <code>&gt;=0</code>, <code>&lt;0</code>, <code>&lt;=0</code>, <code>==0</code>, <code>!=0</code>, <code>1</code>).</li>
+    <li><code>jump</code> can be of one: <code>JGT</code>, <code>JGE</code>, <code>JLT</code>, <code>JLE</code>, <code>JEQ</code>, <code>JNE</code>, <code>JMP</code> (<code>&gt;0</code>, <code>&gt;=0</code>, <code>&lt;0</code>, <code>&lt;=0</code>, <code>==0</code>, <code>!=0</code>, <code>1</code>).</li>
     </ul>
     <p>Finally, we will support two additional features to make our life easier:</p>
     <ul>
