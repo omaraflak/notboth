@@ -284,7 +284,7 @@ function assembler(body) {
       <textarea class="asm-in" spellcheck="false" rows="${rows}">${initial}</textarea>
     </div>
     <div class="asm-pane">
-      <span class="asm-label">For the ROM <span class="asm-count"></span></span>
+      <span class="asm-label">Binary <span class="asm-count"></span></span>
       <pre class="asm-out" tabindex="0"></pre>
     </div>
   </div>
