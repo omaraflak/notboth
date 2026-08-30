@@ -333,11 +333,15 @@ function blocks(text) {
  * delete before their program will assemble.
  */
 function indent(html, pad = '    ') {
+  // The state at the end of a line is set by the *last* tag on it, not by
+  // whichever test runs second. A line can hold a whole <pre> and then open
+  // another one, and treating those two matches as unordered indents the
+  // second one's contents.
+  const tag = /<(\/?)(?:pre|textarea)[\s>]/g;
   let verbatim = false;
   return html.split('\n').map((line) => {
     const out = verbatim ? line : pad + line;
-    if (/<(pre|textarea)[\s>]/.test(line)) verbatim = true;
-    if (/<\/(pre|textarea)>/.test(line)) verbatim = false;
+    for (const m of line.matchAll(tag)) verbatim = m[1] !== '/';
     return out;
   }).join('\n');
 }

@@ -673,6 +673,10 @@
        so opening one does not shift the code sideways. */
     .fold {
       position: relative;
+      /* The same width a <pre> takes, so the wrapper does not sit wider than
+         the block inside it and the button lands level with the code's own
+         right padding. */
+      max-width: var(--measure);
       margin: 1.2rem 0;
     }
 
@@ -696,23 +700,32 @@
 
     .fold-toggle {
       position: absolute;
-      top: 0.55rem;
-      right: 0.55rem;
+      top: 0.6rem;
+      /* Level with the code's own right padding, so it lines up with the
+         block rather than hanging off its edge. */
+      right: 0.9rem;
       z-index: 1;
-      padding: 0.08rem 0.4rem;
-      border: 0;
-      border-radius: 2px;
-      background: var(--tint);
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: var(--surface);
       cursor: pointer;
       font-family: var(--sans);
-      font-size: 0.62rem;
-      letter-spacing: 0.03em;
-      color: var(--spot-deep);
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+      color: var(--ink-3);
+    }
+
+    /* Folded, the block is one line tall, so the button belongs on its
+       middle. Open, it belongs at the top of a long listing. */
+    .fold.is-folded .fold-toggle {
+      top: 50%;
+      transform: translateY(-50%);
     }
 
     .fold-toggle:hover {
-      background: var(--spot);
-      color: var(--surface);
+      border-color: var(--spot);
+      color: var(--spot);
     }
 
     pre code {
