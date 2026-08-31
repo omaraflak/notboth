@@ -256,24 +256,39 @@ function code(lang, body, fold = false) {
   if (!hljs.getLanguage(lang)) {
     throw new Error(`code: no highlighter for "${lang}"`);
   }
-  const html = hljs.highlight(body, { language: lang, ignoreIllegals: true }).value;
+  const { title, rest } = takeTitle(body);
+  const html = hljs.highlight(rest, { language: lang, ignoreIllegals: true }).value;
   const pre = `<pre class="code"><code class="lang-${lang}">${html}</code></pre>`;
-  if (!fold) return pre;
-  // A folded block ships the first line as a block of its own rather than the
-  // whole listing clipped to one line's height. Clipping cannot work: any
-  // padding below the line is inside the clip, so the tops of the second line
-  // show through it, and removing the padding leaves the line sitting on the
-  // floor. Two elements, one shown at a time, and each is a normal code block.
-  const lines = body.split('\n');
-  const first = lines.find((l) => l.trim()) ?? '';
-  const peek = hljs.highlight(first, { language: lang, ignoreIllegals: true }).value;
-  // Folded in the markup, not on load, so a long listing never flashes at full
-  // height; a <noscript> rule in the head undoes it for a reader whose browser
-  // would otherwise leave them with no way to open it.
-  return `<div class="fold is-folded">`
-    + `<button type="button" class="fold-toggle" aria-expanded="false">${lines.length} lines</button>`
-    + `<pre class="code fold-peek"><code class="lang-${lang}">${peek}</code></pre>`
-    + `<div class="fold-full">${pre}</div></div>`;
+  return fold ? folded(title ?? lang, pre) : pre;
+}
+
+/**
+ * A block's first line may name it: `!Assembler in Python`. That name is what
+ * a folded block shows while it is closed, and it is not part of the content.
+ */
+function takeTitle(body) {
+  const at = body.indexOf('\n');
+  const first = at < 0 ? body : body.slice(0, at);
+  if (!first.startsWith('!')) return { title: null, rest: body };
+  return { title: first.slice(1).trim(), rest: body.slice(at + 1).replace(/^\n+/, '') };
+}
+
+/**
+ * Anything worth having on the page but not worth reading on the way past: a
+ * listing too long to scroll through, or an answer the reader should reach
+ * only once they have tried it themselves.
+ *
+ * Closed it is a title and a button; open, the title stays as a header and the
+ * content appears beneath a hairline. Folded in the markup rather than on load,
+ * so nothing flashes at full height first, and a <noscript> rule undoes it for
+ * a reader whose browser would otherwise leave them no way to open it.
+ */
+function folded(title, html) {
+  return '<div class="fold is-folded">'
+    + `<div class="fold-bar"><span class="fold-title">${md(title)}</span>`
+    + '<button type="button" class="fold-toggle" aria-expanded="false" data-open="Hide">Show</button>'
+    + '</div>'
+    + `<div class="fold-body">${html}</div></div>`;
 }
 
 /**
@@ -343,9 +358,10 @@ function assembler(body) {
  * made by the editor's own parser, arranger and router -- so what the manual
  * shows is what the editor would show.
  */
-function circuit(body, name) {
+function circuit(body, name, fold = false) {
+  const { title, rest } = takeTitle(body);
   const label = name ? ` <span class="import-what">${name}</span>` : '';
-  return '<div class="circuit-wrap">'
+  const block = '<div class="circuit-wrap">'
     + '<div class="circuit-bar">'
     + '<div class="circuit-seg">'
     + '<button type="button" class="is-on" data-show="diagram">Diagram</button>'
@@ -354,25 +370,13 @@ function circuit(body, name) {
     + `<button type="button" class="import"${name ? ` data-name="${name}"` : ''}>Import${label}</button>`
     + '</div>'
     + '<div class="circuit-view is-diagram">'
-    + renderCircuit(body, name)
+    + renderCircuit(rest, name)
     // The listing is the source of truth for the Import button too, so the
     // text only appears once on the page.
-    + `<pre class="circuit-code"><code>${hdl(body)}</code></pre>`
+    + `<pre class="circuit-code"><code>${hdl(rest)}</code></pre>`
     + '</div></div>';
-}
-
-/**
- * Whatever the reader should not see until they have tried it themselves.
- *
- * A container rather than a fence, so it can hold anything a stage can: a
- * circuit, a note about why it is wired that way, a truth table. It ships
- * closed and says plainly what it is, so it cannot be read on the way past.
- */
-function answerBox(html) {
-  return '<div class="answer is-folded">'
-    + '<div class="answer-bar"><span class="answer-what">Answer</span>'
-    + '<button type="button" class="answer-toggle" aria-expanded="false" data-open="Hide">Show</button></div>'
-    + `<div class="answer-body">${html}</div></div>`;
+  // A circuit already knows what it is called, so it needs no `!` line.
+  return fold ? folded(title ?? name ?? 'Answer', block) : block;
 }
 
 /**
@@ -405,12 +409,12 @@ function blocks(text) {
   const held = [];
   const keep = (html) => `<!--HOLD:${held.push(html) - 1}-->`;
   let t = text;
-  // The answer container goes first and recurses, so everything the manual can
-  // write is available inside one.
-  t = t.replace(/^::: answer\n([\s\S]*?)\n:::$/gm, (_, body) => keep(answerBox(blocks(body))));
-  // A circuit may name the chip it is, which keeps it for later stages to use.
-  t = t.replace(/^```circuit[ \t]*([A-Za-z_][\w-]*)?\n([\s\S]*?)\n```$/gm,
-    (_, name, body) => keep(circuit(body, name)));
+  // A circuit names the chip it is, which keeps it for the later stages that
+  // build on it, and may ask to ship folded.
+  t = t.replace(/^```circuit[ \t]*([^\n]*)\n([\s\S]*?)\n```$/gm, (_, info, body) => {
+    const words = info.split(/\s+/).filter(Boolean);
+    return keep(circuit(body, words.find((w) => w !== 'collapse'), words.includes('collapse')));
+  });
   const custom = { wave, truth, bits, assembler };
   t = t.replace(/^```(wave|truth|bits|assembler)\n([\s\S]*?)\n```$/gm,
     (_, kind, body) => keep(custom[kind](body)));

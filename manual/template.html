@@ -12,9 +12,8 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
   <noscript>
     <style>
-      .fold .fold-full { display: block; }
-      .fold .fold-peek, .fold-toggle { display: none; }
-      .answer.is-folded .answer-body { display: block; }
+      .fold.is-folded .fold-body { display: block; }
+      .fold-toggle { display: none; }
     </style>
   </noscript>
 
@@ -821,118 +820,36 @@
       dominant-baseline: central;
     }
 
-    /* What the reader should not see until they have tried it themselves.
-       No frame and no padding of its own: the answer is marked by its colour,
-       and the circuits inside are wide enough without being inset twice. */
-    .answer {
-      margin: 1.4rem 0;
+    /* Anything worth having on the page but not worth reading on the way past:
+       a listing too long to scroll through, or an answer to a stage. Closed it
+       is its title and a button; open, the title stays and the content appears
+       under a hairline. */
+    .fold {
       max-width: var(--measure);
-      border: 1px solid var(--spot);
+      margin: 1.4rem 0;
+      border: 1px solid var(--rule);
       border-radius: 3px;
-      /* so the bar's corners follow the box's when it is the whole box */
       overflow: hidden;
     }
 
-    /* The tint marks the answer; it belongs on the bar, which is all there is
-       to see until the answer is opened. */
-    .answer-bar {
+    .fold-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      padding: 0.35rem 0.5rem;
-      background: var(--tint);
+      padding: 0.4rem 0.5rem 0.4rem 0.75rem;
       font-family: var(--sans);
     }
 
-    .answer-what {
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--spot-deep);
-    }
-
-    .answer-toggle {
-      padding: 0.15rem 0.6rem;
-      border: 1px solid var(--spot);
-      border-radius: 3px;
-      background: var(--surface);
-      cursor: pointer;
-      font: inherit;
-      font-size: 0.7rem;
-      color: var(--spot-deep);
-    }
-
-    .answer-toggle:hover { background: var(--spot); color: var(--surface); }
-
-    .answer.is-folded .answer-body { display: none; }
-
-    /* Prose and headings inside an answer are set like prose anywhere else. */
-    .answer-body {
-      padding: 0.7rem 0.85rem;
-    }
-
-    .answer-body > :first-child { margin-top: 0; }
-    .answer-body > :last-child { margin-bottom: 0; }
-
-    /* A circuit is the exception: it pulls back out to the full width, because
-       a schematic inset on both sides has less room than it needs already. */
-    .answer-body .circuit-wrap {
-      max-width: none;
-      margin-left: -0.85rem;
-      margin-right: -0.85rem;
-      border-right: 0;
-      border-radius: 0;
-    }
-
-    /* An answer that is only a circuit is filled by it, corner to corner --
-       otherwise the body's padding shows as a band above and below. */
-    .answer-body > .circuit-wrap:only-child {
-      margin-top: -0.7rem;
-      margin-bottom: -0.7rem;
-      border-top: 0;
-      border-bottom: 0;
-    }
-
-    /* A listing worth keeping on the page but not worth reading on the way
-       past: folded to its first line, with the button that opens it sitting
-       over the top right. The pre keeps room for the button in both states,
-       so opening one does not shift the code sideways. */
-    .fold {
-      position: relative;
-      /* The same width a <pre> takes, so the wrapper does not sit wider than
-         the block inside it and the button lands level with the code's own
-         right padding. */
-      max-width: var(--measure);
-      margin: 1.2rem 0;
-    }
-
-    .fold pre.code {
-      margin: 0;
-      /* Room for the button in both states, so opening one does not shift the
-         code sideways. */
-      padding-right: 6rem;
-    }
-
-    .fold.is-folded .fold-full,
-    .fold:not(.is-folded) .fold-peek {
-      display: none;
-    }
-
-    /* The first line of a folded listing reads as a label for it, not as code
-       you are meant to follow, so it sits a shade back from full ink. */
-    .fold-peek code {
-      color: var(--ink-3);
+    .fold-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--ink-2);
     }
 
     .fold-toggle {
-      position: absolute;
-      top: 0.6rem;
-      /* Level with the code's own right padding, so it lines up with the
-         block rather than hanging off its edge. */
-      right: 0.9rem;
-      z-index: 1;
+      flex: none;
       padding: 0.15rem 0.5rem;
       border: 1px solid var(--spot);
       border-radius: 3px;
@@ -944,17 +861,29 @@
       color: var(--spot-deep);
     }
 
-    /* Folded, the block is one line tall, so the button belongs on its
-       middle. Open, it belongs at the top of a long listing. */
-    .fold.is-folded .fold-toggle {
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
     .fold-toggle:hover {
       background: var(--spot);
       color: var(--surface);
     }
+
+    .fold.is-folded .fold-body { display: none; }
+
+    /* The hairline is the only thing separating the title from what it names,
+       so it stays as light as a rule can be. */
+    .fold-body {
+      border-top: 1px solid var(--rule-soft);
+    }
+
+    /* Whatever is inside sheds its own frame: the fold is the frame. */
+    .fold-body > pre.code,
+    .fold-body > .circuit-wrap {
+      max-width: none;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .fold-body > pre.code { border-left: 2px solid var(--spot); }
 
     pre code {
       font: inherit;
@@ -1642,8 +1571,8 @@
 
   <script>
     (function () {
-      document.querySelectorAll('.fold, .answer').forEach(function (fold) {
-        var button = fold.querySelector('.fold-toggle, .answer-toggle');
+      document.querySelectorAll('.fold').forEach(function (fold) {
+        var button = fold.querySelector('.fold-toggle');
         var shut = button.textContent;
         var open = button.dataset.open || 'Collapse';
         button.addEventListener('click', function () {
