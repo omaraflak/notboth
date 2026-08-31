@@ -70,6 +70,77 @@ export function normalizeVectors(
   return { vectors: out, unknown: [...unknown] };
 }
 
+/* ------------------------------------------------------------------ *
+ * Tests as text
+ *
+ * The same shape the manual writes its truth tables in, so a table can be
+ * copied out of a stage and pasted into the component being built, and back.
+ * Columns are separated by a pipe and an output column is marked with `>`.
+ * ------------------------------------------------------------------ */
+
+/** Split a row, honouring `\|` for a pin whose name contains a pipe. */
+function cells(line: string): string[] {
+  return line.split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'));
+}
+
+export interface ParsedTable {
+  vectors: TestVector[];
+  /** Columns that matched no pin on this component, in the order seen. */
+  ignored: string[];
+}
+
+/**
+ * Read a table back. Throws with the line at fault rather than guessing, since
+ * a half-read set of tests is worse than none.
+ */
+export function vectorsFromTable(
+  sig: Signature, text: string, read: (cell: string) => number | null,
+): ParsedTable {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) throw new Error('nothing to read');
+
+  const heads = cells(lines[0]);
+  const ignored: string[] = [];
+  // A `>` says the column is an output. Without one, a name is looked for
+  // among the inputs first, which is where a plain table's columns come from.
+  const columns = heads.map((raw) => {
+    const wantsOutput = raw.startsWith('>');
+    const name = raw.replace(/^[>.]/, '').trim().toLowerCase();
+    const find = (list: Pin[]) => list.find((p) => p.name.toLowerCase() === name);
+    const pin = wantsOutput ? find(sig.outputs) : (find(sig.inputs) ?? find(sig.outputs));
+    if (!pin) { ignored.push(raw); return null; }
+    const side: 'in' | 'out' = sig.inputs.includes(pin) && !wantsOutput ? 'in' : 'out';
+    return { pin, side };
+  });
+
+  if (columns.every((c) => c === null)) {
+    throw new Error(`no column matches a pin on this component (it has: ${
+      [...sig.inputs, ...sig.outputs].map((p) => p.name).join(', ')})`);
+  }
+
+  const vectors: TestVector[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = cells(lines[i]);
+    if (row.length !== heads.length) {
+      throw new Error(`line ${i + 1} has ${row.length} cells, expected ${heads.length}`);
+    }
+    const vector: TestVector = { in: {}, out: {} };
+    for (const p of sig.inputs) vector.in[p.id] = 0;
+    for (const p of sig.outputs) vector.out[p.id] = 0;
+    row.forEach((cell, at) => {
+      const column = columns[at];
+      if (!column) return;
+      const value = read(cell);
+      if (value === null) {
+        throw new Error(`line ${i + 1}: cannot read "${cell}" for ${column.pin.name}`);
+      }
+      vector[column.side][column.pin.id] = value;
+    });
+    vectors.push(vector);
+  }
+  return { vectors, ignored };
+}
+
 /**
  * Run a component's test vectors against a freshly compiled netlist.
  *

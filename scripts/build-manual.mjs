@@ -201,6 +201,9 @@ function bits(body) {
  * Truth tables
  * ------------------------------------------------------------------ */
 
+const escapeAttr = (s) => s
+  .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/\n/g, '&#10;');
+
 function truth(bodyText) {
   const lines = bodyText.split('\n').map((l) => l.trim()).filter(Boolean);
   // A cell may need a literal pipe -- `D|A` is an expression the instruction
@@ -216,7 +219,23 @@ function truth(bodyText) {
   const head = names.map((h) => `<th>${md(h)}</th>`).join('');
   const body = rows.map((r) =>
     '          <tr>' + r.map((c, i) => `<td${kind[i] ? ` class="${kind[i]}"` : ''}>${md(c)}</td>`).join('') + '</tr>').join('\n');
-  return '      <div class="tt-wrap">\n        <table class="tt">\n'
+
+  // The same table as text, for pasting into a component's tests. The prose
+  // columns are left out -- they are commentary, and the tests have no pin to
+  // put them on -- and the markdown ticks come off the values.
+  const keep = kind.map((k) => k !== 'l');
+  const plain = (cell) => cell.replace(/`/g, '').trim();
+  const line = (cells) => cells.filter((_, i) => keep[i]).map(plain).join(' | ');
+  const text = [line(heads), ...rows.map(line)].join('\n');
+
+  const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/>'
+    + '<path class="c-tick" d="M4 12l5 5L20 6"/></svg>';
+  return '      <div class="tt-wrap">\n'
+    + `        <button type="button" class="tt-copy" title="Copy this table"`
+    + ` aria-label="Copy this table" data-table="${escapeAttr(text)}">${icon}</button>\n`
+    + '        <table class="tt">\n'
     + `          <tr>${head}</tr>\n${body}\n        </table>\n      </div>`;
 }
 

@@ -12,8 +12,8 @@
  */
 import { formatValue } from '../core/layout';
 import { signatureOf } from '../core/project';
-import { normalizeVectors, runTests } from '../core/testbench';
-import type { NumberFormat, Pin, TestVector } from '../core/types';
+import { normalizeVectors, runTests, vectorsFromTable } from '../core/testbench';
+import type { NumberFormat, Pin, Signature, TestVector } from '../core/types';
 import type { App } from './app';
 import { button, clear, h } from './dom';
 
@@ -162,6 +162,9 @@ export class TestsView {
 
   private cell(pin: Pin, value: number, onChange: (v: number) => void): HTMLInputElement {
     const input = h('input', { type: 'text', value: this.show(value, pin) });
+    input.addEventListener('paste', (e) => {
+      this.handlePaste(e as ClipboardEvent, signatureOf(this.app.openDef));
+    });
     input.addEventListener('input', () => {
       const n = this.read(input.value);
       input.style.color = n === null ? 'var(--danger)' : '';
@@ -360,6 +363,35 @@ export class TestsView {
     }
 
     this.renderSummary(sig);
+  }
+
+  /* ---------------- pasting a table ---------------- */
+
+  /**
+   * A whole table pasted into any cell fills the whole table.
+   *
+   * Copying a truth table out of the manual and putting it in by hand is the
+   * tedious half of writing tests, and it is the half a machine should do.
+   * Anything that is not a table -- a single value, which is the ordinary
+   * case -- is left to paste into the cell as normal.
+   */
+  private handlePaste(e: ClipboardEvent, sig: Signature): void {
+    const text = e.clipboardData?.getData('text') ?? '';
+    if (!/[\n|\t]/.test(text.trim())) return;
+    e.preventDefault();
+
+    let parsed;
+    try {
+      parsed = vectorsFromTable(sig, text, (cell) => this.read(cell));
+    } catch (err) {
+      this.app.toast(err instanceof Error ? err.message : 'cannot read that table', 'err');
+      return;
+    }
+    this.vectors = parsed.vectors;
+    this.save();
+    this.render();
+    const skipped = parsed.ignored.length ? `, ignoring ${parsed.ignored.join(', ')}` : '';
+    this.app.toast(`Pasted ${parsed.vectors.length} test${parsed.vectors.length === 1 ? '' : 's'}${skipped}`);
   }
 
   /**

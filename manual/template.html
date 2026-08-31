@@ -187,10 +187,53 @@
    rather than as prose, and the answer column in the spot colour, because on
    a truth table the answer is the whole point. */
     .tt-wrap {
+      position: relative;
+      /* Only as wide as the table, so the copy button sits beside it rather
+         than out at the edge of the column. */
+      width: fit-content;
       max-width: var(--measure);
       margin: 1.2rem 0;
       overflow-x: auto;
     }
+
+    /* Small, and out of the way until wanted: the table is the thing here. */
+    .tt-copy {
+      position: absolute;
+      /* Flush with the top: the wrap scrolls sideways, and a box that scrolls
+         on one axis clips the other, so anything above zero is cut off. */
+      top: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: var(--surface);
+      cursor: pointer;
+      color: var(--ink-3);
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+
+    .tt-copy svg { width: 12px; height: 12px; display: block; }
+    .tt-copy .c-tick { display: none; }
+
+    .tt-wrap:hover .tt-copy,
+    .tt-copy:focus-visible { opacity: 1; }
+    .tt-copy:hover { border-color: var(--spot); color: var(--spot); }
+
+    .tt-copy.is-done {
+      opacity: 1;
+      border-color: var(--spot);
+      background: var(--tint);
+      color: var(--spot-deep);
+    }
+
+    .tt-copy.is-done .c-copy { display: none; }
+    .tt-copy.is-done .c-tick { display: block; }
 
     .tt {
       border-collapse: collapse;
@@ -1607,6 +1650,18 @@
   </script>
 
   <script>
+    /* Copy a truth table, ready to paste into a component's tests. */
+    (function () {
+      document.querySelectorAll('.tt-copy').forEach(function (button) {
+        button.addEventListener('click', function () {
+          navigator.clipboard.writeText(button.dataset.table).then(function () {
+            button.classList.add('is-done');
+            setTimeout(function () { button.classList.remove('is-done'); }, 1400);
+          });
+        });
+      });
+    })();
+
     /* Diagram or code -- the same circuit, two ways of reading it. */
     (function () {
       document.querySelectorAll('.circuit-seg').forEach(function (seg) {
