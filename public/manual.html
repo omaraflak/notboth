@@ -192,17 +192,22 @@
          than out at the edge of the column. */
       width: fit-content;
       max-width: var(--measure);
-      margin: 1.2rem 0;
+      /* Headroom for the copy button, which rides higher than the header cell
+         so that it lines up with the header text. Taken back out of the top
+         margin, so the table sits exactly where it did. */
+      padding-top: 4px;
+      margin: calc(1.2rem - 4px) 0 1.2rem;
       overflow-x: auto;
     }
 
     /* Small, and out of the way until wanted: the table is the thing here. */
     .tt-copy {
       position: absolute;
-      /* Flush with the top: the wrap scrolls sideways, and a box that scrolls
-         on one axis clips the other, so anything above zero is cut off. */
-      top: 0;
+      top: 50%;
       right: 0;
+      /* The header cell is padded underneath and ruled off, so its box sits
+         lower than its text. Half of each puts the button on the words. */
+      transform: translateY(calc(-50% - 0.175rem - 0.5px));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -242,6 +247,7 @@
     }
 
     .tt th {
+      position: relative;
       font-family: var(--sans);
       font-size: 0.62rem;
       font-weight: 700;
@@ -1546,9 +1552,8 @@
     <div class="sig">Nand(a, b) → out</div>
     <p>A NAND gate outputs a low signal when both inputs are high. This chip is given to you in the interface.</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="a | b | >out&#10;0 | 0 | 1&#10;0 | 1 | 1&#10;1 | 0 | 1&#10;1 | 1 | 0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>a</th><th>b</th><th>out</th></tr>
+            <table class="tt" data-table="a | b | >out&#10;0 | 0 | 1&#10;0 | 1 | 1&#10;1 | 0 | 1&#10;1 | 1 | 0">
+              <tr><th>a</th><th>b</th><th>out<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td>0</td><td class="o">1</td></tr>
               <tr><td>0</td><td>1</td><td class="o">1</td></tr>
               <tr><td>1</td><td>0</td><td class="o">1</td></tr>
@@ -1565,9 +1570,8 @@
     <div class="sig">Not(in) → out</div>
     <p>NOT gate flips the input signal. You have a gate with two inputs (NAND) and you need one with a single input (NOT)...</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="in | >out&#10;0 | 1&#10;1 | 0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>in</th><th>out</th></tr>
+            <table class="tt" data-table="in | >out&#10;0 | 1&#10;1 | 0">
+              <tr><th>in</th><th>out<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td class="o">1</td></tr>
               <tr><td>1</td><td class="o">0</td></tr>
             </table>
@@ -1587,9 +1591,8 @@ nand1 : <span class="hljs-title">Nand</span>(<span class="hljs-attr">a</span> = 
     <div class="sig">And(a, b) → out</div>
     <p>AND gate tells you when two signals are up simultaneously. You already own a gate that computes its opposite!</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="a | b | >out&#10;0 | 0 | 0&#10;0 | 1 | 0&#10;1 | 0 | 0&#10;1 | 1 | 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>a</th><th>b</th><th>out</th></tr>
+            <table class="tt" data-table="a | b | >out&#10;0 | 0 | 0&#10;0 | 1 | 0&#10;1 | 0 | 0&#10;1 | 1 | 1">
+              <tr><th>a</th><th>b</th><th>out<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td>0</td><td class="o">0</td></tr>
               <tr><td>0</td><td>1</td><td class="o">0</td></tr>
               <tr><td>1</td><td>0</td><td class="o">0</td></tr>
@@ -1613,9 +1616,8 @@ not1 : <span class="hljs-title">Not</span>(<span class="hljs-attr">in</span> = n
     <div class="sig">Or(a, b) → out</div>
     <p>OR gate tells you when <strong>at least one</strong> of the two input signals is up.</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="a | b | >out&#10;0 | 0 | 0&#10;0 | 1 | 1&#10;1 | 0 | 1&#10;1 | 1 | 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>a</th><th>b</th><th>out</th></tr>
+            <table class="tt" data-table="a | b | >out&#10;0 | 0 | 0&#10;0 | 1 | 1&#10;1 | 0 | 1&#10;1 | 1 | 1">
+              <tr><th>a</th><th>b</th><th>out<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td>0</td><td class="o">0</td></tr>
               <tr><td>0</td><td>1</td><td class="o">1</td></tr>
               <tr><td>1</td><td>0</td><td class="o">1</td></tr>
@@ -1641,9 +1643,8 @@ not2 : <span class="hljs-title">Not</span>(<span class="hljs-attr">in</span> = b
     <div class="sig">Xor(a, b) → out</div>
     <p>XOR gate (<em>Exclusive-OR</em>) tells you when <strong>only one of</strong> the two inputs are up.</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="a | b | >out&#10;0 | 0 | 0&#10;0 | 1 | 1&#10;1 | 0 | 1&#10;1 | 1 | 0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>a</th><th>b</th><th>out</th></tr>
+            <table class="tt" data-table="a | b | >out&#10;0 | 0 | 0&#10;0 | 1 | 1&#10;1 | 0 | 1&#10;1 | 1 | 0">
+              <tr><th>a</th><th>b</th><th>out<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td>0</td><td class="o">0</td></tr>
               <tr><td>0</td><td>1</td><td class="o">1</td></tr>
               <tr><td>1</td><td>0</td><td class="o">1</td></tr>
@@ -1669,9 +1670,8 @@ nand1 : <span class="hljs-title">Nand</span>(<span class="hljs-attr">a</span> = 
     <div class="sig">Mux(a, b, sel) → out</div>
     <p>MUX gate (<em>multiplexer</em>) allows you to select between one of two signals <code>a</code> or <code>b</code> using a selector <code>sel</code>. You can decide to select either <code>a</code> or <code>b</code> based on the selector value, it doesn&#39;t matter as long as you stay consistent throughout.</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="sel | a | b | >out&#10;0 | 0 | 0 | 0&#10;0 | 0 | 1 | 0&#10;0 | 1 | 0 | 1&#10;0 | 1 | 1 | 1&#10;1 | 0 | 0 | 0&#10;1 | 0 | 1 | 1&#10;1 | 1 | 0 | 0&#10;1 | 1 | 1 | 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>sel</th><th>a</th><th>b</th><th>out</th></tr>
+            <table class="tt" data-table="sel | a | b | >out&#10;0 | 0 | 0 | 0&#10;0 | 0 | 1 | 0&#10;0 | 1 | 0 | 1&#10;0 | 1 | 1 | 1&#10;1 | 0 | 0 | 0&#10;1 | 0 | 1 | 1&#10;1 | 1 | 0 | 0&#10;1 | 1 | 1 | 1">
+              <tr><th>sel</th><th>a</th><th>b</th><th>out<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td>0</td><td>0</td><td class="o">0</td></tr>
               <tr><td>0</td><td>0</td><td>1</td><td class="o">0</td></tr>
               <tr><td>0</td><td>1</td><td>0</td><td class="o">1</td></tr>
@@ -1706,9 +1706,8 @@ and2 : <span class="hljs-title">And</span>(<span class="hljs-attr">a</span> = b,
     <div class="sig">DMux(in, sel) → a, b</div>
     <p>DMUX gate (<em>demultiplexer</em>) is the mirror image of MUX. It writes its input to <strong>one of</strong> several outputs based on a selector.</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="sel | in | >a | >b&#10;0 | 0 | 0 | 0&#10;0 | 1 | 1 | 0&#10;1 | 0 | 0 | 0&#10;1 | 1 | 0 | 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>sel</th><th>in</th><th>a</th><th>b</th></tr>
+            <table class="tt" data-table="sel | in | >a | >b&#10;0 | 0 | 0 | 0&#10;0 | 1 | 1 | 0&#10;1 | 0 | 0 | 0&#10;1 | 1 | 0 | 1">
+              <tr><th>sel</th><th>in</th><th>a</th><th>b<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td>0</td><td>0</td><td class="o">0</td><td class="o">0</td></tr>
               <tr><td>0</td><td>1</td><td class="o">1</td><td class="o">0</td></tr>
               <tr><td>1</td><td>0</td><td class="o">0</td><td class="o">0</td></tr>
@@ -2240,9 +2239,8 @@ const1 : <span class="hljs-title">Const</span>(<span class="hljs-attr">width</sp
     <p>You need negative numbers, and you do not want to build a second machine for subtracting. The convention that saves you is <em>two&#39;s complement</em>: negate a number by inverting every bit and adding one. Under that convention <code>a - b</code> is <code>a + (not b)</code>, therefore the adder you already have is enough.</p>
     <p>Here is <code>5</code> being negated, and then added back to itself:</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="bits | value&#10;0000000000000101 | 5&#10;1111111111111010 | −6&#10;1111111111111011 | −5&#10;0000000000000000 | 0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>step</th><th>bits</th><th>value</th></tr>
+            <table class="tt" data-table="bits | value&#10;0000000000000101 | 5&#10;1111111111111010 | −6&#10;1111111111111011 | −5&#10;0000000000000000 | 0">
+              <tr><th>step</th><th>bits</th><th>value<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td class="l">start with 5</td><td>0000000000000101</td><td>5</td></tr>
               <tr><td class="l">invert every bit</td><td>1111111111111010</td><td>−6</td></tr>
               <tr><td class="l">add one</td><td>1111111111111011</td><td>−5</td></tr>
@@ -2274,9 +2272,8 @@ const1 : <span class="hljs-title">Const</span>(<span class="hljs-attr">width</sp
     </ul>
     <p>Since there are 6 control bits, that&#39;s 2^6=64 different operations supported! These are some useful ones:</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table=">zx | >nx | >zy | >ny | >f | >no&#10;1 | 0 | 1 | 0 | 1 | 0&#10;1 | 1 | 1 | 1 | 1 | 1&#10;1 | 1 | 1 | 0 | 1 | 0&#10;0 | 0 | 1 | 1 | 0 | 0&#10;1 | 1 | 0 | 0 | 0 | 0&#10;0 | 0 | 1 | 1 | 0 | 1&#10;1 | 1 | 0 | 0 | 0 | 1&#10;0 | 0 | 1 | 1 | 1 | 1&#10;1 | 1 | 0 | 0 | 1 | 1&#10;0 | 1 | 1 | 1 | 1 | 1&#10;1 | 1 | 0 | 1 | 1 | 1&#10;0 | 0 | 1 | 1 | 1 | 0&#10;1 | 1 | 0 | 0 | 1 | 0&#10;0 | 0 | 0 | 0 | 1 | 0&#10;0 | 1 | 0 | 0 | 1 | 1&#10;0 | 0 | 0 | 1 | 1 | 1&#10;0 | 0 | 0 | 0 | 0 | 0&#10;0 | 1 | 0 | 1 | 0 | 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>compute</th><th>zx</th><th>nx</th><th>zy</th><th>ny</th><th>f</th><th>no</th></tr>
+            <table class="tt" data-table=">zx | >nx | >zy | >ny | >f | >no&#10;1 | 0 | 1 | 0 | 1 | 0&#10;1 | 1 | 1 | 1 | 1 | 1&#10;1 | 1 | 1 | 0 | 1 | 0&#10;0 | 0 | 1 | 1 | 0 | 0&#10;1 | 1 | 0 | 0 | 0 | 0&#10;0 | 0 | 1 | 1 | 0 | 1&#10;1 | 1 | 0 | 0 | 0 | 1&#10;0 | 0 | 1 | 1 | 1 | 1&#10;1 | 1 | 0 | 0 | 1 | 1&#10;0 | 1 | 1 | 1 | 1 | 1&#10;1 | 1 | 0 | 1 | 1 | 1&#10;0 | 0 | 1 | 1 | 1 | 0&#10;1 | 1 | 0 | 0 | 1 | 0&#10;0 | 0 | 0 | 0 | 1 | 0&#10;0 | 1 | 0 | 0 | 1 | 1&#10;0 | 0 | 0 | 1 | 1 | 1&#10;0 | 0 | 0 | 0 | 0 | 0&#10;0 | 1 | 0 | 1 | 0 | 1">
+              <tr><th>compute</th><th>zx</th><th>nx</th><th>zy</th><th>ny</th><th>f</th><th>no<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td class="l"><code>0</code></td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td></tr>
               <tr><td class="l"><code>1</code></td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">1</td></tr>
               <tr><td class="l"><code>-1</code></td><td class="o">1</td><td class="o">1</td><td class="o">1</td><td class="o">0</td><td class="o">1</td><td class="o">0</td></tr>
@@ -2824,9 +2821,8 @@ or2 : <span class="hljs-title">Or</span>(<span class="hljs-attr">a</span> = or1.
     <h2>One instruction decoded</h2>
     <p><code>RAM[A]=D+1</code> is <code>1110011111001000</code>:</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="&#10;&#10;&#10;&#10;&#10;&#10;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>bits</th><th>field</th><th>meaning</th></tr>
+            <table class="tt" data-table="&#10;&#10;&#10;&#10;&#10;&#10;">
+              <tr><th>bits</th><th>field</th><th>meaning<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td class="l"><code>1</code></td><td class="l">op</td><td class="l">compute instruction</td></tr>
               <tr><td class="l"><code>11</code></td><td class="l">unused</td><td class="l">no effect</td></tr>
               <tr><td class="l"><code>0</code></td><td class="l"><code>a</code></td><td class="l">ALU <code>y</code> is <code>A</code> (unused here)</td></tr>
@@ -2855,9 +2851,8 @@ RAM[A]=D   1110001100001000</code></pre>
     <div class="sig">Decode(instruction[16]) → zx, nx, zy, ny, f, no, isAddr, loadA, loadD, writeM, j1, j2, j3</div>
     <p>Now that you know the instructions format, let&#39;s implement a decoder chip that converts one 16-bit instruction into the control signals the rest of the CPU consumes.</p>
           <div class="tt-wrap">
-            <button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table" data-table="&#10;&#10;&#10;&#10;&#10;&#10;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>
-            <table class="tt">
-              <tr><th>output</th><th>source bit</th><th>when <code>op</code> = 0</th></tr>
+            <table class="tt" data-table="&#10;&#10;&#10;&#10;&#10;&#10;">
+              <tr><th>output</th><th>source bit</th><th>when <code>op</code> = 0<button type="button" class="tt-copy" title="Copy this table" aria-label="Copy this table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/><path class="c-tick" d="M4 12l5 5L20 6"/></svg></button></th></tr>
               <tr><td class="l"><code>zx nx zy ny f no</code></td><td class="l"><code>instruction[11..6]</code></td><td class="l">pass through unchanged</td></tr>
               <tr><td class="l"><code>isAddr</code></td><td class="l"><code>instruction[12]</code></td><td class="l">pass through unchanged</td></tr>
               <tr><td class="l"><code>loadA</code></td><td class="l"><code>instruction[5]</code></td><td class="l">forced to <code>1</code></td></tr>
@@ -3745,7 +3740,7 @@ M=D
     (function () {
       document.querySelectorAll('.tt-copy').forEach(function (button) {
         button.addEventListener('click', function () {
-          navigator.clipboard.writeText(button.dataset.table).then(function () {
+          navigator.clipboard.writeText(button.closest('table').dataset.table).then(function () {
             button.classList.add('is-done');
             setTimeout(function () { button.classList.remove('is-done'); }, 1400);
           });

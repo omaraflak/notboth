@@ -192,17 +192,22 @@
          than out at the edge of the column. */
       width: fit-content;
       max-width: var(--measure);
-      margin: 1.2rem 0;
+      /* Headroom for the copy button, which rides higher than the header cell
+         so that it lines up with the header text. Taken back out of the top
+         margin, so the table sits exactly where it did. */
+      padding-top: 4px;
+      margin: calc(1.2rem - 4px) 0 1.2rem;
       overflow-x: auto;
     }
 
     /* Small, and out of the way until wanted: the table is the thing here. */
     .tt-copy {
       position: absolute;
-      /* Flush with the top: the wrap scrolls sideways, and a box that scrolls
-         on one axis clips the other, so anything above zero is cut off. */
-      top: 0;
+      top: 50%;
       right: 0;
+      /* The header cell is padded underneath and ruled off, so its box sits
+         lower than its text. Half of each puts the button on the words. */
+      transform: translateY(calc(-50% - 0.175rem - 0.5px));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -242,6 +247,7 @@
     }
 
     .tt th {
+      position: relative;
       font-family: var(--sans);
       font-size: 0.62rem;
       font-weight: 700;
@@ -1654,7 +1660,7 @@
     (function () {
       document.querySelectorAll('.tt-copy').forEach(function (button) {
         button.addEventListener('click', function () {
-          navigator.clipboard.writeText(button.dataset.table).then(function () {
+          navigator.clipboard.writeText(button.closest('table').dataset.table).then(function () {
             button.classList.add('is-done');
             setTimeout(function () { button.classList.remove('is-done'); }, 1400);
           });

@@ -204,6 +204,13 @@ function bits(body) {
 const escapeAttr = (s) => s
   .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/\n/g, '&#10;');
 
+const COPY_BUTTON = '<button type="button" class="tt-copy" title="Copy this table"'
+  + ' aria-label="Copy this table">'
+  + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+  + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/>'
+  + '<path class="c-tick" d="M4 12l5 5L20 6"/></svg></button>';
+
 function truth(bodyText) {
   const lines = bodyText.split('\n').map((l) => l.trim()).filter(Boolean);
   // A cell may need a literal pipe -- `D|A` is an expression the instruction
@@ -216,7 +223,10 @@ function truth(bodyText) {
   for (const r of rows) {
     if (r.length !== names.length) throw new Error(`truth: row "${r.join(' | ')}" has ${r.length} cells, expected ${names.length}`);
   }
-  const head = names.map((h) => `<th>${md(h)}</th>`).join('');
+  // The button lives in the last header cell, so it centres on the header row
+  // by itself rather than being positioned against the table as a whole.
+  const head = names.map((h, i) =>
+    `<th>${md(h)}${i === names.length - 1 ? COPY_BUTTON : ''}</th>`).join('');
   const body = rows.map((r) =>
     '          <tr>' + r.map((c, i) => `<td${kind[i] ? ` class="${kind[i]}"` : ''}>${md(c)}</td>`).join('') + '</tr>').join('\n');
 
@@ -228,14 +238,8 @@ function truth(bodyText) {
   const line = (cells) => cells.filter((_, i) => keep[i]).map(plain).join(' | ');
   const text = [line(heads), ...rows.map(line)].join('\n');
 
-  const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
-    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    + '<path class="c-copy" d="M9 9h11v11H9zM5 15H4V4h11v1"/>'
-    + '<path class="c-tick" d="M4 12l5 5L20 6"/></svg>';
   return '      <div class="tt-wrap">\n'
-    + `        <button type="button" class="tt-copy" title="Copy this table"`
-    + ` aria-label="Copy this table" data-table="${escapeAttr(text)}">${icon}</button>\n`
-    + '        <table class="tt">\n'
+    + `        <table class="tt" data-table="${escapeAttr(text)}">\n`
     + `          <tr>${head}</tr>\n${body}\n        </table>\n      </div>`;
 }
 
