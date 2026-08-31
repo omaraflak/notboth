@@ -6,3 +6,7 @@ python/
 
 # Local tooling, not part of the project
 .claude
+
+# Built by scripts/build-manual.mjs
+.manual-cache
+

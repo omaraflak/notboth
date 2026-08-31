@@ -10,6 +10,37 @@ import { h } from './ui/dom';
 import { initTheme } from './ui/theme';
 import { requestPersistence } from './core/storage';
 
+/**
+ * The manual runs in its own tab and offers to import the circuits it shows.
+ * It is the same origin, so a broadcast reaches this tab directly; anything
+ * sent while no tab is open waits in localStorage until one starts.
+ */
+const IMPORT_CHANNEL = 'nand.import';
+
+function listenForImports(app: App) {
+  const take = (message: unknown) => {
+    const m = message as { kind?: string; name?: string; source?: string } | null;
+    if (!m || m.kind !== 'import' || !m.source) return null;
+    return app.importComponent(m.name ?? 'Imported', m.source);
+  };
+
+  let channel: BroadcastChannel | null = null;
+  try { channel = new BroadcastChannel(IMPORT_CHANNEL); } catch { /* not supported */ }
+  channel?.addEventListener('message', (event) => {
+    const result = take(event.data);
+    if (result) channel?.postMessage({ kind: 'imported', ...result });
+  });
+
+  // Anything left for us before this tab existed.
+  try {
+    const waiting = localStorage.getItem(IMPORT_CHANNEL);
+    if (waiting) {
+      localStorage.removeItem(IMPORT_CHANNEL);
+      take(JSON.parse(waiting));
+    }
+  } catch { /* private mode, or nothing there */ }
+}
+
 async function boot() {
   initTheme();
   // Not awaited: whether the browser agrees to keep the database changes
@@ -36,6 +67,8 @@ async function boot() {
   const text = new TextView(app, canvasWrap);
   new TestsView(app, canvasWrap);
   new Inspector(app, inspectorEl, extract, () => canvas.arrange());
+  listenForImports(app);
+
   new Chrome(app, topbar, statusbar, {
     fit: () => canvas.fit(),
     // Leaving the text editor commits what is written, or refuses and says

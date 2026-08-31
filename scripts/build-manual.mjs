@@ -28,10 +28,26 @@
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { marked } from 'marked';
+import { build as esbuild } from 'esbuild';
 import hljs from 'highlight.js';
 import katex from 'katex';
 
 const CONTENT = 'manual/content';
+
+/**
+ * The circuit renderer lives in TypeScript next to the editor it borrows from,
+ * so it is bundled here rather than duplicated in this file.
+ */
+const RENDERER = '.manual-cache/render-circuit.mjs';
+await esbuild({
+  entryPoints: ['scripts/render-circuit.ts'],
+  outfile: RENDERER,
+  bundle: true,
+  format: 'esm',
+  platform: 'node',
+  logLevel: 'warning',
+});
+const { renderCircuit } = await import(`../${RENDERER}`);
 const OUT = 'public/manual.html';
 
 /* ------------------------------------------------------------------ *
@@ -300,6 +316,65 @@ function assembler(body) {
 }
 
 /**
+ * A circuit, drawn. The text is the editor's own text form, and the picture is
+ * made by the editor's own parser, arranger and router -- so what the manual
+ * shows is what the editor would show.
+ */
+function circuit(body, name) {
+  const label = name ? ` <span class="import-what">${name}</span>` : '';
+  return '<div class="circuit-wrap">'
+    + '<div class="circuit-bar">'
+    + '<div class="circuit-seg">'
+    + '<button type="button" class="is-on" data-show="diagram">Diagram</button>'
+    + '<button type="button" data-show="code">Code</button>'
+    + '</div>'
+    + `<button type="button" class="import"${name ? ` data-name="${name}"` : ''}>Import${label}</button>`
+    + '</div>'
+    + '<div class="circuit-view is-diagram">'
+    + renderCircuit(body, name)
+    // The listing is the source of truth for the Import button too, so the
+    // text only appears once on the page.
+    + `<pre class="circuit-code"><code>${hdl(body)}</code></pre>`
+    + '</div></div>';
+}
+
+/**
+ * Whatever the reader should not see until they have tried it themselves.
+ *
+ * A container rather than a fence, so it can hold anything a stage can: a
+ * circuit, a note about why it is wired that way, a truth table. It ships
+ * closed and says plainly what it is, so it cannot be read on the way past.
+ */
+function answerBox(html) {
+  return '<div class="answer is-folded">'
+    + '<div class="answer-bar"><span class="answer-what">Answer</span>'
+    + '<button type="button" class="answer-toggle" aria-expanded="false" data-open="Hide">Show</button></div>'
+    + `<div class="answer-body">${html}</div></div>`;
+}
+
+/**
+ * The editor's text form, coloured the way the editor colours it: the two
+ * words that declare a port, the type a part is an instance of, and the pin
+ * names on the left of an equals sign.
+ *
+ * One pass over the escaped source. Chaining separate replaces would let a
+ * later rule match inside the markup an earlier one had already written.
+ */
+function hdl(body) {
+  const escaped = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const span = (cls, text) => `<span class="hljs-${cls}">${text}</span>`;
+  return escaped.replace(
+    /(\/\/[^\n]*)|(^[ \t]*)(in|out)(?=\s+[A-Za-z_])|(:\s*)([A-Za-z_]\w*)|([A-Za-z_]\w*)(?=\s*=)/gm,
+    (whole, comment, pad, port, colon, type, pin) => {
+      if (comment) return span('comment', comment);
+      if (port) return pad + span('keyword', port);
+      if (type) return colon + span('title', type);
+      if (pin) return span('attr', pin);
+      return whole;
+    });
+}
+
+/**
  * Block markdown. Anything the manual needs and markdown does not have is
  * lifted out first and put back after, so marked only ever sees prose.
  */
@@ -307,6 +382,12 @@ function blocks(text) {
   const held = [];
   const keep = (html) => `<!--HOLD:${held.push(html) - 1}-->`;
   let t = text;
+  // The answer container goes first and recurses, so everything the manual can
+  // write is available inside one.
+  t = t.replace(/^::: answer\n([\s\S]*?)\n:::$/gm, (_, body) => keep(answerBox(blocks(body))));
+  // A circuit may name the chip it is, which keeps it for later stages to use.
+  t = t.replace(/^```circuit[ \t]*([A-Za-z_][\w-]*)?\n([\s\S]*?)\n```$/gm,
+    (_, name, body) => keep(circuit(body, name)));
   const custom = { wave, truth, bits, assembler };
   t = t.replace(/^```(wave|truth|bits|assembler)\n([\s\S]*?)\n```$/gm,
     (_, kind, body) => keep(custom[kind](body)));
@@ -327,7 +408,7 @@ function blocks(text) {
 
 /**
  * Indent generated markup so the page source stays readable -- but not inside
- * a <pre> or a <textarea>, where the whitespace is the content. A listing
+ * a <pre>, a <textarea> or a <script>, where the whitespace is the content. A listing
  * lines its columns up with spaces, and four more on every line but the first
  * is exactly enough to ruin that; in a textarea it is text the reader has to
  * delete before their program will assemble.
@@ -337,7 +418,7 @@ function indent(html, pad = '    ') {
   // whichever test runs second. A line can hold a whole <pre> and then open
   // another one, and treating those two matches as unordered indents the
   // second one's contents.
-  const tag = /<(\/?)(?:pre|textarea)[\s>]/g;
+  const tag = /<(\/?)(?:pre|textarea|script)[\s>]/g;
   let verbatim = false;
   return html.split('\n').map((line) => {
     const out = verbatim ? line : pad + line;

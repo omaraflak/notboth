@@ -14,6 +14,7 @@
     <style>
       .fold .fold-full { display: block; }
       .fold .fold-peek, .fold-toggle { display: none; }
+      .answer.is-folded .answer-body { display: block; }
     </style>
   </noscript>
 
@@ -665,6 +666,184 @@
       font-size: 0.78rem;
       line-height: 1.6;
       color: var(--ink-2);
+    }
+
+    /* Two ways of looking at the same circuit, and a way to take it. */
+    .circuit-wrap {
+      margin: 1.2rem 0;
+      max-width: var(--measure);
+      padding: 0.5rem 0.6rem;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-left: 2px solid var(--spot);
+      border-radius: 0 2px 2px 0;
+      overflow-x: auto;
+    }
+
+    .circuit-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .circuit-seg {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .circuit-seg button {
+      padding: 0.15rem 0.6rem;
+      border: 0;
+      background: var(--surface);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 0.66rem;
+      color: var(--ink-3);
+    }
+
+    .circuit-seg button + button { border-left: 1px solid var(--rule); }
+    .circuit-seg button:hover { color: var(--ink); }
+    .circuit-seg button.is-on { background: var(--tint); color: var(--spot-deep); }
+
+    .circuit-view.is-diagram > .circuit-code,
+    .circuit-view.is-code > .circuit { display: none; }
+
+    .circuit-code {
+      max-width: none;
+      margin: 0;
+      padding: 0.1rem 0;
+      background: none;
+      border: 0;
+      border-radius: 0;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .circuit-code code { font: inherit; color: inherit; }
+
+    .import {
+      padding: 0.15rem 0.55rem;
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      background: var(--surface);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 0.66rem;
+      color: var(--ink-3);
+      white-space: nowrap;
+    }
+
+    .import:hover { border-color: var(--spot); color: var(--spot); }
+    .import.is-done { border-color: var(--spot); background: var(--tint); color: var(--spot-deep); }
+    .import-what { color: var(--ink-2); font-weight: 600; }
+    .import:hover .import-what,
+    .import.is-done .import-what { color: inherit; }
+
+    /* The drawing itself, in the manual's ink rather than the editor's. */
+    .circuit { display: block; height: auto; }
+    .circuit .cb { fill: var(--paper); stroke: var(--rule); stroke-width: 1; }
+    .circuit .cw { fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-linejoin: round; }
+    .circuit .cw.bus { stroke-width: 3; }
+    .circuit .cp,
+    .circuit .cs { fill: var(--ink-3); }
+    .circuit .cj { fill: var(--ink-2); }
+    .circuit .cn {
+      fill: var(--ink);
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .circuit .cl {
+      fill: var(--spot);
+      font-family: var(--sans);
+      font-size: 9px;
+      dominant-baseline: central;
+    }
+    .circuit .cpl {
+      fill: var(--ink-3);
+      font-family: var(--sans);
+      font-size: 9px;
+      dominant-baseline: central;
+    }
+
+    /* What the reader should not see until they have tried it themselves.
+       No frame and no padding of its own: the answer is marked by its colour,
+       and the circuits inside are wide enough without being inset twice. */
+    .answer {
+      margin: 1.4rem 0;
+      max-width: var(--measure);
+      border: 1px solid var(--spot);
+      border-radius: 3px;
+      /* so the bar's corners follow the box's when it is the whole box */
+      overflow: hidden;
+    }
+
+    /* The tint marks the answer; it belongs on the bar, which is all there is
+       to see until the answer is opened. */
+    .answer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.35rem 0.5rem;
+      background: var(--tint);
+      font-family: var(--sans);
+    }
+
+    .answer-what {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--spot-deep);
+    }
+
+    .answer-toggle {
+      padding: 0.15rem 0.6rem;
+      border: 1px solid var(--spot);
+      border-radius: 3px;
+      background: var(--surface);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.7rem;
+      color: var(--spot-deep);
+    }
+
+    .answer-toggle:hover { background: var(--spot); color: var(--surface); }
+
+    .answer.is-folded .answer-body { display: none; }
+
+    /* Prose and headings inside an answer are set like prose anywhere else. */
+    .answer-body {
+      padding: 0.7rem 0.85rem;
+    }
+
+    .answer-body > :first-child { margin-top: 0; }
+    .answer-body > :last-child { margin-bottom: 0; }
+
+    /* A circuit is the exception: it pulls back out to the full width, because
+       a schematic inset on both sides has less room than it needs already. */
+    .answer-body .circuit-wrap {
+      max-width: none;
+      margin-left: -0.85rem;
+      margin-right: -0.85rem;
+      border-right: 0;
+      border-radius: 0;
+    }
+
+    /* An answer that is only a circuit is filled by it, corner to corner --
+       otherwise the body's padding shows as a band above and below. */
+    .answer-body > .circuit-wrap:only-child {
+      margin-top: -0.7rem;
+      margin-bottom: -0.7rem;
+      border-top: 0;
+      border-bottom: 0;
     }
 
     /* A listing worth keeping on the page but not worth reading on the way
@@ -1414,13 +1593,76 @@
 
   <script>
     (function () {
-      document.querySelectorAll('.fold').forEach(function (fold) {
-        var button = fold.querySelector('.fold-toggle');
-        var label = button.textContent;
+      document.querySelectorAll('.fold, .answer').forEach(function (fold) {
+        var button = fold.querySelector('.fold-toggle, .answer-toggle');
+        var shut = button.textContent;
+        var open = button.dataset.open || 'Collapse';
         button.addEventListener('click', function () {
           var folded = fold.classList.toggle('is-folded');
           button.setAttribute('aria-expanded', String(!folded));
-          button.textContent = folded ? label : 'Collapse';
+          button.textContent = folded ? shut : open;
+        });
+      });
+    })();
+  </script>
+
+  <script>
+    /* Diagram or code -- the same circuit, two ways of reading it. */
+    (function () {
+      document.querySelectorAll('.circuit-seg').forEach(function (seg) {
+        var view = seg.closest('.circuit-wrap').querySelector('.circuit-view');
+        seg.querySelectorAll('button').forEach(function (button) {
+          button.addEventListener('click', function () {
+            view.className = 'circuit-view is-' + button.dataset.show;
+            seg.querySelectorAll('button').forEach(function (b) {
+              b.classList.toggle('is-on', b === button);
+            });
+          });
+        });
+      });
+    })();
+
+    /* Send a circuit to the editor. Same origin, so a broadcast reaches an
+       open tab directly; with none open it waits in localStorage until one
+       starts, and we point the reader at it. */
+    (function () {
+      var buttons = document.querySelectorAll('.import');
+      if (!buttons.length) return;
+      var KEY = 'nand.import';
+      var channel = null;
+      try { channel = new BroadcastChannel(KEY); } catch (e) { /* unsupported */ }
+
+      var waiting = null;
+      if (channel) {
+        channel.addEventListener('message', function (event) {
+          if (!waiting || !event.data || event.data.kind !== 'imported') return;
+          clearTimeout(waiting.timer);
+          waiting.button.className = 'import is-done';
+          waiting.button.textContent = 'Imported as ' + event.data.name;
+          waiting = null;
+        });
+      }
+
+      buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          var wrap = button.closest('.circuit-wrap');
+          var message = {
+            kind: 'import',
+            name: button.dataset.name || 'Imported',
+            source: wrap.querySelector('.circuit-code').textContent,
+          };
+          try { localStorage.setItem(KEY, JSON.stringify(message)); } catch (e) { /* private mode */ }
+          if (channel) channel.postMessage(message);
+
+          button.textContent = 'Importing\u2026';
+          if (waiting) clearTimeout(waiting.timer);
+          waiting = { button: button, timer: setTimeout(function () {
+            // Nobody answered, so there is no editor open to answer.
+            button.className = 'import';
+            button.textContent = 'Open the editor';
+            button.onclick = function () { window.open('/', '_blank', 'noopener'); };
+            waiting = null;
+          }, 600) };
         });
       });
     })();

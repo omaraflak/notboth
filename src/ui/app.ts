@@ -2,8 +2,9 @@ import { compile, type Netlist } from '../core/compile';
 import { Simulator } from '../core/sim';
 import { newId } from '../core/ids';
 import {
-  createProject, getDef, nameNewInstances, requireDef,
+  createProject, emptyDef, getDef, nameNewInstances, requireDef, uniqueName,
 } from '../core/project';
+import { applyText } from '../core/hdl';
 import { getLastOpen, listProjects, loadProject, saveProject, setLastOpen } from '../core/storage';
 import type { ComponentDef, Id, Instance, Project, Wire } from '../core/types';
 
@@ -122,6 +123,28 @@ export class App {
     this.scheduleCompile();
     this.persist();
     this.emit('project', 'selection');
+  }
+
+  /**
+   * Take in a component written in the text form, from wherever.
+   *
+   * The manual sends its answers this way. A name already in use is not
+   * overwritten -- the import lands beside it under a free name, because the
+   * reader's own attempt is the thing they were working on.
+   */
+  importComponent(name: string, source: string): { name: string } | { error: string } {
+    const wanted = uniqueName(this.project, name || 'Imported');
+    const def = emptyDef(wanted, null);
+    this.project.defs.push(def);
+    const issues = applyText(this.project, def, source);
+    if (issues.length) {
+      this.project.defs = this.project.defs.filter((d) => d.id !== def.id);
+      return { error: issues[0].message };
+    }
+    this.mutate(() => { /* the def is already in place; this records the step */ });
+    this.openComponent(def.id);
+    this.toast(wanted === name ? `Imported ${wanted}` : `Imported as ${wanted}`);
+    return { name: wanted };
   }
 
   /* ---------------- mutation and history ---------------- */
