@@ -571,7 +571,6 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 .row.selected { background: var(--accent-soft); color: var(--accent); }
 .row.selected .row-meta { color: var(--accent); opacity: .7; }
 .row.armed { box-shadow: inset 0 0 0 1px var(--accent); }
-.row.drop { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
 .row-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-meta { font-size: 10px; color: var(--text-faint); font-family: var(--mono); }
 .row-glyph { width: 13px; color: var(--text-faint); display: flex; }
@@ -593,7 +592,73 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 .row-act:hover { background: var(--bg-active); color: var(--text); opacity: 1; }
 .row-act.danger:hover { background: var(--danger-soft); color: var(--danger); }
 .row.folder .row-name { font-weight: 500; }
+.row.folder { cursor: pointer; }
 .row.err .row-meta { color: var(--danger); }
+
+/* The gutter every row reserves, so glyphs line up whether or not the row
+   has anything to open. Only a folder puts a chevron in it. */
+.row-twisty {
+  flex: none; width: 11px; height: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint);
+  transform: rotate(90deg);
+  transition: transform .13s ease;
+}
+.row.folder.shut .row-twisty { transform: rotate(0deg); }
+.row.folder:hover .row-twisty { color: var(--text-dim); }
+
+/* Where a drop would land: the folder's whole region, its contents included,
+   because all of it accepts the drop and all of it is about to change.
+
+   Drawn as a layer behind the rows rather than as a background on the wrapper
+   itself. A background would have to be inset to line up with the rows, and
+   adding that inset only while dragging would shift the list sideways under
+   the cursor at the worst possible moment. */
+.folder-wrap { position: relative; }
+.folder-wrap.drop { isolation: isolate; }
+.folder-wrap.drop::before {
+  content: '';
+  position: absolute; inset: 0 5px;
+  z-index: -1;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+/* While the region is lit, the cursor is inside it by definition, and a hover
+   tint on whichever row it happens to be over would break the block back into
+   separate lines. */
+.folder-wrap.drop .row:hover { background: none; }
+
+/* The folder itself reads a shade stronger than its contents, so a nest of
+   them still says which one is being aimed at. */
+.folder-wrap.drop > .row.folder {
+  color: var(--accent);
+}
+.folder-wrap.drop > .row.folder .row-glyph,
+.folder-wrap.drop > .row.folder .row-twisty { color: var(--accent); }
+
+/* Picked out for a group move: the app's own "this one is selected" colour,
+   because that is what it means. The component actually open in the editor
+   carries the accent in its text and glyph as well, so it still reads as the
+   one distinct row among them. */
+.row.picked { background: var(--accent-soft); }
+
+/* What is being carried, and where it would land. */
+.row.lifting { opacity: .4; }
+.drag-badge {
+  position: fixed; top: -1000px; left: -1000px;
+  padding: 4px 9px; border-radius: var(--radius);
+  background: var(--accent); color: var(--accent-text);
+  font-size: 11px; font-weight: 500; white-space: nowrap;
+  box-shadow: var(--shadow-2);
+}
+.tree-label.drop {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  margin: 0 5px;
+  padding-left: 5px; padding-right: 5px;
+}
 
 .folder-children { margin-left: 10px; border-left: 1px solid var(--line); }
 

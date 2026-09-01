@@ -378,6 +378,25 @@ export function deleteFolder(p: Project, folderId: Id) {
   p.folders = p.folders.filter((f) => f.id !== folderId);
 }
 
+/**
+ * Does `folderId` sit at or inside `ancestor`?
+ *
+ * The question worth asking before moving a folder: putting one inside its own
+ * descendant would cut that branch off the tree, taking everything on it with
+ * it and leaving a ring of folders that is its own parent.
+ */
+export function folderContains(p: Project, ancestor: Id, folderId: Id | null): boolean {
+  const seen = new Set<Id>();
+  let cur = folderId;
+  while (cur) {
+    if (cur === ancestor) return true;
+    if (seen.has(cur)) return false;      // already broken; do not spin on it
+    seen.add(cur);
+    cur = p.folders.find((f) => f.id === cur)?.parent ?? null;
+  }
+  return false;
+}
+
 export function folderPath(p: Project, folderId: Id | null): string {
   const parts: string[] = [];
   let cur = folderId;
