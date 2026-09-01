@@ -230,35 +230,17 @@ export class Library {
     const more = h('button', { class: 'row-more' }, icon('more', 12));
     more.addEventListener('click', (e) => {
       e.stopPropagation();
-      const r = more.getBoundingClientRect();
-      contextMenu(r.left, r.bottom + 4, [
-        {
-          label: 'Rename folder', onClick: async () => {
-            const name = await promptText('Rename folder', 'Name', folder.name);
-            if (name) app.mutate(() => { folder.name = name; });
-          },
-        },
-        {
-          label: 'New component here', icon: 'plus',
-          onClick: () => this.newComponent(folder.id),
-        },
-        {
-          label: 'New folder here', icon: 'folder',
-          onClick: () => this.newFolder(folder.id),
-        },
-        'divider',
-        {
-          label: 'Delete folder', icon: 'trash', danger: true,
-          onClick: async () => {
-            const ok = await confirmDialog('Delete folder',
-              `Delete "${folder.name}"? Components inside it move up a level; nothing is lost.`,
-              { confirmLabel: 'Delete', danger: true });
-            if (ok) app.mutate(() => deleteFolder(app.project, folder.id));
-          },
-        },
-      ]);
+      this.folderMenu(folder, more, kids.length);
     });
     row.appendChild(more);
+
+    // The same menu, from the same gesture that opens a component's. Reaching
+    // for the three dots because a folder is the one row that will not answer
+    // a right-click is a distinction with nothing behind it.
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.folderMenu(folder, more, kids.length, e);
+    });
 
     this.dragSource(row, () => ({ kind: 'folder', ids: [folder.id] }));
 
@@ -454,6 +436,41 @@ export class Library {
       clearTimeout(this.springTimer);
       this.springTimer = null;
     }
+  }
+
+  private folderMenu(folder: Folder, anchor: HTMLElement, count: number, event?: MouseEvent) {
+    const app = this.app;
+    const r = anchor.getBoundingClientRect();
+    const x = event?.clientX ?? r.left;
+    const y = event?.clientY ?? r.bottom + 4;
+
+    contextMenu(x, y, [
+      { header: `${folder.name}${count ? ` - ${count} inside` : ''}` },
+      {
+        label: 'Rename folder', onClick: async () => {
+          const name = await promptText('Rename folder', 'Name', folder.name);
+          if (name) app.mutate(() => { folder.name = name; });
+        },
+      },
+      {
+        label: 'New component here', icon: 'plus',
+        onClick: () => this.newComponent(folder.id),
+      },
+      {
+        label: 'New folder here', icon: 'folder',
+        onClick: () => this.newFolder(folder.id),
+      },
+      'divider',
+      {
+        label: 'Delete folder', icon: 'trash', danger: true,
+        onClick: async () => {
+          const ok = await confirmDialog('Delete folder',
+            `Delete "${folder.name}"? Components inside it move up a level; nothing is lost.`,
+            { confirmLabel: 'Delete', danger: true });
+          if (ok) app.mutate(() => deleteFolder(app.project, folder.id));
+        },
+      },
+    ]);
   }
 
   private defMenu(def: ComponentDef, anchor: HTMLElement, event?: MouseEvent) {
