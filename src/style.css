@@ -565,10 +565,23 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
   border-radius: var(--radius);
   margin: 0 5px;
   cursor: default; user-select: none;
+  position: relative;
   transition: background .07s ease;
 }
 .row:hover { background: var(--bg-hover); }
-.row.selected { background: var(--accent-soft); color: var(--accent); }
+
+/* Two different things used to look the same. A filled row now means picked
+   out -- the ordinary sense of selected, and there can be several. The one
+   open in the editor is not a selection at all but a place you are standing,
+   so it says so the way an editor says it: a spine down the edge and its name
+   in the accent, with no fill of its own. A row that is both gets both. */
+.row.selected { color: var(--accent); }
+.row.selected::after {
+  content: '';
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 2px; border-radius: 0 1px 1px 0;
+  background: var(--accent);
+}
 .row.selected .row-meta { color: var(--accent); opacity: .7; }
 .row.armed { box-shadow: inset 0 0 0 1px var(--accent); }
 .row-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

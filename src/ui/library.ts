@@ -90,6 +90,15 @@ export class Library {
     });
     document.addEventListener('dragend', () => this.endDrag());
 
+    // Escape abandons a drag. Most browsers cancel the drag themselves and
+    // send dragend, but not every one does, and a drag that is still holding
+    // three components when the reader has said no is worse than useless --
+    // so the state is dropped here too, and the drop that may still arrive
+    // finds nothing to act on.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.drag) this.endDrag();
+    }, true);
+
     app.on('project', () => this.render());
     app.on('selection', () => this.render());
     this.render();
@@ -173,6 +182,13 @@ export class Library {
     // A component that has been deleted or filed away cannot stay picked.
     const alive = new Set(this.visibleDefs);
     for (const id of [...this.picked]) if (!alive.has(id)) this.picked.delete(id);
+
+    // The list can be redrawn in the middle of a drag -- a shut folder
+    // springing open under the pointer does exactly that -- and the rows being
+    // carried have to go on looking like it in the new list.
+    if (this.drag?.kind === 'def') {
+      for (const id of this.drag.ids) this.rowOf.get(id)?.classList.add('lifting');
+    }
   }
 
   private primRow(kind: string): HTMLElement {

@@ -101,6 +101,9 @@ export class CanvasView {
         this.shownDefId = app.openDef.id;
         this.fit();
       }
+      // Arming and disarming both arrive as a project change, and the pointer
+      // has to answer for it whether or not it has moved.
+      this.refreshCursor();
       this.invalidate();
     });
     app.on('selection', () => this.invalidate());
@@ -290,9 +293,15 @@ export class CanvasView {
     c.addEventListener('contextmenu', (e) => { e.preventDefault(); this.onContextMenu(e); });
     c.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && !isTyping(e.target)) { this.spaceHeld = true; e.preventDefault(); }
+      if (e.code === 'Space' && !isTyping(e.target)) {
+        this.spaceHeld = true;
+        this.refreshCursor();
+        e.preventDefault();
+      }
     });
-    window.addEventListener('keyup', (e) => { if (e.code === 'Space') this.spaceHeld = false; });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') { this.spaceHeld = false; this.refreshCursor(); }
+    });
   }
 
   private onDown(e: PointerEvent) {
@@ -389,13 +398,26 @@ export class CanvasView {
         const pin = this.hitPin(g);
         const changed = pin?.pin.pin.id !== this.hoverPin?.pin.pin.id || pin?.inst.id !== this.hoverPin?.inst.id;
         this.hoverPin = pin;
-        this.canvas.style.cursor = this.spaceHeld ? 'grab'
-          : this.app.armed ? 'copy'
-          : pin ? 'crosshair'
-          : this.hitInstance(g) ? 'move' : 'default';
+        this.refreshCursor(pin);
         if (changed) this.invalidate();
       }
     }
+  }
+
+  /**
+   * The pointer's shape, from what is under it and what the app is waiting for.
+   *
+   * This lives on its own so that it can be called when any of that changes
+   * and not only when the mouse moves. Escape puts down an armed component
+   * without the pointer travelling a single pixel, and a cursor still offering
+   * to place one is telling the reader something that is no longer true.
+   */
+  private refreshCursor(pin: PinHit | null = this.hitPin(this.cursor)) {
+    if (this.drag.kind !== 'none') return;      // a drag in progress owns it
+    this.canvas.style.cursor = this.spaceHeld ? 'grab'
+      : this.app.armed ? 'copy'
+      : pin ? 'crosshair'
+      : this.hitInstance(this.cursor) ? 'move' : 'default';
   }
 
   private onUp(e: PointerEvent) {
