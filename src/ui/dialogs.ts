@@ -521,8 +521,8 @@ export function welcomeDialog() {
         h('h1', null, 'Build a computer from one gate'),
         h('p', { class: 'welcome-standfirst' },
           'This circuit editor has a single logic gate: NAND. With it, you can build '
-          + 'a full computer that runs code. Follow the instructions in the manual to '
-          + 'know where to start.'),
+          + 'a full computer that runs code. To start, follow the instructions in the '
+          + 'manual.'),
       ));
 
       const list = h('ol', { class: 'welcome-steps' });
