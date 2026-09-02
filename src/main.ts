@@ -1,5 +1,6 @@
 import './style.css';
 import { App } from './ui/app';
+import { welcomeDialog } from './ui/dialogs';
 import { CanvasView, isTyping } from './ui/canvas';
 import { Chrome } from './ui/chrome';
 import { Inspector } from './ui/inspector';
@@ -9,6 +10,7 @@ import { TextView } from './ui/textview';
 import { h } from './ui/dom';
 import { initTheme } from './ui/theme';
 import { requestPersistence } from './core/storage';
+import { isUntouched } from './core/project';
 
 /**
  * The manual runs in its own tab and offers to import the circuits it shows.
@@ -88,6 +90,11 @@ async function boot() {
 
   mountHint(app, canvasWrap);
   mountToast(app);
+
+  // Nothing built yet: say what this is. Every visit until they start, not
+  // only the first -- somebody who has not built anything has not necessarily
+  // seen it before.
+  if (isUntouched(app.project)) welcomeDialog();
   bindKeys(app, canvas, extract);
 
   app.compileNow();

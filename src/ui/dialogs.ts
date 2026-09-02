@@ -488,6 +488,47 @@ export function simulationHelpDialog() {
   });
 }
 
+/**
+ * Shown while a project is still untouched -- every visit, not just the first.
+ *
+ * Somebody who has not built anything yet has not necessarily seen this
+ * before: they may have closed the tab and come back a week later. It stops
+ * appearing the moment they place a gate, which is a better signal than
+ * remembering whether the box has been shut once.
+ */
+export function welcomeDialog() {
+  const steps: [string, string, string][] = [
+    ['plus', 'Place a part', 'Pick one on the left, then click the grid.'],
+    ['swap', 'Wire it up', 'Drag from an output pin to an input pin.'],
+    ['chip', 'Make it a component',
+      'Select what you built and right-click. It then works like a built-in.'],
+    ['book', 'The manual', 'What to build next, and why. Start there.'],
+  ];
+  openModal({
+    title: 'Build a computer from one gate',
+    build: (body) => {
+      body.appendChild(h('p', { class: 'welcome-lead' },
+        'A circuit editor with one logic gate in it: NAND. Arithmetic, memory, a whole '
+        + 'processor: all of it out of NANDs, and out of the parts you make from them.'));
+      const grid = h('div', { class: 'help-grid' });
+      for (const [ico, name, text] of steps) {
+        grid.appendChild(h('span', { class: 'help-ico' }, icon(ico, 14)));
+        grid.appendChild(h('span', { class: 'help-name' }, name));
+        grid.appendChild(h('span', { class: 'help-text' }, text));
+      }
+      body.appendChild(grid);
+    },
+    foot: (foot, close) => {
+      foot.appendChild(button('Start building', { className: 'bordered', onClick: () => close() }));
+      foot.appendChild(h('span', { class: 'spacer' }));
+      foot.appendChild(button('Open the manual', {
+        className: 'primary', icon: 'book',
+        onClick: () => { window.open('/manual.html', '_blank', 'noopener'); close(); },
+      }));
+    },
+  });
+}
+
 export function shortcutsDialog() {
   const rows: [string, string][] = [
     ['Pan', 'Space + drag, middle drag, or two-finger scroll'],

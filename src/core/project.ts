@@ -22,6 +22,19 @@ export function createProject(name = 'Untitled'): Project {
   };
 }
 
+/**
+ * Has anything been built in this project yet?
+ *
+ * A new project arrives holding one empty component to open into, so an
+ * untouched project is not an empty one -- it is one where that component is
+ * still the only component, and still empty. Placing a single gate counts as
+ * having started, even before anything is named: somebody halfway through
+ * wiring a circuit knows what this is and does not need telling.
+ */
+export function isUntouched(p: Project): boolean {
+  return p.defs.length <= 1 && p.defs.every((d) => d.instances.length === 0);
+}
+
 export function emptyDef(name: string, folder: Id | null): ComponentDef {
   return { id: newId('c_'), name, folder, instances: [], wires: [], updatedAt: Date.now() };
 }
