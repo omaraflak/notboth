@@ -3,15 +3,18 @@ import { createProject, defSignature, previewReplace, replaceAllUses, usageCount
 import { downloadFile, exportProject, importProject, listProjects, pickFile, saveProject, deleteProject } from '../core/storage';
 import type { Id, Instance, Project } from '../core/types';
 import type { App } from './app';
-import { append, button, clear, h, icon } from './dom';
+import { append, brandMark, button, clear, h, icon } from './dom';
 
 /* ------------------------------------------------------------------ *
  * Primitives
  * ------------------------------------------------------------------ */
 
 interface ModalSpec {
-  title: string;
+  /** Omitted when the dialog would rather draw its own heading. */
+  title?: string;
   wide?: boolean;
+  /** An extra class on the modal, for one that needs its own look. */
+  className?: string;
   build: (body: HTMLElement, close: (value?: unknown) => void) => void;
   foot?: (foot: HTMLElement, close: (value?: unknown) => void) => void;
 }
@@ -26,7 +29,7 @@ const modalStack: HTMLElement[] = [];
 export function openModal(spec: ModalSpec): Promise<unknown> {
   return new Promise((resolve) => {
     const scrim = h('div', { class: 'scrim' });
-    const modal = h('div', { class: `modal ${spec.wide ? 'wide' : ''}` });
+    const modal = h('div', { class: `modal ${spec.wide ? 'wide' : ''} ${spec.className ?? ''}`.trim() });
     const body = h('div', { class: 'body' });
     const foot = h('div', { class: 'foot' });
 
@@ -60,7 +63,7 @@ export function openModal(spec: ModalSpec): Promise<unknown> {
     modalStack.push(scrim);
     scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) close(undefined); });
 
-    modal.appendChild(h('h2', null, spec.title));
+    if (spec.title) modal.appendChild(h('h2', null, spec.title));
     modal.appendChild(body);
     modal.appendChild(foot);
     scrim.appendChild(modal);
@@ -495,34 +498,49 @@ export function simulationHelpDialog() {
  * before: they may have closed the tab and come back a week later. It stops
  * appearing the moment they place a gate, which is a better signal than
  * remembering whether the box has been shut once.
+ *
+ * It is dressed as the manual's masthead rather than as an ordinary dialog --
+ * the orange stamp over a rule, the heavy tight-set title, the standfirst,
+ * numbered stages in mono. This is the first thing anyone sees, and where it
+ * is pointing them is the manual, so it should look like the same publication
+ * rather than like a settings box that happens to mention one.
  */
 export function welcomeDialog() {
   const steps: [string, string, string][] = [
-    ['plus', 'Place a part', 'Pick one on the left, then click the grid.'],
-    ['swap', 'Wire it up', 'Drag from an output pin to an input pin.'],
-    ['chip', 'Make it a component',
-      'Select what you built and right-click. It then works like a built-in.'],
-    ['book', 'The manual', 'What to build next, and why. Start there.'],
+    ['01', 'Place a part', 'Pick one on the left, then click the grid.'],
+    ['02', 'Wire it up', 'Drag from an output pin to an input pin.'],
+    ['03', 'Make it a component',
+      'Select what you built and right-click. It then works like a built-in, '
+      + 'and the next thing you build can use it.'],
   ];
   openModal({
-    title: 'Build a computer from one gate',
+    className: 'welcome',
     build: (body) => {
-      body.appendChild(h('p', { class: 'welcome-lead' },
-        'A circuit editor with one logic gate in it: NAND. Arithmetic, memory, a whole '
-        + 'processor: all of it out of NANDs, and out of the parts you make from them.'));
-      const grid = h('div', { class: 'help-grid' });
-      for (const [ico, name, text] of steps) {
-        grid.appendChild(h('span', { class: 'help-ico' }, icon(ico, 14)));
-        grid.appendChild(h('span', { class: 'help-name' }, name));
-        grid.appendChild(h('span', { class: 'help-text' }, text));
+      const stamp = h('div', { class: 'welcome-stamp' },
+        brandMark(15), h('span', null, 'notboth'), h('i'));
+      body.appendChild(h('div', { class: 'welcome-head' },
+        stamp,
+        h('h1', null, 'Build a computer from one gate'),
+        h('p', { class: 'welcome-standfirst' },
+          'A circuit editor with one logic gate in it: NAND. Arithmetic, memory, '
+          + 'a whole processor: all of it out of NANDs, and out of the parts you '
+          + 'make from them.'),
+      ));
+
+      const list = h('ol', { class: 'welcome-steps' });
+      for (const [n, name, text] of steps) {
+        list.appendChild(h('li', null,
+          h('span', { class: 'n' }, n),
+          h('b', null, name),
+          h('span', { class: 'say' }, text)));
       }
-      body.appendChild(grid);
+      body.appendChild(list);
     },
     foot: (foot, close) => {
       foot.appendChild(button('Start building', { className: 'bordered', onClick: () => close() }));
       foot.appendChild(h('span', { class: 'spacer' }));
       foot.appendChild(button('Open the manual', {
-        className: 'primary', icon: 'book',
+        className: 'manual', icon: 'book',
         onClick: () => { window.open('/manual.html', '_blank', 'noopener'); close(); },
       }));
     },

@@ -392,12 +392,79 @@ input[type="color"] { padding: 1px; height: 24px; cursor: pointer; }
 
 /* One grid for the whole dialog: glyph, name and prose each keep their own
    column, so a row with no glyph still starts its name where the others do. */
-/* The opening line of the welcome, above the steps. Reads as prose rather
-   than as another row of the grid below it. */
-.welcome-lead {
-  margin: 4px 0 0;
-  font-size: 12.5px; line-height: 1.65; color: var(--text-dim);
+/* ---- the welcome ----
+
+   Dressed as the manual's masthead, because that is where it is sending you:
+   the orange stamp trailing off into a rule, a heavy title set tight, a
+   standfirst, then the stages numbered in mono. Every colour comes from the
+   --manual-* tokens, so this and the Manual button in the sidebar stay the
+   same publication without either of them knowing the other exists. */
+
+/* Clipping on the modal itself, so the masthead's colour runs into the
+   rounded corners without the body having to give up scrolling to do it --
+   on a short window there still has to be somewhere for the text to go. */
+.modal.welcome { width: 520px; overflow: hidden; }
+.modal.welcome .body { padding: 0; }
+
+.welcome-head {
+  padding: 26px 28px 24px;
+  background: var(--manual-soft);
+  border-bottom: 2px solid var(--text);
 }
+
+.welcome-stamp {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 20px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--manual-ink);
+}
+.welcome-stamp svg { display: block; color: var(--text); }
+.welcome-stamp .mark-zero { fill: var(--manual-ink); }
+/* The rule runs from the wordmark to the edge, the way a masthead's does. */
+.welcome-stamp i { flex: 1; height: 1px; background: var(--manual-ink); opacity: .35; }
+
+.welcome-head h1 {
+  margin: 0 0 12px;
+  font-size: 27px; font-weight: 700; line-height: 1.06;
+  letter-spacing: -.022em;
+  color: var(--text);
+  text-wrap: balance;
+  max-width: 15ch;
+}
+
+.welcome-standfirst {
+  margin: 0; max-width: 44ch;
+  font-size: 13px; line-height: 1.58; color: var(--text-dim);
+}
+
+.welcome-steps {
+  list-style: none; margin: 0;
+  padding: 22px 28px 24px;
+  display: grid; gap: 16px;
+}
+.welcome-steps li {
+  display: grid; grid-template-columns: 24px 1fr;
+  column-gap: 12px; row-gap: 3px;
+  align-items: baseline;
+}
+.welcome-steps .n {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  color: var(--manual-ink);
+}
+.welcome-steps b { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.welcome-steps .say {
+  grid-column: 2;
+  font-size: 11.5px; line-height: 1.55; color: var(--text-dim);
+}
+
+/* The manual's own colour, wherever a button leads to it. */
+.btn.manual {
+  background: var(--manual-solid); color: var(--manual-on);
+  border-color: transparent; font-weight: 500;
+}
+.btn.manual:hover { background: var(--manual-solid); filter: brightness(1.09); }
+.btn.manual:focus-visible { outline: 2px solid var(--manual-solid); outline-offset: 2px; }
 
 .help-head {
   font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
