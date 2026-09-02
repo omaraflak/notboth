@@ -507,11 +507,9 @@ export function simulationHelpDialog() {
  */
 export function welcomeDialog() {
   const steps: [string, string, string][] = [
-    ['01', 'Place a part', 'Pick one on the left, then click the grid.'],
-    ['02', 'Wire it up', 'Drag from an output pin to an input pin.'],
-    ['03', 'Make it a component',
-      'Select what you built and right-click. It then works like a built-in, '
-      + 'and the next thing you build can use it.'],
+    ['01', 'Create a component', 'Click on the + button in the left panel'],
+    ['02', 'Place parts', 'Place inputs, outputs, and desired chips on the grid'],
+    ['03', 'Wire them up', "Drag from a chip's output pin to another chip's input pin"],
   ];
   openModal({
     className: 'welcome',
